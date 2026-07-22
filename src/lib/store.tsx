@@ -47,6 +47,7 @@ interface StoreContextType {
   updateProfile: (data: Partial<UserProfile>) => void;
   allUsers: UserProfile[];
   updateUserBalanceByAdmin: (userId: string, newBalance: number) => void;
+  resetToInitialData: () => void;
 }
 
 const StoreContext = createContext<StoreContextType | undefined>(undefined);
@@ -61,7 +62,25 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // Load state from localStorage or initial fallback
   const [allUsers, setAllUsers] = useState<UserProfile[]>(() => {
     const saved = localStorage.getItem('trafficsell_users');
-    return saved ? JSON.parse(saved) : INITIAL_USERS;
+    let usersList: UserProfile[] = saved ? JSON.parse(saved) : INITIAL_USERS;
+    if (!usersList || usersList.length === 0) usersList = INITIAL_USERS;
+    // Guarantee master admin exists
+    const hasMaster = usersList.some(u => u.email.toLowerCase() === 'developershanawar@gmail.com');
+    if (!hasMaster) {
+      const masterUser: UserProfile = {
+        id: 'usr_master_admin',
+        email: 'developershanawar@gmail.com',
+        fullName: 'Shanawar Admin',
+        telegram: '@developershanawar',
+        whatsApp: '+92 300-1234567',
+        walletBalance: 1250.00,
+        role: 'admin',
+        createdAt: '2026-01-01T00:00:00Z',
+        avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=250'
+      };
+      usersList = [masterUser, ...usersList];
+    }
+    return usersList;
   });
 
   const [user, setUser] = useState<UserProfile | null>(() => {
@@ -78,27 +97,32 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const [campaigns, setCampaigns] = useState<Campaign[]>(() => {
     const saved = localStorage.getItem('trafficsell_campaigns');
-    return saved ? JSON.parse(saved) : INITIAL_CAMPAIGNS;
+    const parsed = saved ? JSON.parse(saved) : null;
+    return (parsed && parsed.length > 0) ? parsed : INITIAL_CAMPAIGNS;
   });
 
   const [walletDeposits, setWalletDeposits] = useState<PaymentDeposit[]>(() => {
     const saved = localStorage.getItem('trafficsell_payments');
-    return saved ? JSON.parse(saved) : INITIAL_PAYMENTS;
+    const parsed = saved ? JSON.parse(saved) : null;
+    return (parsed && parsed.length > 0) ? parsed : INITIAL_PAYMENTS;
   });
 
   const [transactions, setTransactions] = useState<WalletTransaction[]>(() => {
     const saved = localStorage.getItem('trafficsell_transactions');
-    return saved ? JSON.parse(saved) : INITIAL_TRANSACTIONS;
+    const parsed = saved ? JSON.parse(saved) : null;
+    return (parsed && parsed.length > 0) ? parsed : INITIAL_TRANSACTIONS;
   });
 
   const [supportTickets, setSupportTickets] = useState<SupportTicket[]>(() => {
     const saved = localStorage.getItem('trafficsell_tickets');
-    return saved ? JSON.parse(saved) : INITIAL_TICKETS;
+    const parsed = saved ? JSON.parse(saved) : null;
+    return (parsed && parsed.length > 0) ? parsed : INITIAL_TICKETS;
   });
 
   const [notifications, setNotifications] = useState<AppNotification[]>(() => {
     const saved = localStorage.getItem('trafficsell_notifications');
-    return saved ? JSON.parse(saved) : INITIAL_NOTIFICATIONS;
+    const parsed = saved ? JSON.parse(saved) : null;
+    return (parsed && parsed.length > 0) ? parsed : INITIAL_NOTIFICATIONS;
   });
 
   const [platformSettings, setPlatformSettings] = useState<PlatformSettings>(() => {
@@ -485,6 +509,23 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   };
 
+  const resetToInitialData = () => {
+    setAllUsers(INITIAL_USERS);
+    setCampaigns(INITIAL_CAMPAIGNS);
+    setWalletDeposits(INITIAL_PAYMENTS);
+    setTransactions(INITIAL_TRANSACTIONS);
+    setSupportTickets(INITIAL_TICKETS);
+    setNotifications(INITIAL_NOTIFICATIONS);
+    setPlatformSettings(DEFAULT_SETTINGS);
+    localStorage.setItem('trafficsell_users', JSON.stringify(INITIAL_USERS));
+    localStorage.setItem('trafficsell_campaigns', JSON.stringify(INITIAL_CAMPAIGNS));
+    localStorage.setItem('trafficsell_payments', JSON.stringify(INITIAL_PAYMENTS));
+    localStorage.setItem('trafficsell_transactions', JSON.stringify(INITIAL_TRANSACTIONS));
+    localStorage.setItem('trafficsell_tickets', JSON.stringify(INITIAL_TICKETS));
+    localStorage.setItem('trafficsell_notifications', JSON.stringify(INITIAL_NOTIFICATIONS));
+    localStorage.setItem('trafficsell_settings', JSON.stringify(DEFAULT_SETTINGS));
+  };
+
   return (
     <StoreContext.Provider value={{
       user, theme, toggleTheme, login, register, logout, switchUserRole,
@@ -493,7 +534,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       supportTickets, createTicket, addTicketMessage,
       notifications, markNotificationRead,
       platformSettings, updatePlatformSettings,
-      updateProfile, allUsers, updateUserBalanceByAdmin
+      updateProfile, allUsers, updateUserBalanceByAdmin, resetToInitialData
     }}>
       {children}
     </StoreContext.Provider>

@@ -111,8 +111,11 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ currentTab, on
               </div>
             </div>
             <button
-              onClick={logout}
-              className="p-1.5 text-slate-400 hover:text-rose-500 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+              onClick={() => {
+                logout();
+                onSelectTab('landing');
+              }}
+              className="p-1.5 text-slate-400 hover:text-rose-500 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer"
               title="Sign Out"
             >
               <LogOut className="w-4 h-4" />

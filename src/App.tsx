@@ -33,29 +33,80 @@ function AppContent() {
   const [reportCampaign, setReportCampaign] = useState<Campaign | null>(null);
   const [legalType, setLegalType] = useState<'privacy' | 'terms' | 'refund' | null>(null);
 
+  // Auto redirect on user signout
+  React.useEffect(() => {
+    if (!user && currentView === 'dashboard') {
+      setCurrentView('landing');
+      if (window.location.hash !== '#landing') {
+        window.history.replaceState(null, '', '#landing');
+      }
+    }
+  }, [user, currentView]);
+
+  // SEO Friendly URL hash sync
+  React.useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash.replace('#', '');
+      if (!hash || hash === 'landing') {
+        setCurrentView('landing');
+      } else if (hash === 'login') {
+        setCurrentView('login');
+      } else if (hash === 'register') {
+        setCurrentView('register');
+      } else if (hash === 'admin') {
+        if (user) {
+          setCurrentView('dashboard');
+          setDashboardTab('admin');
+        } else {
+          setCurrentView('login');
+        }
+      } else if (['overview', 'buy-traffic', 'campaigns', 'wallet', 'analytics', 'support', 'profile', 'settings'].includes(hash)) {
+        if (user) {
+          setCurrentView('dashboard');
+          setDashboardTab(hash);
+        } else {
+          setCurrentView('login');
+        }
+      }
+    };
+
+    handleHashChange();
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, [user]);
+
+  // Update hash when view or tab changes
+  const changeViewWithHash = (view: string, tab?: string) => {
+    setCurrentView(view);
+    if (view === 'landing' || view === 'login' || view === 'register') {
+      window.history.pushState(null, '', `#${view}`);
+    } else if (view === 'dashboard' && tab) {
+      setDashboardTab(tab);
+      window.history.pushState(null, '', `#${tab}`);
+    }
+  };
+
   const handleOpenAuth = (mode: 'login' | 'register') => {
-    setCurrentView(mode);
+    changeViewWithHash(mode);
   };
 
   const handleNavigateView = (view: string) => {
     if (view === 'landing' || view === 'login' || view === 'register') {
-      setCurrentView(view);
+      changeViewWithHash(view);
     } else {
       if (!user) {
-        setCurrentView('login');
+        changeViewWithHash('login');
         return;
       }
-      setCurrentView('dashboard');
-      setDashboardTab(view);
+      changeViewWithHash('dashboard', view);
     }
   };
 
   const handleStartCalculatorCampaign = (details: any) => {
     if (!user) {
-      setCurrentView('register');
+      changeViewWithHash('register');
     } else {
-      setCurrentView('dashboard');
-      setDashboardTab('campaigns');
+      changeViewWithHash('dashboard', 'campaigns');
     }
   };
 

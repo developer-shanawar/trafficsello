@@ -10,7 +10,7 @@ import { PaymentDeposit, PlatformSettings } from '../../types';
 export const AdminDashboard: React.FC = () => {
   const {
     walletDeposits, approveDeposit, rejectDeposit, campaigns, updateCampaignStatus,
-    allUsers, updateUserBalanceByAdmin, platformSettings, updatePlatformSettings
+    allUsers, updateUserBalanceByAdmin, platformSettings, updatePlatformSettings, resetToInitialData
   } = useStore();
 
   const [activeTab, setActiveTab] = useState<'deposits' | 'campaigns' | 'users' | 'settings'>('deposits');
@@ -64,7 +64,7 @@ export const AdminDashboard: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-4 bg-slate-950/80 p-3.5 rounded-2xl border border-amber-500/20 text-xs">
+        <div className="flex flex-wrap items-center gap-4 bg-slate-950/80 p-3.5 rounded-2xl border border-amber-500/20 text-xs">
           <div>
             <span className="text-slate-400 block">Pending Deposits:</span>
             <span className="font-extrabold text-amber-400 text-lg">{pendingDeposits.length} Pending</span>
@@ -74,6 +74,17 @@ export const AdminDashboard: React.FC = () => {
             <span className="text-slate-400 block">Approved Volume:</span>
             <span className="font-extrabold text-[#DFFF2F] text-lg">${totalVolumeApproved.toFixed(2)}</span>
           </div>
+          <div className="h-8 w-px bg-slate-800" />
+          <button
+            onClick={() => {
+              if (confirm('Reset and reload initial user, deposit, and campaign data?')) {
+                resetToInitialData();
+              }
+            }}
+            className="py-1.5 px-3 bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 font-bold rounded-xl border border-amber-500/30 transition-all cursor-pointer"
+          >
+            ⚡ Re-load Sample Data
+          </button>
         </div>
       </div>
 
