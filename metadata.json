@@ -1,0 +1,8 @@
+{
+  "name": "TrafficSell - Premium Website Traffic Marketplace",
+  "description": "Modern, high-performance Ad Network & Website Traffic Marketplace with real-time campaign management, manual wallet deposits, live analytics, and admin control.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
