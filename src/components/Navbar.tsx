@@ -55,6 +55,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAuth, onNavigateView, curr
               <img
                 src={siteIconUrl}
                 alt={siteName}
+                onError={(e) => { (e.target as HTMLImageElement).src = '/logo.png'; }}
                 className="h-10 w-10 rounded-xl object-cover shadow-md border-2 border-[#DFFF2F] group-hover:scale-105 transition-transform"
               />
             ) : (
@@ -77,7 +78,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAuth, onNavigateView, curr
         </div>
 
         {/* Center Nav Items (Desktop) */}
-        <nav className="hidden md:flex items-center gap-8 text-sm font-semibold opacity-90 text-[#111827] dark:text-slate-200">
+        <nav className="hidden lg:flex items-center gap-8 text-sm font-semibold opacity-90 text-[#111827] dark:text-slate-200">
           <button
             onClick={() => handleNavClick('landing')}
             className={`hover:opacity-100 transition-opacity cursor-pointer ${currentView === 'landing' ? 'font-bold text-[#111827] dark:text-[#DFFF2F]' : ''}`}
@@ -204,10 +205,10 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAuth, onNavigateView, curr
             </div>
           )}
 
-          {/* Mobile Hamburger Menu Toggle Button */}
+          {/* Mobile / Tablet 3-Line Hamburger Menu Toggle Button */}
           <button
             onClick={() => setMobileMenuOpen(true)}
-            className="md:hidden p-2.5 rounded-xl bg-[#111827] text-[#DFFF2F] dark:bg-[#DFFF2F] dark:text-[#111827] hover:scale-105 transition-all cursor-pointer shadow-md"
+            className="lg:hidden p-2.5 rounded-xl bg-[#111827] text-[#DFFF2F] dark:bg-[#DFFF2F] dark:text-[#111827] hover:scale-105 transition-all cursor-pointer shadow-md"
             aria-label="Open Navigation Menu"
           >
             <Menu className="w-5 h-5" />

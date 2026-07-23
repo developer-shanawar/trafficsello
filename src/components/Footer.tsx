@@ -24,7 +24,7 @@ export const Footer: React.FC<FooterProps> = ({ onOpenLegal }) => {
             <div className="flex items-center gap-3">
               {(brandDisplayMode === 'both' || brandDisplayMode === 'icon') && (
                 siteIconUrl ? (
-                  <img src={siteIconUrl} alt={siteName} className="w-10 h-10 rounded-2xl object-cover border-2 border-[#DFFF2F] shadow-md" />
+                  <img src={siteIconUrl} alt={siteName} onError={(e) => { (e.target as HTMLImageElement).src = '/logo.png'; }} className="w-10 h-10 rounded-2xl object-cover border-2 border-[#DFFF2F] shadow-md" />
                 ) : (
                   <div className="w-10 h-10 rounded-2xl bg-[#DFFF2F] text-slate-900 flex items-center justify-center font-extrabold shadow-md">
                     <Activity className="w-5 h-5 stroke-[2.5]" />

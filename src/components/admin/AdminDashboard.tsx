@@ -1198,56 +1198,141 @@ export const AdminDashboard: React.FC = () => {
               <Sliders className="w-4 h-4" /> Website Name & Logo Branding Settings
             </h4>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold uppercase text-slate-400 mb-1">Website Display Name</label>
-                <input
-                  type="text"
-                  value={settingsForm.siteName || 'TrafficSell'}
-                  onChange={(e) => setSettingsForm({ ...settingsForm, siteName: e.target.value })}
-                  placeholder="e.g. TrafficSell, AdTarget, GeoTraffic"
-                  className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white font-bold"
-                />
+            <div className="bg-slate-900/60 p-5 rounded-2xl border border-slate-800 space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="text-sm font-extrabold text-white flex items-center gap-2">
+                    <ImageIcon className="w-4 h-4 text-[#DFFF2F]" /> Website Logo, Favicon & Brand Asset Manager
+                  </h4>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Upload your custom logo or icon image here. It will automatically apply to the browser tab favicon, menu bar, search engines, landing page, and dashboard header.
+                  </p>
+                </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-bold uppercase text-slate-400 mb-1">Website Logo / Icon Image</label>
-                <div className="space-y-2">
-                  <div className="flex gap-2 items-center">
-                    <input
-                      type="text"
-                      value={settingsForm.siteIconUrl || ''}
-                      onChange={(e) => setSettingsForm({ ...settingsForm, siteIconUrl: e.target.value })}
-                      placeholder="https://... image icon URL or base64"
-                      className="flex-1 px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white"
-                    />
-                    {settingsForm.siteIconUrl && (
-                      <img
-                        src={settingsForm.siteIconUrl}
-                        alt="Logo Preview"
-                        className="w-10 h-10 rounded-xl object-cover border-2 border-[#DFFF2F]"
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                <div>
+                  <label className="block text-xs font-bold uppercase text-slate-400 mb-1">Website Display Name</label>
+                  <input
+                    type="text"
+                    value={settingsForm.siteName || 'TrafficSell'}
+                    onChange={(e) => setSettingsForm({ ...settingsForm, siteName: e.target.value })}
+                    placeholder="e.g. TrafficSell, AdTarget, GeoTraffic"
+                    className="w-full px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white font-bold"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold uppercase text-slate-400 mb-1">Upload New Logo / Icon Image</label>
+                  <div className="space-y-2">
+                    <div className="flex gap-2 items-center">
+                      <input
+                        type="text"
+                        value={settingsForm.siteIconUrl || ''}
+                        onChange={(e) => setSettingsForm({ ...settingsForm, siteIconUrl: e.target.value })}
+                        placeholder="https://... image icon URL or base64"
+                        className="flex-1 px-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white"
                       />
-                    )}
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <label className="flex-1 cursor-pointer">
+                        <div className="w-full py-2.5 px-4 bg-[#DFFF2F] hover:bg-[#cbe820] text-slate-950 text-xs font-extrabold rounded-xl transition-all text-center flex items-center justify-center gap-2 shadow-md">
+                          <ImageIcon className="w-4 h-4" /> Upload Image File (PNG, JPG, SVG)
+                        </div>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              const reader = new FileReader();
+                              reader.onloadend = () => {
+                                if (typeof reader.result === 'string') {
+                                  setSettingsForm(prev => ({ ...prev, siteIconUrl: reader.result as string }));
+                                }
+                              };
+                              reader.readAsDataURL(file);
+                            }
+                          }}
+                          className="hidden"
+                        />
+                      </label>
+
+                      <button
+                        type="button"
+                        onClick={() => setSettingsForm(prev => ({ ...prev, siteIconUrl: '/logo.png' }))}
+                        className="py-2.5 px-3 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl transition-all"
+                        title="Reset to default icon"
+                      >
+                        Default Icon
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Live Image Placement Previews */}
+              <div className="pt-3 border-t border-slate-800">
+                <span className="block text-[11px] font-extrabold uppercase text-[#DFFF2F] tracking-wider mb-2">
+                  Live Icon Placement Previews across Website & Tab
+                </span>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {/* Browser Tab Preview */}
+                  <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 flex flex-col justify-between">
+                    <span className="text-[10px] text-slate-400 font-bold mb-2">1. Browser Tab Favicon</span>
+                    <div className="flex items-center gap-2 bg-slate-800/80 px-2.5 py-1.5 rounded-lg border border-slate-700">
+                      <img
+                        src={settingsForm.siteIconUrl || '/logo.png'}
+                        alt="Favicon Preview"
+                        onError={(e) => { (e.target as HTMLImageElement).src = '/logo.png'; }}
+                        className="w-4 h-4 rounded-sm object-cover"
+                      />
+                      <span className="text-[10px] font-bold text-slate-200 truncate">{settingsForm.siteName || 'TrafficSell'}...</span>
+                    </div>
                   </div>
 
-                  <div className="relative">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          const reader = new FileReader();
-                          reader.onloadend = () => {
-                            if (typeof reader.result === 'string') {
-                              setSettingsForm(prev => ({ ...prev, siteIconUrl: reader.result as string }));
-                            }
-                          };
-                          reader.readAsDataURL(file);
-                        }
-                      }}
-                      className="block w-full text-xs text-slate-400 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-[#DFFF2F] file:text-slate-950 hover:file:bg-[#cbe820] cursor-pointer"
-                    />
+                  {/* Header Menu Bar Preview */}
+                  <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 flex flex-col justify-between">
+                    <span className="text-[10px] text-slate-400 font-bold mb-2">2. Menu Bar Header</span>
+                    <div className="flex items-center gap-2 bg-slate-900 px-2.5 py-1.5 rounded-lg border border-slate-700">
+                      <img
+                        src={settingsForm.siteIconUrl || '/logo.png'}
+                        alt="Navbar Preview"
+                        onError={(e) => { (e.target as HTMLImageElement).src = '/logo.png'; }}
+                        className="w-6 h-6 rounded-lg object-cover border border-[#DFFF2F]"
+                      />
+                      <span className="text-xs font-black text-white">{settingsForm.siteName || 'TrafficSell'}</span>
+                    </div>
+                  </div>
+
+                  {/* Dashboard Sidebar Preview */}
+                  <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 flex flex-col justify-between">
+                    <span className="text-[10px] text-slate-400 font-bold mb-2">3. Dashboard Header</span>
+                    <div className="flex items-center gap-2 bg-slate-900 px-2.5 py-1.5 rounded-lg border border-slate-700">
+                      <img
+                        src={settingsForm.siteIconUrl || '/logo.png'}
+                        alt="Dashboard Preview"
+                        onError={(e) => { (e.target as HTMLImageElement).src = '/logo.png'; }}
+                        className="w-6 h-6 rounded-lg object-cover border border-[#DFFF2F]"
+                      />
+                      <span className="text-xs font-black text-[#DFFF2F]">Dashboard</span>
+                    </div>
+                  </div>
+
+                  {/* Search Engine / Footer Preview */}
+                  <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 flex flex-col justify-between">
+                    <span className="text-[10px] text-slate-400 font-bold mb-2">4. Search Engine / Footer</span>
+                    <div className="flex items-center gap-2 bg-slate-900 px-2.5 py-1.5 rounded-lg border border-slate-700">
+                      <img
+                        src={settingsForm.siteIconUrl || '/logo.png'}
+                        alt="Footer Preview"
+                        onError={(e) => { (e.target as HTMLImageElement).src = '/logo.png'; }}
+                        className="w-6 h-6 rounded-lg object-cover border border-[#DFFF2F]"
+                      />
+                      <span className="text-[10px] font-bold text-slate-300">trafficsell.com</span>
+                    </div>
                   </div>
                 </div>
               </div>

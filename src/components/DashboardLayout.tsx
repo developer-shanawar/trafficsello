@@ -53,6 +53,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ currentTab, on
               <img
                 src={siteIconUrl}
                 alt={siteName}
+                onError={(e) => { (e.target as HTMLImageElement).src = '/logo.png'; }}
                 className="w-10 h-10 rounded-xl object-cover shadow-md border-2 border-[#DFFF2F] group-hover:scale-105 transition-transform"
               />
             ) : (
@@ -155,6 +156,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ currentTab, on
               <img
                 src={siteIconUrl}
                 alt={siteName}
+                onError={(e) => { (e.target as HTMLImageElement).src = '/logo.png'; }}
                 className="w-8 h-8 rounded-lg object-cover border-2 border-[#DFFF2F] shadow-sm"
               />
               <span className="font-extrabold text-sm text-slate-900 dark:text-white tracking-tight">{siteName}</span>
