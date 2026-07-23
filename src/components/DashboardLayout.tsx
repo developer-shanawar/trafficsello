@@ -19,7 +19,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ currentTab, on
   const [notifDropdownOpen, setNotifDropdownOpen] = useState(false);
 
   const siteName = platformSettings?.siteName || 'TrafficSell';
-  const siteIconUrl = platformSettings?.siteIconUrl || 'https://images.unsplash.com/photo-1559526324-4b87b5e36e44?auto=format&fit=crop&q=80&w=250';
+  const siteIconUrl = platformSettings?.siteIconUrl || '/src/assets/images/trafficsell_favicon_logo_1784804110438.jpg';
 
   const unreadNotifs = notifications.filter(n => !n.read);
   const isAdmin = user?.email?.toLowerCase() === 'developershanawar@gmail.com' || user?.role === 'admin';

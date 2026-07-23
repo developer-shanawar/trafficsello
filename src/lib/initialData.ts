@@ -2,7 +2,7 @@ import { UserProfile, Campaign, PaymentDeposit, WalletTransaction, SupportTicket
 
 export const DEFAULT_SETTINGS: PlatformSettings = {
   siteName: "TrafficSell",
-  siteIconUrl: "https://images.unsplash.com/photo-1559526324-4b87b5e36e44?auto=format&fit=crop&q=80&w=250",
+  siteIconUrl: "/src/assets/images/trafficsell_favicon_logo_1784804110438.jpg",
   brandDisplayMode: "both",
   minDeposit: 1.00,
   minCPM: 0.05,
