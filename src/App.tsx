@@ -19,6 +19,7 @@ import { AnalyticsView } from './components/dashboard/AnalyticsView';
 import { SupportTicketsView } from './components/dashboard/SupportTicketsView';
 import { ProfileView } from './components/dashboard/ProfileView';
 import { SettingsView } from './components/dashboard/SettingsView';
+import { AllUserDataView } from './components/dashboard/AllUserDataView';
 import { AdminDashboard } from './components/admin/AdminDashboard';
 import { Campaign } from './types';
 
@@ -69,7 +70,7 @@ function AppContent() {
         } else {
           setCurrentView('login');
         }
-      } else if (['overview', 'buy-traffic', 'campaigns', 'wallet', 'analytics', 'support', 'profile', 'settings'].includes(hash)) {
+      } else if (['overview', 'buy-traffic', 'campaigns', 'wallet', 'analytics', 'all-users', 'support', 'profile', 'settings'].includes(hash)) {
         if (user) {
           setCurrentView('dashboard');
           setDashboardTab(hash);
@@ -247,6 +248,8 @@ function AppContent() {
           {dashboardTab === 'wallet' && <WalletView />}
 
           {dashboardTab === 'analytics' && <AnalyticsView />}
+
+          {dashboardTab === 'all-users' && <AllUserDataView />}
 
           {dashboardTab === 'support' && <SupportTicketsView />}
 

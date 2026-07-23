@@ -68,9 +68,6 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAuth, onNavigateView, curr
             <div>
               <span className="text-xl font-bold tracking-tight text-[#111827] dark:text-white flex items-center gap-1.5">
                 {siteName}
-                <span className="px-1.5 py-0.5 text-[10px] font-black uppercase rounded-md bg-[#DFFF2F] text-slate-950 shadow-sm border border-emerald-400">
-                  Beta
-                </span>
               </span>
               <span className="block text-[9px] tracking-widest font-bold uppercase opacity-70 text-[#111827] dark:text-slate-400 -mt-1">
                 Traffic Marketplace
@@ -149,11 +146,6 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAuth, onNavigateView, curr
                   <div className="p-3 border-b border-slate-100 dark:border-slate-800">
                     <p className="font-bold truncate">{user.fullName}</p>
                     <p className="text-slate-500 dark:text-slate-400 truncate text-[11px]">{user.email}</p>
-                    <div className="mt-2 flex items-center justify-between">
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${isAdmin ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400' : 'bg-[#111827] text-[#DFFF2F]'}`}>
-                        {isAdmin ? 'ADMIN' : 'USER'}
-                      </span>
-                    </div>
                   </div>
 
                   <div className="py-1 space-y-0.5">
@@ -253,9 +245,6 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAuth, onNavigateView, curr
                     </div>
                     <span className="text-lg font-black tracking-tight flex items-center gap-1.5">
                       TrafficSell
-                      <span className="px-1.5 py-0.5 text-[9px] font-black uppercase rounded bg-[#DFFF2F] text-slate-950">
-                        Beta
-                      </span>
                     </span>
                   </div>
 
@@ -279,9 +268,6 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAuth, onNavigateView, curr
                       <div className="overflow-hidden">
                         <p className="font-extrabold text-xs text-[#111827] dark:text-white truncate">{user.fullName}</p>
                         <p className="text-[11px] text-[#111827]/70 dark:text-slate-400 truncate">{user.email}</p>
-                        <span className={`inline-block mt-1 px-2 py-0.5 rounded text-[9px] font-black uppercase ${isAdmin ? 'bg-amber-500/20 text-amber-700 dark:text-amber-400' : 'bg-[#111827] text-[#DFFF2F]'}`}>
-                          {isAdmin ? 'Admin' : 'Advertiser'}
-                        </span>
                       </div>
                     </div>
 

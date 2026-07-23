@@ -1376,14 +1376,45 @@ export const AdminDashboard: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-bold uppercase text-slate-400 mb-1">Website Logo / Icon Image URL</label>
-                <input
-                  type="text"
-                  value={settingsForm.siteIconUrl || ''}
-                  onChange={(e) => setSettingsForm({ ...settingsForm, siteIconUrl: e.target.value })}
-                  placeholder="https://... image icon URL"
-                  className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white"
-                />
+                <label className="block text-xs font-bold uppercase text-slate-400 mb-1">Website Logo / Icon Image</label>
+                <div className="space-y-2">
+                  <div className="flex gap-2 items-center">
+                    <input
+                      type="text"
+                      value={settingsForm.siteIconUrl || ''}
+                      onChange={(e) => setSettingsForm({ ...settingsForm, siteIconUrl: e.target.value })}
+                      placeholder="https://... image icon URL or base64"
+                      className="flex-1 px-4 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-white"
+                    />
+                    {settingsForm.siteIconUrl && (
+                      <img
+                        src={settingsForm.siteIconUrl}
+                        alt="Logo Preview"
+                        className="w-10 h-10 rounded-xl object-cover border-2 border-[#DFFF2F]"
+                      />
+                    )}
+                  </div>
+
+                  <div className="relative">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onloadend = () => {
+                            if (typeof reader.result === 'string') {
+                              setSettingsForm(prev => ({ ...prev, siteIconUrl: reader.result as string }));
+                            }
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                      className="block w-full text-xs text-slate-400 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-[#DFFF2F] file:text-slate-950 hover:file:bg-[#cbe820] cursor-pointer"
+                    />
+                  </div>
+                </div>
               </div>
             </div>
 

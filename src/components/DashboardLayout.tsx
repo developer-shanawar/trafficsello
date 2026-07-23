@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import {
   LayoutDashboard, ShoppingCart, Layers, Wallet, BarChart3,
   Ticket, User, Settings, ShieldAlert, LogOut, Bell, Sun, Moon,
-  Activity, Plus, Check, ChevronRight, Menu, X, ArrowUpRight
+  Activity, Plus, Check, ChevronRight, Menu, X, ArrowUpRight, Users
 } from 'lucide-react';
 import { useStore } from '../lib/store';
 
@@ -14,7 +14,7 @@ interface DashboardLayoutProps {
 }
 
 export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ currentTab, onSelectTab, children }) => {
-  const { user, theme, toggleTheme, logout, notifications, markNotificationRead, switchUserRole } = useStore();
+  const { user, theme, toggleTheme, logout, notifications, markNotificationRead } = useStore();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [notifDropdownOpen, setNotifDropdownOpen] = useState(false);
 
@@ -26,6 +26,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ currentTab, on
     { id: 'campaigns', label: 'Campaigns & Traffic', icon: Layers, highlight: true },
     { id: 'wallet', label: 'Wallet & Deposit', icon: Wallet },
     { id: 'analytics', label: 'Analytics', icon: BarChart3 },
+    { id: 'all-users', label: 'All Users Data', icon: Users },
     { id: 'support', label: 'Support Tickets', icon: Ticket },
     { id: 'profile', label: 'My Profile', icon: User },
     { id: 'settings', label: 'Settings', icon: Settings },
@@ -119,17 +120,6 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ currentTab, on
               title="Sign Out"
             >
               <LogOut className="w-4 h-4" />
-            </button>
-          </div>
-
-          {/* Quick Role Switcher */}
-          <div className="flex justify-between items-center text-[10px] text-slate-400 px-1">
-            <span>Role: <strong className="uppercase text-slate-700 dark:text-slate-300">{user?.role}</strong></span>
-            <button
-              onClick={() => switchUserRole(user?.role === 'admin' ? 'user' : 'admin')}
-              className="text-[#DFFF2F] font-bold hover:underline cursor-pointer"
-            >
-              Switch to {user?.role === 'admin' ? 'User' : 'Admin'}
             </button>
           </div>
         </div>
