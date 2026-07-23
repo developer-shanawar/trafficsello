@@ -167,16 +167,17 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (platformSettings?.siteName) {
       document.title = `${platformSettings.siteName} - Website Traffic Marketplace & Ad Network`;
     }
-    if (platformSettings?.siteIconUrl) {
-      let link: HTMLLinkElement | null = document.querySelector("link[rel*='icon']");
+    const iconUrl = platformSettings?.siteIconUrl || '/logo.png';
+    const relTypes = ['icon', 'shortcut icon', 'apple-touch-icon'];
+    relTypes.forEach((rel) => {
+      let link: HTMLLinkElement | null = document.querySelector(`link[rel="${rel}"]`);
       if (!link) {
         link = document.createElement('link');
-        link.type = 'image/x-icon';
-        link.rel = 'shortcut icon';
-        document.getElementsByTagName('head')[0].appendChild(link);
+        link.rel = rel;
+        document.head.appendChild(link);
       }
-      link.href = platformSettings.siteIconUrl;
-    }
+      link.href = iconUrl;
+    });
   }, [platformSettings?.siteName, platformSettings?.siteIconUrl]);
 
   // Sync theme to localStorage and DOM

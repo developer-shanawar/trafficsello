@@ -19,7 +19,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ currentTab, on
   const [notifDropdownOpen, setNotifDropdownOpen] = useState(false);
 
   const siteName = platformSettings?.siteName || 'TrafficSell';
-  const siteIconUrl = platformSettings?.siteIconUrl || '/src/assets/images/trafficsell_favicon_logo_1784804110438.jpg';
+  const siteIconUrl = platformSettings?.siteIconUrl || '/logo.png';
 
   const unreadNotifs = notifications.filter(n => !n.read);
   const isAdmin = user?.email?.toLowerCase() === 'developershanawar@gmail.com' || user?.role === 'admin';
@@ -140,13 +140,26 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ currentTab, on
         
         {/* Top Header */}
         <header className="h-16 bg-white dark:bg-slate-900/80 border-b border-slate-200 dark:border-slate-800 px-4 sm:px-8 flex items-center justify-between sticky top-0 z-20 backdrop-blur-md">
-          {/* Mobile menu trigger */}
-          <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden p-2 text-slate-600 dark:text-slate-300"
-          >
-            {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-          </button>
+          {/* Mobile menu trigger & brand */}
+          <div className="flex items-center gap-2.5 md:hidden">
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="p-1.5 text-slate-600 dark:text-slate-300 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
+            >
+              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            </button>
+            <div
+              onClick={() => onSelectTab('overview')}
+              className="flex items-center gap-2 cursor-pointer"
+            >
+              <img
+                src={siteIconUrl}
+                alt={siteName}
+                className="w-8 h-8 rounded-lg object-cover border-2 border-[#DFFF2F] shadow-sm"
+              />
+              <span className="font-extrabold text-sm text-slate-900 dark:text-white tracking-tight">{siteName}</span>
+            </div>
+          </div>
 
           <div className="hidden sm:flex items-center gap-2 text-xs font-semibold text-slate-500">
             <span>Dashboard</span>

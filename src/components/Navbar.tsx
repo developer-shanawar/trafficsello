@@ -18,7 +18,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAuth, onNavigateView, curr
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const siteName = platformSettings?.siteName || 'TrafficSell';
-  const siteIconUrl = platformSettings?.siteIconUrl || '/src/assets/images/trafficsell_favicon_logo_1784804110438.jpg';
+  const siteIconUrl = platformSettings?.siteIconUrl || '/logo.png';
   const brandDisplayMode = platformSettings?.brandDisplayMode || 'both';
 
   const isAdmin = user?.email?.toLowerCase() === 'developershanawar@gmail.com' || user?.role === 'admin';

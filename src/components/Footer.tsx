@@ -9,7 +9,7 @@ interface FooterProps {
 export const Footer: React.FC<FooterProps> = ({ onOpenLegal }) => {
   const { platformSettings } = useStore();
   const siteName = platformSettings?.siteName || 'TrafficSell';
-  const siteIconUrl = platformSettings?.siteIconUrl || '/src/assets/images/trafficsell_favicon_logo_1784804110438.jpg';
+  const siteIconUrl = platformSettings?.siteIconUrl || '/logo.png';
   const brandDisplayMode = platformSettings?.brandDisplayMode || 'both';
 
   return (

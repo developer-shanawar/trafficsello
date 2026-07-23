@@ -39,15 +39,17 @@ function AppContent() {
     if (platformSettings?.siteName) {
       document.title = `${platformSettings.siteName} - Premium Organic & SmartLink Traffic Marketplace`;
     }
-    if (platformSettings?.siteIconUrl) {
-      let favicon = document.querySelector("link[rel*='icon']") as HTMLLinkElement;
+    const iconUrl = platformSettings?.siteIconUrl || '/logo.png';
+    const relTypes = ['icon', 'shortcut icon', 'apple-touch-icon'];
+    relTypes.forEach((rel) => {
+      let favicon = document.querySelector(`link[rel="${rel}"]`) as HTMLLinkElement;
       if (!favicon) {
         favicon = document.createElement('link');
-        favicon.rel = 'shortcut icon';
-        document.getElementsByTagName('head')[0].appendChild(favicon);
+        favicon.rel = rel;
+        document.head.appendChild(favicon);
       }
-      favicon.href = platformSettings.siteIconUrl;
-    }
+      favicon.href = iconUrl;
+    });
   }, [platformSettings?.siteName, platformSettings?.siteIconUrl]);
 
   // Auto redirect on user signout
