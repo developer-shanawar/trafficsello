@@ -1,4 +1,4 @@
-import { UserProfile, Campaign, PaymentDeposit, WalletTransaction, SupportTicket, AppNotification, PlatformSettings, Testimonial, CouponCode } from '../types';
+import { UserProfile, Campaign, PaymentDeposit, WalletTransaction, SupportTicket, AppNotification, PlatformSettings, Testimonial } from '../types';
 
 export const DEFAULT_SETTINGS: PlatformSettings = {
   siteName: "TrafficSell",
@@ -274,59 +274,4 @@ export const INITIAL_TRANSACTIONS: WalletTransaction[] = [];
 export const INITIAL_TICKETS: SupportTicket[] = [];
 
 export const INITIAL_NOTIFICATIONS: AppNotification[] = [];
-
-export const INITIAL_COUPONS: CouponCode[] = [
-  {
-    id: 'cpn_bonus20',
-    code: 'BONUS20',
-    bonusPercentage: 20,
-    minDepositRequired: 1,
-    targetAudience: 'non_depositors',
-    maxUses: 500,
-    usedCount: 12,
-    expiryDate: '2026-12-31',
-    active: true,
-    createdAt: '2026-07-01T00:00:00Z',
-    totalRedeemedAmount: 240.00
-  },
-  {
-    id: 'cpn_welcome10',
-    code: 'WELCOME10',
-    fixedBonusAmount: 10,
-    minDepositRequired: 10,
-    targetAudience: 'min_10_dollar',
-    maxUses: 200,
-    usedCount: 25,
-    expiryDate: '2026-12-31',
-    active: true,
-    createdAt: '2026-07-05T00:00:00Z',
-    totalRedeemedAmount: 250.00
-  },
-  {
-    id: 'cpn_dep100',
-    code: 'SUPER50',
-    bonusPercentage: 50,
-    minDepositRequired: 10,
-    targetAudience: 'depositors',
-    maxUses: 100,
-    usedCount: 8,
-    expiryDate: '2026-12-31',
-    active: true,
-    createdAt: '2026-07-10T00:00:00Z',
-    totalRedeemedAmount: 400.00
-  },
-  {
-    id: 'cpn_free1',
-    code: 'FREE1USD',
-    fixedBonusAmount: 1,
-    minDepositRequired: 0,
-    targetAudience: 'all',
-    maxUses: 1000,
-    usedCount: 45,
-    expiryDate: '2026-12-31',
-    active: true,
-    createdAt: '2026-07-15T00:00:00Z',
-    totalRedeemedAmount: 45.00
-  }
-];
 

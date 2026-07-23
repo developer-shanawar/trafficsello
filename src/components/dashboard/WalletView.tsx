@@ -6,7 +6,7 @@ import { PaymentMethod } from '../../types';
 import confetti from 'canvas-confetti';
 
 export const WalletView: React.FC = () => {
-  const { user, walletDeposits, requestDeposit, transactions, platformSettings, redeemCoupon } = useStore();
+  const { user, walletDeposits, requestDeposit, transactions, platformSettings } = useStore();
 
   const [activeTab, setActiveTab] = useState<'deposit' | 'history'>('deposit');
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>('JazzCash');
@@ -18,31 +18,6 @@ export const WalletView: React.FC = () => {
   const [copiedText, setCopiedText] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
-
-  // Coupon state
-  const [couponInput, setCouponInput] = useState('');
-  const [isCouponModalOpen, setIsCouponModalOpen] = useState(false);
-  const [couponSubmitting, setCouponSubmitting] = useState(false);
-  const [couponFeedback, setCouponFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-
-  const handleApplyCoupon = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!couponInput.trim()) return;
-
-    setCouponSubmitting(true);
-    setCouponFeedback(null);
-
-    const res = await redeemCoupon(couponInput.trim());
-    setCouponSubmitting(false);
-
-    if (res.success) {
-      confetti({ particleCount: 100, spread: 70 });
-      setCouponFeedback({ type: 'success', text: res.message });
-      setCouponInput('');
-    } else {
-      setCouponFeedback({ type: 'error', text: res.message });
-    }
-  };
 
   const userDeposits = walletDeposits.filter(p => p.userId === user?.id || user?.role === 'admin');
   const userTx = transactions.filter(t => t.userId === user?.id || user?.role === 'admin');
@@ -162,16 +137,6 @@ export const WalletView: React.FC = () => {
               <p className="font-extrabold text-emerald-400 text-sm">~5 - 15 Mins</p>
             </div>
           </div>
-
-          <button
-            onClick={() => {
-              setCouponFeedback(null);
-              setIsCouponModalOpen(true);
-            }}
-            className="px-5 py-4 bg-[#DFFF2F] hover:bg-[#cbe820] text-slate-950 font-black rounded-2xl text-xs flex items-center gap-2 shadow-lg transition-all cursor-pointer border border-[#DFFF2F] shrink-0"
-          >
-            🎁 Redeem Coupon Code
-          </button>
         </div>
       </div>
 
@@ -405,6 +370,7 @@ export const WalletView: React.FC = () => {
             <table className="w-full text-left text-xs">
               <thead className="border-b border-slate-200 dark:border-slate-800 text-slate-400 uppercase font-mono text-[10px]">
                 <tr>
+                  <th className="pb-3">Deposit ID</th>
                   <th className="pb-3">Method</th>
                   <th className="pb-3">TRX Ref</th>
                   <th className="pb-3">Amount</th>
@@ -416,11 +382,12 @@ export const WalletView: React.FC = () => {
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {userDeposits.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="py-8 text-center text-slate-400">No deposit history found.</td>
+                    <td colSpan={7} className="py-8 text-center text-slate-400">No deposit history found.</td>
                   </tr>
                 ) : (
                   userDeposits.map((dep) => (
                     <tr key={dep.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
+                      <td className="py-3.5 font-mono text-[11px] font-bold text-[#DFFF2F]">{dep.id}</td>
                       <td className="py-3.5 font-bold text-slate-900 dark:text-white">{dep.method}</td>
                       <td className="py-3.5 font-mono text-slate-500">{dep.trxRef}</td>
                       <td className="py-3.5 font-bold text-[#DFFF2F]">${dep.amount.toFixed(2)}</td>
@@ -444,72 +411,6 @@ export const WalletView: React.FC = () => {
                 )}
               </tbody>
             </table>
-          </div>
-        </div>
-      )}
-      {/* Coupon Modal */}
-      {isCouponModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-md w-full text-white relative space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <h3 className="text-sm font-bold text-[#DFFF2F] flex items-center gap-2">
-                🎁 Apply Promotional Coupon Code
-              </h3>
-              <button
-                onClick={() => setIsCouponModalOpen(false)}
-                className="text-slate-400 hover:text-white text-xs cursor-pointer font-bold"
-              >
-                ✕
-              </button>
-            </div>
-
-            <p className="text-xs text-slate-300 leading-relaxed">
-              Enter your 6-digit or custom promotional coupon code below to claim instant bonus wallet funds!
-            </p>
-
-            <form onSubmit={handleApplyCoupon} className="space-y-4">
-              <div>
-                <label className="block text-slate-400 text-[10px] uppercase font-bold tracking-wider mb-1">
-                  Coupon Code
-                </label>
-                <input
-                  type="text"
-                  required
-                  maxLength={12}
-                  placeholder="e.g. BONUS20 or WELCOME10"
-                  value={couponInput}
-                  onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
-                  className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-2xl text-center text-lg font-black tracking-widest text-[#DFFF2F] font-mono focus:outline-none focus:border-[#DFFF2F]"
-                />
-              </div>
-
-              {couponFeedback && (
-                <div className={`p-3 rounded-xl text-xs flex items-center gap-2 font-bold ${
-                  couponFeedback.type === 'success'
-                    ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400'
-                    : 'bg-rose-500/10 border border-rose-500/20 text-rose-400'
-                }`}>
-                  <span>{couponFeedback.text}</span>
-                </div>
-              )}
-
-              <div className="flex items-center justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setIsCouponModalOpen(false)}
-                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs rounded-xl cursor-pointer"
-                >
-                  Close
-                </button>
-                <button
-                  type="submit"
-                  disabled={couponSubmitting || !couponInput.trim()}
-                  className="px-5 py-2.5 bg-[#DFFF2F] hover:bg-[#cbe820] text-slate-950 font-black text-xs rounded-xl transition-all shadow cursor-pointer disabled:opacity-50"
-                >
-                  {couponSubmitting ? 'Validating...' : 'Apply Coupon'}
-                </button>
-              </div>
-            </form>
           </div>
         </div>
       )}

@@ -1,11 +1,11 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import {
   UserProfile, Campaign, PaymentDeposit, WalletTransaction,
-  SupportTicket, AppNotification, PlatformSettings, CampaignStatus, UserRole, Testimonial, CouponCode
+  SupportTicket, AppNotification, PlatformSettings, CampaignStatus, UserRole, Testimonial
 } from '../types';
 import {
   DEFAULT_SETTINGS, INITIAL_USERS, INITIAL_CAMPAIGNS,
-  INITIAL_PAYMENTS, INITIAL_TRANSACTIONS, INITIAL_TICKETS, INITIAL_NOTIFICATIONS, INITIAL_TESTIMONIALS, INITIAL_COUPONS
+  INITIAL_PAYMENTS, INITIAL_TRANSACTIONS, INITIAL_TICKETS, INITIAL_NOTIFICATIONS, INITIAL_TESTIMONIALS
 } from './initialData';
 import { sendNativeNotification } from './notifications';
 
@@ -51,13 +51,6 @@ interface StoreContextType {
   addTestimonial: (data: Omit<Testimonial, 'id' | 'createdAt'>) => void;
   updateTestimonial: (id: string, data: Partial<Testimonial>) => void;
   deleteTestimonial: (id: string) => void;
-
-  // Coupons
-  coupons: CouponCode[];
-  addCoupon: (data: Omit<CouponCode, 'id' | 'usedCount' | 'createdAt' | 'totalRedeemedAmount'>) => void;
-  deleteCoupon: (id: string) => void;
-  toggleCouponStatus: (id: string, active: boolean) => void;
-  redeemCoupon: (codeStr: string) => Promise<{ success: boolean; message: string; bonusAmount?: number }>;
 
   // Profile & User Stats
   updateProfile: (data: Partial<UserProfile>) => void;
@@ -165,18 +158,26 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return saved !== null ? JSON.parse(saved) : INITIAL_TESTIMONIALS;
   });
 
-  const [coupons, setCoupons] = useState<CouponCode[]>(() => {
-    const saved = localStorage.getItem('trafficsell_coupons');
-    return saved !== null ? JSON.parse(saved) : INITIAL_COUPONS;
-  });
-
   useEffect(() => {
     localStorage.setItem('trafficsell_testimonials', JSON.stringify(testimonials));
   }, [testimonials]);
 
+  // Sync site title and favicon icon tab from platformSettings
   useEffect(() => {
-    localStorage.setItem('trafficsell_coupons', JSON.stringify(coupons));
-  }, [coupons]);
+    if (platformSettings?.siteName) {
+      document.title = `${platformSettings.siteName} - Website Traffic Marketplace & Ad Network`;
+    }
+    if (platformSettings?.siteIconUrl) {
+      let link: HTMLLinkElement | null = document.querySelector("link[rel*='icon']");
+      if (!link) {
+        link = document.createElement('link');
+        link.type = 'image/x-icon';
+        link.rel = 'shortcut icon';
+        document.getElementsByTagName('head')[0].appendChild(link);
+      }
+      link.href = platformSettings.siteIconUrl;
+    }
+  }, [platformSettings?.siteName, platformSettings?.siteIconUrl]);
 
   // Sync theme to localStorage and DOM
   useEffect(() => {
@@ -631,131 +632,6 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
   };
 
-  const addCoupon = (data: Omit<CouponCode, 'id' | 'usedCount' | 'createdAt' | 'totalRedeemedAmount'>) => {
-    const newCoupon: CouponCode = {
-      ...data,
-      id: `cpn_${Date.now()}`,
-      usedCount: 0,
-      totalRedeemedAmount: 0,
-      createdAt: new Date().toISOString()
-    };
-    setCoupons(prev => [newCoupon, ...prev]);
-  };
-
-  const deleteCoupon = (id: string) => {
-    setCoupons(prev => prev.filter(c => c.id !== id));
-  };
-
-  const toggleCouponStatus = (id: string, active: boolean) => {
-    setCoupons(prev => prev.map(c => c.id === id ? { ...c, active } : c));
-  };
-
-  const redeemCoupon = async (codeStr: string): Promise<{ success: boolean; message: string; bonusAmount?: number }> => {
-    if (!user) {
-      return { success: false, message: 'Please log in to redeem a coupon code.' };
-    }
-
-    const cleanCode = codeStr.trim().toUpperCase();
-    const targetCoupon = coupons.find(c => c.code.toUpperCase() === cleanCode);
-
-    if (!targetCoupon) {
-      return { success: false, message: 'Invalid coupon code. Please check and try again.' };
-    }
-
-    if (!targetCoupon.active) {
-      return { success: false, message: 'This coupon code is currently inactive or disabled.' };
-    }
-
-    if (targetCoupon.expiryDate && new Date(targetCoupon.expiryDate) < new Date()) {
-      return { success: false, message: 'This coupon code has expired.' };
-    }
-
-    if (targetCoupon.usedCount >= targetCoupon.maxUses) {
-      return { success: false, message: 'This coupon code has reached its maximum redemptions limit.' };
-    }
-
-    // Check user's deposit history
-    const userApprovedDeposits = walletDeposits.filter(d => d.userId === user.id && d.status === 'approved');
-    const totalApprovedAmount = userApprovedDeposits.reduce((sum, d) => sum + d.amount, 0);
-    const hasDeposited = userApprovedDeposits.length > 0;
-
-    // Check target audience eligibility rules
-    if (targetCoupon.targetAudience === 'non_depositors' && hasDeposited) {
-      return { success: false, message: 'This coupon code is exclusively for non-depositing new users.' };
-    }
-
-    if (targetCoupon.targetAudience === 'depositors' && !hasDeposited) {
-      return { success: false, message: 'You must make at least one verified deposit before applying this coupon.' };
-    }
-
-    if (targetCoupon.targetAudience === 'min_1_dollar' && totalApprovedAmount < 1) {
-      return { success: false, message: 'A minimum deposit of $1.00 USD is required to unlock this coupon code.' };
-    }
-
-    if (targetCoupon.targetAudience === 'min_10_dollar' && totalApprovedAmount < 10) {
-      return { success: false, message: 'A minimum cumulative deposit of $10.00 USD is required for this coupon.' };
-    }
-
-    if (targetCoupon.minDepositRequired && totalApprovedAmount < targetCoupon.minDepositRequired) {
-      return { success: false, message: `Minimum deposit required for this coupon code is $${targetCoupon.minDepositRequired.toFixed(2)} USD.` };
-    }
-
-    // Calculate Bonus Amount
-    let bonusAmount = 0;
-    if (targetCoupon.fixedBonusAmount && targetCoupon.fixedBonusAmount > 0) {
-      bonusAmount = targetCoupon.fixedBonusAmount;
-    } else if (targetCoupon.bonusPercentage && targetCoupon.bonusPercentage > 0) {
-      const baseAmount = totalApprovedAmount > 0 ? totalApprovedAmount : 10; // Default $10 base for % bonus if fresh
-      bonusAmount = (baseAmount * targetCoupon.bonusPercentage) / 100;
-    } else {
-      bonusAmount = 5.00; // Default $5 fallback
-    }
-
-    if (bonusAmount <= 0) bonusAmount = 1.00;
-
-    // Update User Wallet
-    const updatedBalance = user.walletBalance + bonusAmount;
-    setUser({ ...user, walletBalance: updatedBalance });
-    setAllUsers(prev => prev.map(u => u.id === user.id ? { ...u, walletBalance: updatedBalance } : u));
-
-    // Record Wallet Transaction
-    const newTx: WalletTransaction = {
-      id: `tx_cpn_${Date.now()}`,
-      userId: user.id,
-      type: 'deposit',
-      amount: bonusAmount,
-      description: `Coupon Bonus Redeemed (${cleanCode})`,
-      status: 'completed',
-      createdAt: new Date().toISOString()
-    };
-    setTransactions(prev => [newTx, ...prev]);
-
-    // Update Coupon stats
-    setCoupons(prev => prev.map(c => c.id === targetCoupon.id ? {
-      ...c,
-      usedCount: c.usedCount + 1,
-      totalRedeemedAmount: c.totalRedeemedAmount + bonusAmount
-    } : c));
-
-    // Send App Notification
-    const newNotif: AppNotification = {
-      id: `notif_${Date.now()}`,
-      userId: user.id,
-      title: '🎁 Coupon Redeemed!',
-      message: `Coupon code ${cleanCode} was applied successfully! $${bonusAmount.toFixed(2)} USD has been credited to your wallet.`,
-      type: 'payment',
-      read: false,
-      createdAt: new Date().toISOString()
-    };
-    setNotifications(prev => [newNotif, ...prev]);
-
-    return {
-      success: true,
-      message: `🎉 Coupon ${cleanCode} applied! $${bonusAmount.toFixed(2)} bonus credited to your wallet balance.`,
-      bonusAmount
-    };
-  };
-
   const updateProfile = (data: Partial<UserProfile>) => {
     if (!user) return;
     const merged = { ...user, ...data };
@@ -815,7 +691,6 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       notifications, markNotificationRead,
       platformSettings, updatePlatformSettings,
       testimonials, addTestimonial, updateTestimonial, deleteTestimonial,
-      coupons, addCoupon, deleteCoupon, toggleCouponStatus, redeemCoupon,
       updateProfile, allUsers, updateUserBalanceByAdmin, toggleUserSuspension, getUserStats, resetToInitialData
     }}>
       {children}

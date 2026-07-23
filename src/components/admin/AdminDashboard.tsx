@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ShieldAlert, CheckCircle2, XCircle, Eye, Wallet, DollarSign,
@@ -15,15 +15,15 @@ export const AdminDashboard: React.FC = () => {
     walletDeposits, approveDeposit, rejectDeposit, campaigns, updateCampaignStatus,
     allUsers, updateUserBalanceByAdmin, toggleUserSuspension, platformSettings, updatePlatformSettings, resetToInitialData,
     testimonials, addTestimonial, updateTestimonial, deleteTestimonial, getUserStats, currentUser,
-    supportTickets, createTicketForUser, addTicketMessage, updateTicketStatus,
-    coupons, addCoupon, deleteCoupon, toggleCouponStatus
+    supportTickets, createTicketForUser, addTicketMessage, updateTicketStatus
   } = useStore();
 
-  const [activeTab, setActiveTab] = useState<'alerts' | 'deposits' | 'campaigns' | 'users' | 'tickets' | 'coupons' | 'pages' | 'testimonials' | 'settings'>('alerts');
+  const [activeTab, setActiveTab] = useState<'deposits' | 'campaigns' | 'users' | 'tickets' | 'pages' | 'testimonials' | 'settings'>('deposits');
   const [selectedReceiptUrl, setSelectedReceiptUrl] = useState<string | null>(null);
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
   const [newBalanceInput, setNewBalanceInput] = useState<number>(0);
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [campaignFilter, setCampaignFilter] = useState<'all' | 'pending' | 'running' | 'paused' | 'completed'>('all');
 
   // Ticket creation modal state
   const [isTicketModalOpen, setIsTicketModalOpen] = useState(false);
@@ -48,50 +48,19 @@ export const AdminDashboard: React.FC = () => {
       whatsAppContact: ''
     }
   );
+
+  useEffect(() => {
+    setSettingsForm(platformSettings);
+    if (platformSettings.pageContent) {
+      setPageContentForm(platformSettings.pageContent);
+    }
+  }, [platformSettings]);
   const [settingsSaved, setSettingsSaved] = useState(false);
   const [pageContentSaved, setPageContentSaved] = useState(false);
 
   // Testimonial modal state
   const [isTestimonialModalOpen, setIsTestimonialModalOpen] = useState(false);
   const [editingTestimonial, setEditingTestimonial] = useState<Testimonial | null>(null);
-
-  // Coupon Creation Modal state
-  const [isCouponModalOpen, setIsCouponModalOpen] = useState(false);
-  const [couponCode, setCouponCode] = useState('');
-  const [couponType, setCouponType] = useState<'percentage' | 'fixed'>('percentage');
-  const [couponBonusValue, setCouponBonusValue] = useState<number>(20);
-  const [couponMinDeposit, setCouponMinDeposit] = useState<number>(1);
-  const [couponTargetAudience, setCouponTargetAudience] = useState<'all' | 'non_depositors' | 'depositors' | 'min_1_dollar' | 'min_10_dollar'>('all');
-  const [couponMaxUses, setCouponMaxUses] = useState<number>(500);
-  const [couponExpiry, setCouponExpiry] = useState<string>('2026-12-31');
-
-  const handleGenerateRandomCoupon = () => {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    let res = '';
-    for (let i = 0; i < 6; i++) {
-      res += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    setCouponCode(res);
-  };
-
-  const handleCreateCoupon = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!couponCode.trim()) return;
-
-    addCoupon({
-      code: couponCode.trim().toUpperCase(),
-      bonusPercentage: couponType === 'percentage' ? couponBonusValue : undefined,
-      fixedBonusAmount: couponType === 'fixed' ? couponBonusValue : undefined,
-      minDepositRequired: couponMinDeposit,
-      targetAudience: couponTargetAudience,
-      maxUses: couponMaxUses,
-      expiryDate: couponExpiry,
-      active: true
-    });
-
-    setIsCouponModalOpen(false);
-    setCouponCode('');
-  };
   const [testimonialForm, setTestimonialForm] = useState<Omit<Testimonial, 'id'>>({
     name: '',
     role: '',
@@ -233,48 +202,8 @@ export const AdminDashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* Live Active Notifications Banner */}
-      {allNotifications.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-xs"
-        >
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-amber-500 text-slate-950 rounded-xl font-bold animate-pulse">
-              <Bell className="w-5 h-5" />
-            </div>
-            <div>
-              <p className="font-extrabold text-amber-400 text-sm">
-                {allNotifications.length} Pending Approval Requests Require Attention
-              </p>
-              <p className="text-slate-300 mt-0.5">
-                Latest: <span className="font-bold text-white">{allNotifications[0].type}</span> from <span className="font-bold text-white">{allNotifications[0].user}</span> ({allNotifications[0].amount}) via {allNotifications[0].method}
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={() => setActiveTab('alerts')}
-            className="py-2 px-4 bg-amber-400 hover:bg-amber-300 text-slate-950 font-black rounded-xl text-xs transition-colors shrink-0 cursor-pointer"
-          >
-            View Live Alerts Feed →
-          </button>
-        </motion.div>
-      )}
-
       {/* Navigation Tabs */}
       <div className="flex border-b border-slate-200 dark:border-slate-800 gap-4 sm:gap-6 flex-wrap">
-        <button
-          onClick={() => setActiveTab('alerts')}
-          className={`pb-3 text-sm font-bold transition-all border-b-2 flex items-center gap-2 cursor-pointer ${
-            activeTab === 'alerts'
-              ? 'border-amber-400 text-amber-500 dark:text-amber-400'
-              : 'border-transparent text-slate-500 hover:text-slate-900 dark:hover:text-white'
-          }`}
-        >
-          <Bell className="w-4 h-4" />
-          Live Alerts ({allNotifications.length})
-        </button>
         <button
           onClick={() => setActiveTab('deposits')}
           className={`pb-3 text-sm font-bold transition-all border-b-2 flex items-center gap-2 cursor-pointer ${
@@ -284,7 +213,7 @@ export const AdminDashboard: React.FC = () => {
           }`}
         >
           <Wallet className="w-4 h-4" />
-          Deposits ({pendingDeposits.length})
+          Deposits Queue ({pendingDeposits.length} Pending)
         </button>
         <button
           onClick={() => setActiveTab('campaigns')}
@@ -295,7 +224,7 @@ export const AdminDashboard: React.FC = () => {
           }`}
         >
           <Layers className="w-4 h-4" />
-          Campaigns ({pendingCampaigns.length})
+          Campaigns ({pendingCampaigns.length} Pending)
         </button>
         <button
           onClick={() => setActiveTab('users')}
@@ -306,7 +235,7 @@ export const AdminDashboard: React.FC = () => {
           }`}
         >
           <Users className="w-4 h-4" />
-          User Stats ({allUsers.length})
+          User Accounts ({allUsers.length})
         </button>
         <button
           onClick={() => setActiveTab('tickets')}
@@ -318,17 +247,6 @@ export const AdminDashboard: React.FC = () => {
         >
           <Ticket className="w-4 h-4" />
           Support Tickets ({supportTickets.length})
-        </button>
-        <button
-          onClick={() => setActiveTab('coupons')}
-          className={`pb-3 text-sm font-bold transition-all border-b-2 flex items-center gap-2 cursor-pointer ${
-            activeTab === 'coupons'
-              ? 'border-amber-400 text-amber-500 dark:text-amber-400'
-              : 'border-transparent text-slate-500 hover:text-slate-900 dark:hover:text-white'
-          }`}
-        >
-          <Sliders className="w-4 h-4" />
-          Coupons Management ({coupons.length})
         </button>
         <button
           onClick={() => setActiveTab('pages')}
@@ -365,98 +283,62 @@ export const AdminDashboard: React.FC = () => {
         </button>
       </div>
 
-      {/* Live Alerts Tab */}
-      {activeTab === 'alerts' && (
-        <div className="space-y-4">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm">
-            <h3 className="text-base font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-              <Bell className="w-5 h-5 text-amber-400" /> Admin Live Operations Notification Feed
-            </h3>
-
-            {allNotifications.length === 0 ? (
-              <div className="text-center py-12 text-slate-400 space-y-2">
-                <CheckCircle2 className="w-12 h-12 text-emerald-400 mx-auto opacity-80" />
-                <p className="font-bold text-base text-slate-900 dark:text-white">All Clear!</p>
-                <p className="text-xs">There are no pending deposit or campaign requests requiring approval.</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {allNotifications.map((notif) => (
-                  <div
-                    key={notif.id}
-                    className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 hover:border-amber-400 transition-all"
-                  >
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-amber-500/20 text-amber-400 border border-amber-500/30">
-                          {notif.type}
-                        </span>
-                        <span className="text-xs font-bold text-slate-900 dark:text-white">{notif.user}</span>
-                        <span className="text-[11px] text-slate-400">({notif.email})</span>
-                      </div>
-                      <p className="text-xs text-slate-300 font-medium">{notif.details}</p>
-                      <div className="flex items-center gap-4 text-[11px] text-slate-400">
-                        <span>Amount: <strong className="text-[#DFFF2F]">{notif.amount}</strong></span>
-                        <span>Method: <strong className="text-white">{notif.method}</strong></span>
-                        <span>Submitted: {new Date(notif.time).toLocaleString()}</span>
-                      </div>
-                    </div>
-
-                    <button
-                      onClick={() => setActiveTab(notif.tab)}
-                      className="py-2 px-4 bg-amber-400 hover:bg-amber-300 text-slate-950 font-black rounded-xl text-xs flex items-center gap-1.5 transition-colors cursor-pointer shrink-0"
-                    >
-                      Open & Process <ExternalLink className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Pending Deposits Tab */}
+      {/* Payment Deposits Management Tab */}
       {activeTab === 'deposits' && (
         <div className="space-y-4">
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm overflow-x-auto">
-            <h3 className="text-base font-bold text-slate-900 dark:text-white mb-4">Manual Payment Approval Queue</h3>
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">Manual Payment Deposits Queue</h3>
+                <p className="text-xs text-slate-400">Review deposit requests, verify TRX ref and payment screenshot, and credit user wallet.</p>
+              </div>
+            </div>
+
             <table className="w-full text-left text-xs">
               <thead className="border-b border-slate-200 dark:border-slate-800 text-slate-400 uppercase font-mono text-[10px]">
                 <tr>
+                  <th className="pb-3">Deposit ID</th>
                   <th className="pb-3">User Details</th>
                   <th className="pb-3">Gateway</th>
-                  <th className="pb-3">TRX Hash / ID</th>
+                  <th className="pb-3">TRX Hash / Ref</th>
                   <th className="pb-3">Amount</th>
-                  <th className="pb-3">Receipt Screenshot</th>
-                  <th className="pb-3">Actions</th>
+                  <th className="pb-3">Submitted At</th>
+                  <th className="pb-3">Proof Screenshot</th>
+                  <th className="pb-3">Status / Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {walletDeposits.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="py-8 text-center text-slate-400">No payment requests submitted.</td>
+                    <td colSpan={8} className="py-8 text-center text-slate-400">No deposit requests found in system.</td>
                   </tr>
                 ) : (
                   walletDeposits.map((p) => (
                     <tr key={p.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
+                      <td className="py-3.5 font-mono text-[11px] font-bold text-[#DFFF2F]">
+                        {p.id}
+                      </td>
                       <td className="py-3.5">
                         <p className="font-bold text-slate-900 dark:text-white">{p.userName}</p>
                         <p className="text-[10px] text-slate-400">{p.userEmail}</p>
+                        <p className="text-[9px] font-mono text-slate-500">ID: {p.userId}</p>
                       </td>
-                      <td className="py-3.5 font-bold text-[#DFFF2F]">{p.method}</td>
-                      <td className="py-3.5 font-mono text-slate-400">{p.trxRef}</td>
-                      <td className="py-3.5 font-bold text-lg text-slate-900 dark:text-white">${p.amount.toFixed(2)}</td>
+                      <td className="py-3.5 font-bold text-amber-400">{p.method}</td>
+                      <td className="py-3.5 font-mono text-slate-300 font-bold">{p.trxRef}</td>
+                      <td className="py-3.5 font-bold text-base text-[#DFFF2F]">${p.amount.toFixed(2)}</td>
+                      <td className="py-3.5 font-mono text-slate-400 text-[11px]">
+                        {new Date(p.createdAt).toLocaleString()}
+                      </td>
                       <td className="py-3.5">
                         {p.screenshotUrl ? (
                           <button
                             onClick={() => setSelectedReceiptUrl(p.screenshotUrl)}
-                            className="py-1 px-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-[10px] font-bold flex items-center gap-1 cursor-pointer"
+                            className="py-1 px-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-[10px] font-bold flex items-center gap-1 cursor-pointer border border-slate-700"
                           >
                             <ImageIcon className="w-3 h-3 text-[#DFFF2F]" /> View Image
                           </button>
                         ) : (
-                          <span className="text-slate-500 italic">No image</span>
+                          <span className="text-slate-500 italic">No proof image</span>
                         )}
                       </td>
                       <td className="py-3.5">
@@ -476,11 +358,16 @@ export const AdminDashboard: React.FC = () => {
                             </button>
                           </div>
                         ) : (
-                          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase ${
-                            p.status === 'approved' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'
-                          }`}>
-                            {p.status}
-                          </span>
+                          <div>
+                            <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                              p.status === 'approved' ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-500 border border-rose-500/20'
+                            }`}>
+                              {p.status}
+                            </span>
+                            {p.adminNote && (
+                              <p className="text-[10px] text-slate-400 italic mt-0.5 max-w-xs">{p.adminNote}</p>
+                            )}
+                          </div>
                         )}
                       </td>
                     </tr>
@@ -492,71 +379,123 @@ export const AdminDashboard: React.FC = () => {
         </div>
       )}
 
-      {/* Campaign Approvals Tab */}
+      {/* Campaign Approvals & Management Tab */}
       {activeTab === 'campaigns' && (
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm overflow-x-auto">
-          <h3 className="text-base font-bold text-slate-900 dark:text-white mb-4">Pending Campaign Quality Review Queue</h3>
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm overflow-x-auto space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-4">
+            <div>
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">Ad Campaigns Directory</h3>
+              <p className="text-xs text-slate-400">Review quality, manage statuses, pause/resume, or approve user ad campaigns.</p>
+            </div>
+
+            {/* Campaign Status Filter */}
+            <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs">
+              {(['all', 'pending', 'running', 'paused', 'completed'] as const).map((filter) => (
+                <button
+                  key={filter}
+                  onClick={() => setCampaignFilter(filter)}
+                  className={`px-3 py-1 rounded-lg font-bold capitalize transition-all cursor-pointer ${
+                    campaignFilter === filter
+                      ? 'bg-[#DFFF2F] text-slate-950'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  {filter}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <table className="w-full text-left text-xs">
             <thead className="border-b border-slate-200 dark:border-slate-800 text-slate-400 uppercase font-mono text-[10px]">
               <tr>
-                <th className="pb-3">Campaign Name & URL</th>
-                <th className="pb-3">Format</th>
-                <th className="pb-3">Target Geo</th>
-                <th className="pb-3">Target Visitors</th>
+                <th className="pb-3">Campaign ID & Name</th>
+                <th className="pb-3">Target URL</th>
+                <th className="pb-3">User / Advertiser</th>
+                <th className="pb-3">Format & Geo</th>
+                <th className="pb-3">Delivered / Target Hits</th>
                 <th className="pb-3">Budget</th>
+                <th className="pb-3">Created</th>
                 <th className="pb-3">Status</th>
                 <th className="pb-3">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-              {campaigns.length === 0 ? (
+              {campaigns
+                .filter(c => campaignFilter === 'all' || c.status === campaignFilter)
+                .length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-8 text-center text-slate-400">No campaigns created yet.</td>
+                  <td colSpan={9} className="py-8 text-center text-slate-400">No campaigns found for filter "{campaignFilter}".</td>
                 </tr>
               ) : (
-                campaigns.map((c) => (
-                  <tr key={c.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
-                    <td className="py-3.5">
-                      <p className="font-extrabold text-slate-900 dark:text-white">{c.name}</p>
-                      <a href={c.url} target="_blank" rel="noreferrer" className="text-[11px] text-emerald-600 dark:text-[#DFFF2F] hover:underline font-mono truncate max-w-xs block">
-                        {c.url}
-                      </a>
-                    </td>
-                    <td className="py-3.5 font-bold uppercase text-slate-700 dark:text-slate-300">{c.format || 'SmartLink'}</td>
-                    <td className="py-3.5 font-bold text-slate-900 dark:text-white">{c.country}</td>
-                    <td className="py-3.5 font-mono">{c.visitorsTarget.toLocaleString()} Hits</td>
-                    <td className="py-3.5 font-extrabold text-[#DFFF2F]">${c.budget.toFixed(2)}</td>
-                    <td className="py-3.5">
-                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase ${
-                        c.status === 'running' ? 'bg-emerald-500/10 text-emerald-500' :
-                        c.status === 'pending' ? 'bg-amber-500/20 text-amber-500' :
-                        'bg-slate-500/10 text-slate-400'
-                      }`}>
-                        {c.status}
-                      </span>
-                    </td>
-                    <td className="py-3.5">
-                      {c.status === 'pending' ? (
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => updateCampaignStatus(c.id, 'running')}
-                            className="py-1.5 px-3 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-black rounded-xl text-xs flex items-center gap-1 cursor-pointer"
-                          >
-                            <CheckCircle2 className="w-3.5 h-3.5" /> Approve Campaign
-                          </button>
-                          <button
-                            onClick={() => updateCampaignStatus(c.id, 'paused')}
-                            className="py-1.5 px-3 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 font-bold rounded-xl text-xs flex items-center gap-1 cursor-pointer"
-                          >
-                            <XCircle className="w-3.5 h-3.5" /> Reject
-                          </button>
+                campaigns
+                  .filter(c => campaignFilter === 'all' || c.status === campaignFilter)
+                  .map((c) => (
+                    <tr key={c.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
+                      <td className="py-3.5">
+                        <span className="font-mono text-[10px] text-amber-400 block">{c.id}</span>
+                        <p className="font-extrabold text-slate-900 dark:text-white">{c.name}</p>
+                      </td>
+                      <td className="py-3.5">
+                        <a href={c.url} target="_blank" rel="noreferrer" className="text-[11px] text-emerald-600 dark:text-[#DFFF2F] hover:underline font-mono truncate max-w-xs block">
+                          {c.url}
+                        </a>
+                      </td>
+                      <td className="py-3.5">
+                        <p className="font-bold text-slate-900 dark:text-white">{c.userName || 'Advertiser'}</p>
+                        <p className="text-[10px] text-slate-400">{c.userEmail || '-'}</p>
+                      </td>
+                      <td className="py-3.5">
+                        <p className="font-bold uppercase text-slate-300">{c.format || 'SmartLink'}</p>
+                        <p className="text-[10px] text-slate-400">{c.country}</p>
+                      </td>
+                      <td className="py-3.5 font-mono">
+                        <span className="text-emerald-400 font-bold">{c.visitorsDelivered.toLocaleString()}</span> / {c.visitorsTarget.toLocaleString()} Hits
+                      </td>
+                      <td className="py-3.5 font-extrabold text-[#DFFF2F]">${c.budget.toFixed(2)}</td>
+                      <td className="py-3.5 text-slate-400 font-mono text-[10px]">
+                        {new Date(c.createdAt).toLocaleDateString()}
+                      </td>
+                      <td className="py-3.5">
+                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase ${
+                          c.status === 'running' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' :
+                          c.status === 'pending' ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' :
+                          c.status === 'paused' ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30' :
+                          'bg-slate-500/20 text-slate-400 border border-slate-500/30'
+                        }`}>
+                          {c.status}
+                        </span>
+                      </td>
+                      <td className="py-3.5">
+                        <div className="flex items-center gap-1.5">
+                          {c.status === 'pending' && (
+                            <button
+                              onClick={() => updateCampaignStatus(c.id, 'running')}
+                              className="py-1 px-2 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold rounded-lg text-[11px] flex items-center gap-1 cursor-pointer"
+                            >
+                              <CheckCircle2 className="w-3 h-3" /> Approve
+                            </button>
+                          )}
+                          {c.status === 'running' && (
+                            <button
+                              onClick={() => updateCampaignStatus(c.id, 'paused')}
+                              className="py-1 px-2 bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 font-bold rounded-lg text-[11px] cursor-pointer"
+                            >
+                              Pause
+                            </button>
+                          )}
+                          {c.status === 'paused' && (
+                            <button
+                              onClick={() => updateCampaignStatus(c.id, 'running')}
+                              className="py-1 px-2 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 font-bold rounded-lg text-[11px] cursor-pointer"
+                            >
+                              Resume
+                            </button>
+                          )}
                         </div>
-                      ) : (
-                        <span className="text-slate-400 text-[10px]">Reviewed</span>
-                      )}
-                    </td>
-                  </tr>
-                ))
+                      </td>
+                    </tr>
+                  ))
               )}
             </tbody>
           </table>
@@ -923,115 +862,6 @@ export const AdminDashboard: React.FC = () => {
                       </button>
                     </div>
                   )}
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Coupons Tab */}
-      {activeTab === 'coupons' && (
-        <div className="space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900 p-6 rounded-3xl border border-slate-800">
-            <div>
-              <h3 className="text-lg font-black text-white flex items-center gap-2">
-                <Sliders className="w-5 h-5 text-[#DFFF2F]" /> Promotional Coupon Codes & Bonus System
-              </h3>
-              <p className="text-xs text-slate-400 mt-1">
-                Create 6-digit or custom coupon codes with deposit limits, target audience rules, and track generated bonus money.
-              </p>
-            </div>
-
-            <button
-              onClick={() => {
-                handleGenerateRandomCoupon();
-                setIsCouponModalOpen(true);
-              }}
-              className="px-4 py-2.5 bg-[#DFFF2F] hover:bg-[#cbe820] text-slate-950 font-black rounded-2xl text-xs flex items-center gap-2 shadow cursor-pointer self-start sm:self-auto"
-            >
-              <Plus className="w-4 h-4" /> Create Coupon Code
-            </button>
-          </div>
-
-          {/* Coupon Cards Table */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {coupons.length === 0 ? (
-              <div className="col-span-full text-center py-12 text-slate-400 text-xs">
-                No promotional coupon codes created yet. Click "Create Coupon Code" above.
-              </div>
-            ) : (
-              coupons.map((cpn) => (
-                <div
-                  key={cpn.id}
-                  className={`p-5 rounded-3xl border transition-all space-y-3 relative overflow-hidden ${
-                    cpn.active
-                      ? 'bg-slate-900 border-slate-800 text-white shadow-md'
-                      : 'bg-slate-950/60 border-slate-800/60 text-slate-500 opacity-75'
-                  }`}
-                >
-                  <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xl font-black font-mono tracking-wider text-[#DFFF2F]">
-                        {cpn.code}
-                      </span>
-                      <button
-                        onClick={() => toggleCouponStatus(cpn.id, !cpn.active)}
-                        className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase cursor-pointer ${
-                          cpn.active ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
-                        }`}
-                      >
-                        {cpn.active ? 'Active' : 'Disabled'}
-                      </button>
-                    </div>
-
-                    <button
-                      onClick={() => {
-                        if (confirm(`Delete coupon code ${cpn.code}?`)) {
-                          deleteCoupon(cpn.id);
-                        }
-                      }}
-                      className="text-slate-500 hover:text-rose-400 text-xs p-1 cursor-pointer"
-                      title="Delete Coupon"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2 text-xs">
-                    <div>
-                      <span className="text-[10px] text-slate-400 uppercase font-bold block">Bonus Benefit</span>
-                      <strong className="text-white text-sm">
-                        {cpn.bonusPercentage ? `${cpn.bonusPercentage}% Bonus` : `$${cpn.fixedBonusAmount?.toFixed(2)} USD`}
-                      </strong>
-                    </div>
-
-                    <div>
-                      <span className="text-[10px] text-slate-400 uppercase font-bold block">Redeemed Money</span>
-                      <strong className="text-emerald-400 text-sm font-mono">
-                        ${cpn.totalRedeemedAmount.toFixed(2)}
-                      </strong>
-                    </div>
-
-                    <div>
-                      <span className="text-[10px] text-slate-400 uppercase font-bold block">Usage Uses</span>
-                      <span className="font-bold">
-                        {cpn.usedCount} / {cpn.maxUses} used
-                      </span>
-                    </div>
-
-                    <div>
-                      <span className="text-[10px] text-slate-400 uppercase font-bold block">Target Rule</span>
-                      <span className="font-bold text-amber-400 capitalize">
-                        {cpn.targetAudience.replace(/_/g, ' ')}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="pt-2 border-t border-slate-800 flex items-center justify-between text-[10px] text-slate-400 font-mono">
-                    <span>Min Deposit: ${cpn.minDepositRequired || 0} USD</span>
-                    <span>Expires: {cpn.expiryDate || 'Never'}</span>
-                  </div>
                 </div>
               ))
             )}
@@ -1689,140 +1519,6 @@ export const AdminDashboard: React.FC = () => {
         </div>
       )}
 
-      {/* Coupon Creation Modal */}
-      {isCouponModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-lg w-full text-white relative space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <h3 className="text-sm font-bold flex items-center gap-2 text-[#DFFF2F]">
-                <Sliders className="w-4 h-4" /> Create New Promotional Coupon Code
-              </h3>
-              <button
-                onClick={() => setIsCouponModalOpen(false)}
-                className="text-slate-400 hover:text-white text-xs cursor-pointer font-bold"
-              >
-                ✕
-              </button>
-            </div>
-
-            <form onSubmit={handleCreateCoupon} className="space-y-4 text-xs">
-              <div>
-                <div className="flex justify-between items-center mb-1">
-                  <label className="text-slate-400 font-bold uppercase text-[10px]">Coupon Code *</label>
-                  <button
-                    type="button"
-                    onClick={handleGenerateRandomCoupon}
-                    className="text-[#DFFF2F] hover:underline text-[10px] font-bold cursor-pointer"
-                  >
-                    ⚡ Generate 6-Digit Code
-                  </button>
-                </div>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. BONUS20 or 6-digit code"
-                  value={couponCode}
-                  onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
-                  className="w-full p-3 bg-slate-950 border border-slate-800 rounded-xl text-white font-mono font-black tracking-widest text-base focus:outline-none focus:border-[#DFFF2F]"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-slate-400 mb-1 font-bold">Reward Type</label>
-                  <select
-                    value={couponType}
-                    onChange={(e) => setCouponType(e.target.value as 'percentage' | 'fixed')}
-                    className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white font-bold cursor-pointer"
-                  >
-                    <option value="percentage">% Percentage Bonus</option>
-                    <option value="fixed">$ Fixed USD Bonus</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-slate-400 mb-1 font-bold">Bonus Value ({couponType === 'percentage' ? '%' : '$'})</label>
-                  <input
-                    type="number"
-                    min={1}
-                    required
-                    value={couponBonusValue}
-                    onChange={(e) => setCouponBonusValue(Number(e.target.value))}
-                    className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white font-bold"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-slate-400 mb-1 font-bold">Target Audience Rule</label>
-                  <select
-                    value={couponTargetAudience}
-                    onChange={(e) => setCouponTargetAudience(e.target.value as any)}
-                    className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white font-bold cursor-pointer"
-                  >
-                    <option value="all">All Users</option>
-                    <option value="non_depositors">Non-Depositors Only (New Users)</option>
-                    <option value="depositors">Existing Depositors Only</option>
-                    <option value="min_1_dollar">Min $1.00 Deposit Made</option>
-                    <option value="min_10_dollar">Min $10.00 Deposit Made</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-slate-400 mb-1 font-bold">Min Deposit Required ($)</label>
-                  <input
-                    type="number"
-                    min={0}
-                    value={couponMinDeposit}
-                    onChange={(e) => setCouponMinDeposit(Number(e.target.value))}
-                    className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white font-bold"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-slate-400 mb-1 font-bold">Max Uses / Redemptions</label>
-                  <input
-                    type="number"
-                    min={1}
-                    value={couponMaxUses}
-                    onChange={(e) => setCouponMaxUses(Number(e.target.value))}
-                    className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white font-bold"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-slate-400 mb-1 font-bold">Expiry Date</label>
-                  <input
-                    type="date"
-                    value={couponExpiry}
-                    onChange={(e) => setCouponExpiry(e.target.value)}
-                    className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white font-bold cursor-pointer"
-                  />
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-2 pt-2 border-t border-slate-800">
-                <button
-                  type="button"
-                  onClick={() => setIsCouponModalOpen(false)}
-                  className="px-4 py-2 bg-slate-800 text-slate-300 font-bold text-xs rounded-xl cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2.5 bg-[#DFFF2F] text-slate-950 font-black text-xs rounded-xl transition-all shadow cursor-pointer"
-                >
-                  Create & Activate Coupon
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

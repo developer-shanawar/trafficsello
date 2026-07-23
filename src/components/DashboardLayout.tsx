@@ -14,9 +14,12 @@ interface DashboardLayoutProps {
 }
 
 export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ currentTab, onSelectTab, children }) => {
-  const { user, theme, toggleTheme, logout, notifications, markNotificationRead } = useStore();
+  const { user, theme, toggleTheme, logout, notifications, markNotificationRead, platformSettings } = useStore();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [notifDropdownOpen, setNotifDropdownOpen] = useState(false);
+
+  const siteName = platformSettings?.siteName || 'TrafficSell';
+  const siteIconUrl = platformSettings?.siteIconUrl || 'https://images.unsplash.com/photo-1559526324-4b87b5e36e44?auto=format&fit=crop&q=80&w=250';
 
   const unreadNotifs = notifications.filter(n => !n.read);
   const isAdmin = user?.email?.toLowerCase() === 'developershanawar@gmail.com' || user?.role === 'admin';
@@ -26,7 +29,6 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ currentTab, on
     { id: 'campaigns', label: 'Campaigns & Traffic', icon: Layers, highlight: true },
     { id: 'wallet', label: 'Wallet & Deposit', icon: Wallet },
     { id: 'analytics', label: 'Analytics', icon: BarChart3 },
-    { id: 'all-users', label: 'All Users Data', icon: Users },
     { id: 'support', label: 'Support Tickets', icon: Ticket },
     { id: 'profile', label: 'My Profile', icon: User },
     { id: 'settings', label: 'Settings', icon: Settings },
@@ -45,16 +47,24 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ currentTab, on
           {/* Logo */}
           <div
             onClick={() => onSelectTab('overview')}
-            className="flex items-center gap-3 cursor-pointer mb-8"
+            className="flex items-center gap-3 cursor-pointer mb-8 group"
           >
-            <div className="w-10 h-10 rounded-2xl bg-[#DFFF2F] text-slate-900 flex items-center justify-center font-black shadow-md">
-              <Activity className="w-5 h-5 stroke-[2.5]" />
-            </div>
+            {siteIconUrl ? (
+              <img
+                src={siteIconUrl}
+                alt={siteName}
+                className="w-10 h-10 rounded-xl object-cover shadow-md border-2 border-[#DFFF2F] group-hover:scale-105 transition-transform"
+              />
+            ) : (
+              <div className="w-10 h-10 rounded-2xl bg-[#DFFF2F] text-slate-900 flex items-center justify-center font-black shadow-md">
+                <Activity className="w-5 h-5 stroke-[2.5]" />
+              </div>
+            )}
             <div>
               <span className="text-lg font-black tracking-tight text-slate-900 dark:text-white flex items-center gap-0.5">
-                Traffic<span className="text-slate-900 dark:text-[#DFFF2F]">Sell</span>
+                {siteName}
               </span>
-              <span className="block text-[9px] font-bold tracking-widest uppercase text-slate-400 -mt-1">
+              <span className="block text-[9px] font-bold tracking-widest uppercase text-slate-400 -mt-0.5">
                 Ad Network Dashboard
               </span>
             </div>

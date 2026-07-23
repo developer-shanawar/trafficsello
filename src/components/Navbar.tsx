@@ -239,12 +239,20 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAuth, onNavigateView, curr
               <div>
                 {/* Drawer Header */}
                 <div className="flex items-center justify-between pb-5 border-b border-slate-200 dark:border-slate-800">
-                  <div className="flex items-center gap-2">
-                    <div className="h-8 w-8 rounded-lg bg-[#111827] dark:bg-[#DFFF2F] text-[#DFFF2F] dark:text-[#111827] flex items-center justify-center font-black text-lg">
-                      T
-                    </div>
+                  <div className="flex items-center gap-2.5">
+                    {siteIconUrl ? (
+                      <img
+                        src={siteIconUrl}
+                        alt={siteName}
+                        className="h-9 w-9 rounded-xl object-cover border border-[#DFFF2F]"
+                      />
+                    ) : (
+                      <div className="h-9 w-9 rounded-xl bg-[#111827] dark:bg-[#DFFF2F] text-[#DFFF2F] dark:text-[#111827] flex items-center justify-center font-black text-lg">
+                        {siteName.charAt(0)}
+                      </div>
+                    )}
                     <span className="text-lg font-black tracking-tight flex items-center gap-1.5">
-                      TrafficSell
+                      {siteName}
                     </span>
                   </div>
 

@@ -19,21 +19,6 @@ export interface UserProfile {
   isVerified?: boolean;
 }
 
-export interface CouponCode {
-  id: string;
-  code: string;
-  bonusPercentage?: number;
-  fixedBonusAmount?: number;
-  minDepositRequired?: number;
-  targetAudience: 'all' | 'non_depositors' | 'depositors' | 'min_1_dollar' | 'min_10_dollar';
-  maxUses: number;
-  usedCount: number;
-  expiryDate?: string;
-  active: boolean;
-  createdAt: string;
-  totalRedeemedAmount: number;
-}
-
 export type TrafficCountry = 
   | 'All Countries (Cheap)'
   | 'United States'
