@@ -4,14 +4,34 @@ export interface UserProfile {
   id: string;
   email: string;
   fullName: string;
+  username?: string;
   telegram?: string;
   whatsApp?: string;
+  country?: string;
+  city?: string;
+  postalCode?: string;
   walletBalance: number;
   role: UserRole;
   createdAt: string;
   avatar?: string;
   isSuspended?: boolean;
   suspendedReason?: string;
+  isVerified?: boolean;
+}
+
+export interface CouponCode {
+  id: string;
+  code: string;
+  bonusPercentage?: number;
+  fixedBonusAmount?: number;
+  minDepositRequired?: number;
+  targetAudience: 'all' | 'non_depositors' | 'depositors' | 'min_1_dollar' | 'min_10_dollar';
+  maxUses: number;
+  usedCount: number;
+  expiryDate?: string;
+  active: boolean;
+  createdAt: string;
+  totalRedeemedAmount: number;
 }
 
 export type TrafficCountry = 

@@ -15,10 +15,11 @@ export const AdminDashboard: React.FC = () => {
     walletDeposits, approveDeposit, rejectDeposit, campaigns, updateCampaignStatus,
     allUsers, updateUserBalanceByAdmin, toggleUserSuspension, platformSettings, updatePlatformSettings, resetToInitialData,
     testimonials, addTestimonial, updateTestimonial, deleteTestimonial, getUserStats, currentUser,
-    supportTickets, createTicketForUser, addTicketMessage, updateTicketStatus
+    supportTickets, createTicketForUser, addTicketMessage, updateTicketStatus,
+    coupons, addCoupon, deleteCoupon, toggleCouponStatus
   } = useStore();
 
-  const [activeTab, setActiveTab] = useState<'alerts' | 'deposits' | 'campaigns' | 'users' | 'tickets' | 'pages' | 'testimonials' | 'settings'>('alerts');
+  const [activeTab, setActiveTab] = useState<'alerts' | 'deposits' | 'campaigns' | 'users' | 'tickets' | 'coupons' | 'pages' | 'testimonials' | 'settings'>('alerts');
   const [selectedReceiptUrl, setSelectedReceiptUrl] = useState<string | null>(null);
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
   const [newBalanceInput, setNewBalanceInput] = useState<number>(0);
@@ -53,6 +54,44 @@ export const AdminDashboard: React.FC = () => {
   // Testimonial modal state
   const [isTestimonialModalOpen, setIsTestimonialModalOpen] = useState(false);
   const [editingTestimonial, setEditingTestimonial] = useState<Testimonial | null>(null);
+
+  // Coupon Creation Modal state
+  const [isCouponModalOpen, setIsCouponModalOpen] = useState(false);
+  const [couponCode, setCouponCode] = useState('');
+  const [couponType, setCouponType] = useState<'percentage' | 'fixed'>('percentage');
+  const [couponBonusValue, setCouponBonusValue] = useState<number>(20);
+  const [couponMinDeposit, setCouponMinDeposit] = useState<number>(1);
+  const [couponTargetAudience, setCouponTargetAudience] = useState<'all' | 'non_depositors' | 'depositors' | 'min_1_dollar' | 'min_10_dollar'>('all');
+  const [couponMaxUses, setCouponMaxUses] = useState<number>(500);
+  const [couponExpiry, setCouponExpiry] = useState<string>('2026-12-31');
+
+  const handleGenerateRandomCoupon = () => {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let res = '';
+    for (let i = 0; i < 6; i++) {
+      res += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    setCouponCode(res);
+  };
+
+  const handleCreateCoupon = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!couponCode.trim()) return;
+
+    addCoupon({
+      code: couponCode.trim().toUpperCase(),
+      bonusPercentage: couponType === 'percentage' ? couponBonusValue : undefined,
+      fixedBonusAmount: couponType === 'fixed' ? couponBonusValue : undefined,
+      minDepositRequired: couponMinDeposit,
+      targetAudience: couponTargetAudience,
+      maxUses: couponMaxUses,
+      expiryDate: couponExpiry,
+      active: true
+    });
+
+    setIsCouponModalOpen(false);
+    setCouponCode('');
+  };
   const [testimonialForm, setTestimonialForm] = useState<Omit<Testimonial, 'id'>>({
     name: '',
     role: '',
@@ -279,6 +318,17 @@ export const AdminDashboard: React.FC = () => {
         >
           <Ticket className="w-4 h-4" />
           Support Tickets ({supportTickets.length})
+        </button>
+        <button
+          onClick={() => setActiveTab('coupons')}
+          className={`pb-3 text-sm font-bold transition-all border-b-2 flex items-center gap-2 cursor-pointer ${
+            activeTab === 'coupons'
+              ? 'border-amber-400 text-amber-500 dark:text-amber-400'
+              : 'border-transparent text-slate-500 hover:text-slate-900 dark:hover:text-white'
+          }`}
+        >
+          <Sliders className="w-4 h-4" />
+          Coupons Management ({coupons.length})
         </button>
         <button
           onClick={() => setActiveTab('pages')}
@@ -873,6 +923,115 @@ export const AdminDashboard: React.FC = () => {
                       </button>
                     </div>
                   )}
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Coupons Tab */}
+      {activeTab === 'coupons' && (
+        <div className="space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900 p-6 rounded-3xl border border-slate-800">
+            <div>
+              <h3 className="text-lg font-black text-white flex items-center gap-2">
+                <Sliders className="w-5 h-5 text-[#DFFF2F]" /> Promotional Coupon Codes & Bonus System
+              </h3>
+              <p className="text-xs text-slate-400 mt-1">
+                Create 6-digit or custom coupon codes with deposit limits, target audience rules, and track generated bonus money.
+              </p>
+            </div>
+
+            <button
+              onClick={() => {
+                handleGenerateRandomCoupon();
+                setIsCouponModalOpen(true);
+              }}
+              className="px-4 py-2.5 bg-[#DFFF2F] hover:bg-[#cbe820] text-slate-950 font-black rounded-2xl text-xs flex items-center gap-2 shadow cursor-pointer self-start sm:self-auto"
+            >
+              <Plus className="w-4 h-4" /> Create Coupon Code
+            </button>
+          </div>
+
+          {/* Coupon Cards Table */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {coupons.length === 0 ? (
+              <div className="col-span-full text-center py-12 text-slate-400 text-xs">
+                No promotional coupon codes created yet. Click "Create Coupon Code" above.
+              </div>
+            ) : (
+              coupons.map((cpn) => (
+                <div
+                  key={cpn.id}
+                  className={`p-5 rounded-3xl border transition-all space-y-3 relative overflow-hidden ${
+                    cpn.active
+                      ? 'bg-slate-900 border-slate-800 text-white shadow-md'
+                      : 'bg-slate-950/60 border-slate-800/60 text-slate-500 opacity-75'
+                  }`}
+                >
+                  <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xl font-black font-mono tracking-wider text-[#DFFF2F]">
+                        {cpn.code}
+                      </span>
+                      <button
+                        onClick={() => toggleCouponStatus(cpn.id, !cpn.active)}
+                        className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase cursor-pointer ${
+                          cpn.active ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+                        }`}
+                      >
+                        {cpn.active ? 'Active' : 'Disabled'}
+                      </button>
+                    </div>
+
+                    <button
+                      onClick={() => {
+                        if (confirm(`Delete coupon code ${cpn.code}?`)) {
+                          deleteCoupon(cpn.id);
+                        }
+                      }}
+                      className="text-slate-500 hover:text-rose-400 text-xs p-1 cursor-pointer"
+                      title="Delete Coupon"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div>
+                      <span className="text-[10px] text-slate-400 uppercase font-bold block">Bonus Benefit</span>
+                      <strong className="text-white text-sm">
+                        {cpn.bonusPercentage ? `${cpn.bonusPercentage}% Bonus` : `$${cpn.fixedBonusAmount?.toFixed(2)} USD`}
+                      </strong>
+                    </div>
+
+                    <div>
+                      <span className="text-[10px] text-slate-400 uppercase font-bold block">Redeemed Money</span>
+                      <strong className="text-emerald-400 text-sm font-mono">
+                        ${cpn.totalRedeemedAmount.toFixed(2)}
+                      </strong>
+                    </div>
+
+                    <div>
+                      <span className="text-[10px] text-slate-400 uppercase font-bold block">Usage Uses</span>
+                      <span className="font-bold">
+                        {cpn.usedCount} / {cpn.maxUses} used
+                      </span>
+                    </div>
+
+                    <div>
+                      <span className="text-[10px] text-slate-400 uppercase font-bold block">Target Rule</span>
+                      <span className="font-bold text-amber-400 capitalize">
+                        {cpn.targetAudience.replace(/_/g, ' ')}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="pt-2 border-t border-slate-800 flex items-center justify-between text-[10px] text-slate-400 font-mono">
+                    <span>Min Deposit: ${cpn.minDepositRequired || 0} USD</span>
+                    <span>Expires: {cpn.expiryDate || 'Never'}</span>
+                  </div>
                 </div>
               ))
             )}
@@ -1495,6 +1654,141 @@ export const AdminDashboard: React.FC = () => {
                 Issue Ticket
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Coupon Creation Modal */}
+      {isCouponModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-lg w-full text-white relative space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <h3 className="text-sm font-bold flex items-center gap-2 text-[#DFFF2F]">
+                <Sliders className="w-4 h-4" /> Create New Promotional Coupon Code
+              </h3>
+              <button
+                onClick={() => setIsCouponModalOpen(false)}
+                className="text-slate-400 hover:text-white text-xs cursor-pointer font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateCoupon} className="space-y-4 text-xs">
+              <div>
+                <div className="flex justify-between items-center mb-1">
+                  <label className="text-slate-400 font-bold uppercase text-[10px]">Coupon Code *</label>
+                  <button
+                    type="button"
+                    onClick={handleGenerateRandomCoupon}
+                    className="text-[#DFFF2F] hover:underline text-[10px] font-bold cursor-pointer"
+                  >
+                    ⚡ Generate 6-Digit Code
+                  </button>
+                </div>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. BONUS20 or 6-digit code"
+                  value={couponCode}
+                  onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                  className="w-full p-3 bg-slate-950 border border-slate-800 rounded-xl text-white font-mono font-black tracking-widest text-base focus:outline-none focus:border-[#DFFF2F]"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-400 mb-1 font-bold">Reward Type</label>
+                  <select
+                    value={couponType}
+                    onChange={(e) => setCouponType(e.target.value as 'percentage' | 'fixed')}
+                    className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white font-bold cursor-pointer"
+                  >
+                    <option value="percentage">% Percentage Bonus</option>
+                    <option value="fixed">$ Fixed USD Bonus</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-slate-400 mb-1 font-bold">Bonus Value ({couponType === 'percentage' ? '%' : '$'})</label>
+                  <input
+                    type="number"
+                    min={1}
+                    required
+                    value={couponBonusValue}
+                    onChange={(e) => setCouponBonusValue(Number(e.target.value))}
+                    className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white font-bold"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-400 mb-1 font-bold">Target Audience Rule</label>
+                  <select
+                    value={couponTargetAudience}
+                    onChange={(e) => setCouponTargetAudience(e.target.value as any)}
+                    className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white font-bold cursor-pointer"
+                  >
+                    <option value="all">All Users</option>
+                    <option value="non_depositors">Non-Depositors Only (New Users)</option>
+                    <option value="depositors">Existing Depositors Only</option>
+                    <option value="min_1_dollar">Min $1.00 Deposit Made</option>
+                    <option value="min_10_dollar">Min $10.00 Deposit Made</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-slate-400 mb-1 font-bold">Min Deposit Required ($)</label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={couponMinDeposit}
+                    onChange={(e) => setCouponMinDeposit(Number(e.target.value))}
+                    className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white font-bold"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-400 mb-1 font-bold">Max Uses / Redemptions</label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={couponMaxUses}
+                    onChange={(e) => setCouponMaxUses(Number(e.target.value))}
+                    className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white font-bold"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-400 mb-1 font-bold">Expiry Date</label>
+                  <input
+                    type="date"
+                    value={couponExpiry}
+                    onChange={(e) => setCouponExpiry(e.target.value)}
+                    className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white font-bold cursor-pointer"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setIsCouponModalOpen(false)}
+                  className="px-4 py-2 bg-slate-800 text-slate-300 font-bold text-xs rounded-xl cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2.5 bg-[#DFFF2F] text-slate-950 font-black text-xs rounded-xl transition-all shadow cursor-pointer"
+                >
+                  Create & Activate Coupon
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
