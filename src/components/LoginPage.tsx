@@ -186,7 +186,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
               onClick={onNavigateRegister}
               className="text-[#111827] dark:text-[#DFFF2F] font-extrabold underline hover:opacity-80 cursor-pointer ml-1"
             >
-              Create a New Account ($25 Bonus)
+              Create a New Account
             </button>
           </div>
         </motion.div>

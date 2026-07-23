@@ -92,31 +92,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, initialMode, onClo
               {mode === 'login' ? 'Sign in to TrafficSell' : 'Join Premium Traffic Network'}
             </h3>
             <p className="text-xs text-slate-400 mt-1">
-              {mode === 'login' ? 'Manage campaigns, wallet balance & analytics' : 'Get $25 test balance upon registration'}
+              {mode === 'login' ? 'Manage campaigns, wallet balance & analytics' : 'Create your account to start buying traffic'}
             </p>
-          </div>
-
-          {/* Demo Quick Logins */}
-          <div className="p-3 bg-slate-800/60 rounded-2xl border border-slate-700/60 mb-6">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2">
-              ⚡ Instant Demo Access
-            </span>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={handleDemoUser}
-                className="py-2 px-3 bg-slate-700 hover:bg-slate-600 rounded-xl text-xs font-semibold text-white transition-colors flex items-center justify-center gap-1.5"
-              >
-                <User className="w-3.5 h-3.5 text-[#DFFF2F]" /> Demo User
-              </button>
-              <button
-                type="button"
-                onClick={handleDemoAdmin}
-                className="py-2 px-3 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-1.5"
-              >
-                <ShieldCheck className="w-3.5 h-3.5" /> Demo Admin
-              </button>
-            </div>
           </div>
 
           {error && (
@@ -212,7 +189,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, initialMode, onClo
               disabled={loading}
               className="w-full mt-2 py-3 bg-[#DFFF2F] hover:bg-[#cbe820] text-slate-900 font-bold rounded-xl text-sm transition-all shadow-lg flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
             >
-              {loading ? 'Processing...' : mode === 'login' ? 'Sign In to Dashboard' : 'Register & Claim $25 Bonus'}
+              {loading ? 'Processing...' : mode === 'login' ? 'Sign In to Dashboard' : 'Create Account'}
               <ArrowRight className="w-4 h-4" />
             </button>
           </form>

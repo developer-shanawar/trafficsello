@@ -10,6 +10,8 @@ export interface UserProfile {
   role: UserRole;
   createdAt: string;
   avatar?: string;
+  isSuspended?: boolean;
+  suspendedReason?: string;
 }
 
 export type TrafficCountry = 
@@ -114,7 +116,32 @@ export interface AppNotification {
   createdAt: string;
 }
 
+export interface Testimonial {
+  id: string;
+  name: string;
+  role: string;
+  company?: string;
+  content: string;
+  avatar: string;
+  rating: number;
+  createdAt: string;
+  active: boolean;
+}
+
+export interface EditablePageContent {
+  privacyPolicy: string;
+  termsOfService: string;
+  refundPolicy: string;
+  aboutUs: string;
+  supportEmail: string;
+  telegramContact: string;
+  whatsAppContact: string;
+}
+
 export interface PlatformSettings {
+  siteName?: string;
+  siteIconUrl?: string;
+  brandDisplayMode?: 'both' | 'icon' | 'text';
   minDeposit: number;
   minCPM: number;
   announcement: string;
@@ -128,4 +155,5 @@ export interface PlatformSettings {
     usdtErc20Address: string;
     usdtBep20Address: string;
   };
+  pageContent: EditablePageContent;
 }

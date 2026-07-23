@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import {
   Activity, Zap, ShieldCheck, Globe, Smartphone, BarChart3, Clock,
   ArrowRight, Check, CheckCircle2, ChevronDown, Sparkles, Wallet, Users,
-  Award, HeartHandshake, HelpCircle, Layers, Play
+  Award, HeartHandshake, HelpCircle, Layers, Play, Star, Quote, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { TrafficCalculator } from './TrafficCalculator';
 import { useStore } from '../lib/store';
@@ -19,8 +19,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   onViewPricing,
   onStartCalculatorCampaign
 }) => {
-  const { platformSettings } = useStore();
+  const { platformSettings, testimonials } = useStore();
   const [openFaq, setOpenFaq] = useState<number | null>(0);
+  const [activeTestimonialIdx, setActiveTestimonialIdx] = useState(0);
 
   const featuresList = [
     {
@@ -171,7 +172,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                   onClick={onGetStarted}
                   className="py-4 px-8 bg-[#111827] dark:bg-[#DFFF2F] hover:bg-slate-800 dark:hover:bg-[#cbe820] text-white dark:text-[#111827] font-bold rounded-2xl text-base transition-all shadow-xl shadow-[#111827]/10 dark:shadow-[#DFFF2F]/20 hover:scale-105 flex items-center gap-2 cursor-pointer"
                 >
-                  <Sparkles className="w-5 h-5 text-[#DFFF2F] dark:text-[#111827]" /> Get Started Free ($25 Bonus)
+                  <Sparkles className="w-5 h-5 text-[#DFFF2F] dark:text-[#111827]" /> Get Started
                 </button>
                 <a
                   href="#estimator"
@@ -311,63 +312,108 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         </div>
       </section>
 
-      {/* Pricing Section */}
-      <section id="pricing" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center max-w-2xl mx-auto mb-12">
-          <span className="text-xs font-bold text-[#111827] dark:text-[#DFFF2F] uppercase tracking-wider block mb-1">Simple Transparent Pricing</span>
-          <h2 className="text-3xl sm:text-4xl font-extrabold text-[#111827] dark:text-white">Flexible Traffic Packages</h2>
+      {/* Testimonials & Advertiser Reviews Carousel */}
+      <section id="testimonials" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="text-center max-w-2xl mx-auto mb-10">
+          <span className="text-xs font-bold text-[#111827] dark:text-[#DFFF2F] uppercase tracking-wider block mb-1">Real Advertiser Feedback</span>
+          <h2 className="text-3xl sm:text-4xl font-extrabold text-[#111827] dark:text-white">What Media Buyers Say</h2>
           <p className="text-xs sm:text-sm text-[#111827]/80 dark:text-slate-300 mt-2 font-medium">
-            Fund your wallet with $1 minimum deposit and launch unlimited campaigns.
+            Trusted by over 10,000+ affiliate marketers and e-commerce brands for high-converting traffic.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {pricingPlans.map((plan, i) => (
-            <motion.div
-              key={i}
-              whileHover={{ y: -6 }}
-              className={`rounded-3xl p-8 border transition-all relative flex flex-col justify-between shadow-xl ${
-                plan.popular
-                  ? 'bg-[#111827] dark:bg-slate-900 text-white border-[#DFFF2F] shadow-2xl scale-105'
-                  : 'bg-white/90 dark:bg-slate-900/80 text-[#111827] dark:text-white border-white dark:border-slate-800'
-              }`}
-            >
-              {plan.popular && (
-                <span className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-[#DFFF2F] text-slate-950 font-black text-[10px] uppercase tracking-wider px-3.5 py-1 rounded-full shadow-md">
-                  Most Popular
-                </span>
-              )}
+        {/* Sliding Carousel Container */}
+        <div className="relative max-w-4xl mx-auto">
+          {(() => {
+            const activeTestimonials = testimonials.filter(t => t.active);
+            if (activeTestimonials.length === 0) return null;
 
-              <div>
-                <h3 className="text-xl font-black mb-2">{plan.name}</h3>
-                <div className="flex items-baseline gap-2 mb-4">
-                  <span className="text-3xl font-black text-[#111827] dark:text-[#DFFF2F]">{plan.cpm}</span>
-                  <span className="text-xs font-bold text-[#111827]/70 dark:text-slate-400">rate</span>
+            const handleNext = () => {
+              setActiveTestimonialIdx((prev) => (prev + 1) % activeTestimonials.length);
+            };
+
+            const handlePrev = () => {
+              setActiveTestimonialIdx((prev) => (prev - 1 + activeTestimonials.length) % activeTestimonials.length);
+            };
+
+            const currentItem = activeTestimonials[activeTestimonialIdx % activeTestimonials.length];
+
+            return (
+              <div className="space-y-6">
+                <div className="relative overflow-hidden p-2">
+                  <motion.div
+                    key={currentItem.id}
+                    initial={{ x: 120, opacity: 0 }}
+                    animate={{ x: 0, opacity: 1 }}
+                    exit={{ x: -120, opacity: 0 }}
+                    transition={{ type: 'spring', damping: 20, stiffness: 180 }}
+                    className="bg-white/90 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-8 md:p-10 shadow-2xl relative flex flex-col justify-between"
+                  >
+                    <div>
+                      <div className="flex items-center justify-between mb-6">
+                        <div className="flex items-center gap-1 text-amber-400">
+                          {[...Array(currentItem.rating)].map((_, i) => (
+                            <Star key={i} className="w-5 h-5 fill-amber-400 text-amber-400" />
+                          ))}
+                        </div>
+                        <Quote className="w-10 h-10 text-slate-300 dark:text-slate-700 opacity-40" />
+                      </div>
+                      <p className="text-base sm:text-lg text-[#111827] dark:text-slate-100 font-semibold leading-relaxed mb-8 italic">
+                        "{currentItem.content}"
+                      </p>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-6 border-t border-slate-100 dark:border-slate-800">
+                      <div className="flex items-center gap-4">
+                        <img
+                          src={currentItem.avatar}
+                          alt={currentItem.name}
+                          className="w-12 h-12 rounded-full object-cover border-2 border-[#DFFF2F] shadow-md"
+                        />
+                        <div>
+                          <h4 className="text-sm font-extrabold text-[#111827] dark:text-white">{currentItem.name}</h4>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">{currentItem.role} {currentItem.company ? `• ${currentItem.company}` : ''}</p>
+                        </div>
+                      </div>
+
+                      {/* Left - Right Slide Adjust Controls */}
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={handlePrev}
+                          className="p-3 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-[#DFFF2F] hover:text-slate-950 transition-colors cursor-pointer text-[#111827] dark:text-white"
+                          title="Previous review"
+                        >
+                          <ChevronLeft className="w-5 h-5" />
+                        </button>
+                        <button
+                          onClick={handleNext}
+                          className="p-3 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-[#DFFF2F] hover:text-slate-950 transition-colors cursor-pointer text-[#111827] dark:text-white"
+                          title="Next review"
+                        >
+                          <ChevronRight className="w-5 h-5" />
+                        </button>
+                      </div>
+                    </div>
+                  </motion.div>
                 </div>
-                <p className="text-xs font-bold text-[#111827]/80 dark:text-slate-400 mb-6">Deposit Range: {plan.deposit}</p>
 
-                <ul className="space-y-3 text-xs mb-8 font-semibold">
-                  {plan.features.map((ft, j) => (
-                    <li key={j} className="flex items-center gap-2">
-                      <Check className="w-4 h-4 text-emerald-600 dark:text-[#DFFF2F] shrink-0" />
-                      <span>{ft}</span>
-                    </li>
+                {/* Carousel Pagination Dots */}
+                <div className="flex items-center justify-center gap-2">
+                  {activeTestimonials.map((_, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => setActiveTestimonialIdx(idx)}
+                      className={`h-2.5 rounded-full transition-all cursor-pointer ${
+                        idx === activeTestimonialIdx % activeTestimonials.length
+                          ? 'w-8 bg-[#111827] dark:bg-[#DFFF2F]'
+                          : 'w-2.5 bg-slate-300 dark:bg-slate-700'
+                      }`}
+                    />
                   ))}
-                </ul>
+                </div>
               </div>
-
-              <button
-                onClick={onGetStarted}
-                className={`w-full py-3.5 px-4 font-bold rounded-2xl text-xs transition-all shadow-md cursor-pointer ${
-                  plan.popular
-                    ? 'bg-[#DFFF2F] hover:bg-[#cbe820] text-slate-950 font-black'
-                    : 'bg-[#111827] hover:bg-slate-800 text-white dark:bg-slate-800 dark:hover:bg-slate-700'
-                }`}
-              >
-                Get Started Now
-              </button>
-            </motion.div>
-          ))}
+            );
+          })()}
         </div>
       </section>
 

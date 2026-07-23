@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Wallet, Plus, ArrowUpRight, ArrowDownLeft, Upload, CheckCircle2, Clock, AlertCircle, Copy, ShieldCheck, DollarSign } from 'lucide-react';
+import { Wallet, Plus, ArrowUpRight, ArrowDownLeft, Upload, CheckCircle2, Clock, AlertCircle, Copy, ShieldCheck, DollarSign, Mail, Send, Phone, Loader2 } from 'lucide-react';
 import { useStore } from '../../lib/store';
 import { PaymentMethod } from '../../types';
 import confetti from 'canvas-confetti';
@@ -13,6 +13,8 @@ export const WalletView: React.FC = () => {
   const [amount, setAmount] = useState<number>(50);
   const [trxRef, setTrxRef] = useState('');
   const [screenshotUrl, setScreenshotUrl] = useState('');
+  const [isUploadingImgbb, setIsUploadingImgbb] = useState(false);
+  const [imgbbError, setImgbbError] = useState('');
   const [copiedText, setCopiedText] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
@@ -55,14 +57,34 @@ export const WalletView: React.FC = () => {
     setTimeout(() => setCopiedText(''), 2000);
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setScreenshotUrl(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+
+    setIsUploadingImgbb(true);
+    setImgbbError('');
+
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+
+      const apiKey = '95bfa2c260a52e93433daf349259e043';
+      const response = await fetch(`https://api.imgbb.com/1/upload?key=${apiKey}`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      const result = await response.json();
+
+      if (result && result.success && result.data && result.data.url) {
+        setScreenshotUrl(result.data.url);
+      } else {
+        setImgbbError(result?.error?.message || 'Failed to upload screenshot to IMGBB. Please try again.');
+      }
+    } catch (err: any) {
+      setImgbbError('IMGBB upload failed. Please check network connection.');
+    } finally {
+      setIsUploadingImgbb(false);
     }
   };
 
@@ -204,6 +226,43 @@ export const WalletView: React.FC = () => {
               )}
             </div>
 
+            {/* Email and Telegram Quick Verification Buttons */}
+            <div className="p-4 bg-slate-900 text-white rounded-2xl border border-slate-800 space-y-3">
+              <div className="flex justify-between items-center text-xs">
+                <span className="font-extrabold text-[#DFFF2F]">Direct Verification & Support</span>
+                <span className="text-[10px] text-slate-400">Instant Admin Response</span>
+              </div>
+              <p className="text-xs text-slate-300">
+                Need deposit assistance or prefer sending your payment receipt directly to our support staff?
+              </p>
+              <div className="flex flex-wrap gap-2.5 pt-1">
+                <a
+                  href={`mailto:support@trafficsell.com?subject=TrafficSell Deposit Verification - ${selectedMethod}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3.5 py-2 bg-rose-500 hover:bg-rose-600 text-white rounded-xl text-xs font-extrabold flex items-center gap-1.5 shadow-md transition-all cursor-pointer"
+                >
+                  <Mail className="w-3.5 h-3.5" /> Email Verification
+                </a>
+                <a
+                  href="https://t.me/developershanawar"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3.5 py-2 bg-sky-500 hover:bg-sky-600 text-white rounded-xl text-xs font-extrabold flex items-center gap-1.5 shadow-md transition-all cursor-pointer"
+                >
+                  <Send className="w-3.5 h-3.5" /> Telegram Support
+                </a>
+                <a
+                  href="https://wa.me/923001234567"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-extrabold flex items-center gap-1.5 shadow-md transition-all cursor-pointer"
+                >
+                  <Phone className="w-3.5 h-3.5" /> WhatsApp Support
+                </a>
+              </div>
+            </div>
+
             <form onSubmit={handleSubmitDeposit} className="space-y-4">
               <div>
                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
@@ -237,38 +296,63 @@ export const WalletView: React.FC = () => {
                 />
               </div>
 
-              {/* Upload Screenshot */}
+              {/* Upload Screenshot to IMGBB */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
-                  Payment Receipt Screenshot
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1 flex items-center justify-between">
+                  <span>Payment Receipt Screenshot <span className="text-rose-500">* (Mandatory)</span></span>
+                  <span className="text-[10px] text-amber-500 font-extrabold">IMGBB Cloud Storage</span>
                 </label>
+
+                {imgbbError && (
+                  <div className="p-3 bg-rose-500/10 border border-rose-500/30 text-rose-500 text-xs rounded-xl mb-2 flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    <span>{imgbbError}</span>
+                  </div>
+                )}
+
                 <div className="border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl p-4 text-center bg-slate-50 dark:bg-slate-950/50">
-                  {screenshotUrl ? (
+                  {isUploadingImgbb ? (
+                    <div className="py-4 space-y-2">
+                      <Loader2 className="w-6 h-6 text-[#111827] dark:text-[#DFFF2F] animate-spin mx-auto" />
+                      <p className="text-xs font-bold text-slate-700 dark:text-slate-300">Uploading screenshot image to IMGBB cloud...</p>
+                    </div>
+                  ) : screenshotUrl ? (
                     <div className="space-y-2">
-                      <img src={screenshotUrl} alt="Receipt preview" className="max-h-32 mx-auto rounded-xl shadow-md" />
-                      <button
-                        type="button"
-                        onClick={() => setScreenshotUrl('')}
-                        className="text-xs text-rose-500 hover:underline"
-                      >
-                        Remove Image
-                      </button>
+                      <img src={screenshotUrl} alt="Receipt preview" className="max-h-36 mx-auto rounded-xl shadow-md border border-emerald-500" />
+                      <div className="flex items-center justify-center gap-2">
+                        <span className="text-[10px] font-bold text-emerald-500 flex items-center gap-1">
+                          <CheckCircle2 className="w-3.5 h-3.5" /> Uploaded to IMGBB
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setScreenshotUrl('')}
+                          className="text-xs text-rose-500 hover:underline font-bold"
+                        >
+                          Remove
+                        </button>
+                      </div>
                     </div>
                   ) : (
                     <label className="cursor-pointer block space-y-1">
                       <Upload className="w-6 h-6 text-slate-400 mx-auto" />
                       <span className="text-xs font-bold text-slate-600 dark:text-slate-300 block">Click to upload receipt image</span>
-                      <span className="text-[10px] text-slate-400 block">PNG, JPG, WEBP max 5MB</span>
+                      <span className="text-[10px] text-slate-400 block">PNG, JPG, WEBP (Form submission requires image)</span>
                       <input type="file" accept="image/*" onChange={handleFileUpload} className="hidden" />
                     </label>
                   )}
                 </div>
               </div>
 
+              {!screenshotUrl && !isUploadingImgbb && (
+                <p className="text-[11px] font-bold text-amber-600 dark:text-amber-400 text-center">
+                  ⚠️ Please upload your payment receipt screenshot image to enable form submission.
+                </p>
+              )}
+
               <button
                 type="submit"
-                disabled={submitting}
-                className="w-full py-3.5 bg-[#DFFF2F] hover:bg-[#cbe820] text-slate-950 font-black rounded-2xl text-sm transition-all shadow-lg flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                disabled={submitting || isUploadingImgbb || !screenshotUrl}
+                className="w-full py-3.5 bg-[#DFFF2F] hover:bg-[#cbe820] text-slate-950 font-black rounded-2xl text-sm transition-all shadow-lg flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {submitting ? 'Submitting...' : `Submit $${amount.toFixed(2)} Deposit for Verification`}
               </button>

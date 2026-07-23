@@ -1,12 +1,13 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import {
   UserProfile, Campaign, PaymentDeposit, WalletTransaction,
-  SupportTicket, AppNotification, PlatformSettings, CampaignStatus, UserRole
+  SupportTicket, AppNotification, PlatformSettings, CampaignStatus, UserRole, Testimonial
 } from '../types';
 import {
   DEFAULT_SETTINGS, INITIAL_USERS, INITIAL_CAMPAIGNS,
-  INITIAL_PAYMENTS, INITIAL_TRANSACTIONS, INITIAL_TICKETS, INITIAL_NOTIFICATIONS
+  INITIAL_PAYMENTS, INITIAL_TRANSACTIONS, INITIAL_TICKETS, INITIAL_NOTIFICATIONS, INITIAL_TESTIMONIALS
 } from './initialData';
+import { sendNativeNotification } from './notifications';
 
 interface StoreContextType {
   user: UserProfile | null;
@@ -33,20 +34,36 @@ interface StoreContextType {
   // Support
   supportTickets: SupportTicket[];
   createTicket: (data: { subject: string; category: SupportTicket['category']; priority: SupportTicket['priority']; message: string }) => void;
+  createTicketForUser: (userId: string, data: { subject: string; category: SupportTicket['category']; priority: SupportTicket['priority']; message: string }) => void;
   addTicketMessage: (ticketId: string, text: string) => void;
+  updateTicketStatus: (ticketId: string, status: SupportTicket['status']) => void;
 
   // Notifications
   notifications: AppNotification[];
   markNotificationRead: (id: string) => void;
 
-  // Platform Settings
+  // Platform Settings & Pages Content
   platformSettings: PlatformSettings;
   updatePlatformSettings: (settings: PlatformSettings) => void;
 
-  // Profile update
+  // Testimonials
+  testimonials: Testimonial[];
+  addTestimonial: (data: Omit<Testimonial, 'id' | 'createdAt'>) => void;
+  updateTestimonial: (id: string, data: Partial<Testimonial>) => void;
+  deleteTestimonial: (id: string) => void;
+
+  // Profile & User Stats
   updateProfile: (data: Partial<UserProfile>) => void;
   allUsers: UserProfile[];
   updateUserBalanceByAdmin: (userId: string, newBalance: number) => void;
+  toggleUserSuspension: (userId: string, isSuspended: boolean, reason?: string) => void;
+  getUserStats: (userId: string) => {
+    todayHits: number;
+    yesterdayHits: number;
+    activeCampaignsCount: number;
+    totalSpent: number;
+    currentBalance: number;
+  };
   resetToInitialData: () => void;
 }
 
@@ -73,7 +90,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         fullName: 'Shanawar Admin',
         telegram: '@developershanawar',
         whatsApp: '+92 300-1234567',
-        walletBalance: 1250.00,
+        walletBalance: 0.00,
         role: 'admin',
         createdAt: '2026-01-01T00:00:00Z',
         avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=250'
@@ -97,46 +114,69 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const [campaigns, setCampaigns] = useState<Campaign[]>(() => {
     const saved = localStorage.getItem('trafficsell_campaigns');
-    const parsed = saved ? JSON.parse(saved) : null;
-    return (parsed && parsed.length > 0) ? parsed : INITIAL_CAMPAIGNS;
+    return saved !== null ? JSON.parse(saved) : INITIAL_CAMPAIGNS;
   });
 
   const [walletDeposits, setWalletDeposits] = useState<PaymentDeposit[]>(() => {
     const saved = localStorage.getItem('trafficsell_payments');
-    const parsed = saved ? JSON.parse(saved) : null;
-    return (parsed && parsed.length > 0) ? parsed : INITIAL_PAYMENTS;
+    return saved !== null ? JSON.parse(saved) : INITIAL_PAYMENTS;
   });
 
   const [transactions, setTransactions] = useState<WalletTransaction[]>(() => {
     const saved = localStorage.getItem('trafficsell_transactions');
-    const parsed = saved ? JSON.parse(saved) : null;
-    return (parsed && parsed.length > 0) ? parsed : INITIAL_TRANSACTIONS;
+    return saved !== null ? JSON.parse(saved) : INITIAL_TRANSACTIONS;
   });
 
   const [supportTickets, setSupportTickets] = useState<SupportTicket[]>(() => {
     const saved = localStorage.getItem('trafficsell_tickets');
-    const parsed = saved ? JSON.parse(saved) : null;
-    return (parsed && parsed.length > 0) ? parsed : INITIAL_TICKETS;
+    return saved !== null ? JSON.parse(saved) : INITIAL_TICKETS;
   });
 
   const [notifications, setNotifications] = useState<AppNotification[]>(() => {
     const saved = localStorage.getItem('trafficsell_notifications');
-    const parsed = saved ? JSON.parse(saved) : null;
-    return (parsed && parsed.length > 0) ? parsed : INITIAL_NOTIFICATIONS;
+    return saved !== null ? JSON.parse(saved) : INITIAL_NOTIFICATIONS;
   });
 
   const [platformSettings, setPlatformSettings] = useState<PlatformSettings>(() => {
     const saved = localStorage.getItem('trafficsell_settings');
-    return saved ? JSON.parse(saved) : DEFAULT_SETTINGS;
+    if (saved !== null) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (!parsed.pageContent) {
+          parsed.pageContent = DEFAULT_SETTINGS.pageContent;
+        }
+        return parsed;
+      } catch (e) {
+        return DEFAULT_SETTINGS;
+      }
+    }
+    return DEFAULT_SETTINGS;
   });
 
-  // Sync to localStorage
+  const [testimonials, setTestimonials] = useState<Testimonial[]>(() => {
+    const saved = localStorage.getItem('trafficsell_testimonials');
+    return saved !== null ? JSON.parse(saved) : INITIAL_TESTIMONIALS;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('trafficsell_testimonials', JSON.stringify(testimonials));
+  }, [testimonials]);
+
+  // Sync theme to localStorage and DOM
   useEffect(() => {
     localStorage.setItem('trafficsell_theme', theme);
+    const root = document.documentElement;
+    const body = document.body;
     if (theme === 'dark') {
-      document.documentElement.classList.add('dark');
+      root.classList.add('dark');
+      root.classList.remove('light');
+      body.classList.add('dark');
+      body.classList.remove('light');
     } else {
-      document.documentElement.classList.remove('dark');
+      root.classList.remove('dark');
+      root.classList.add('light');
+      body.classList.remove('dark');
+      body.classList.add('light');
     }
   }, [theme]);
 
@@ -200,6 +240,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                 createdAt: new Date().toISOString()
               };
               setNotifications(prev => [newNotification, ...prev]);
+
+              sendNativeNotification('TrafficSell Campaign Complete 🎉', `Your campaign "${cmp.name}" reached target ${cmp.visitorsTarget.toLocaleString()} visitors!`);
             }
 
             return {
@@ -370,6 +412,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       createdAt: new Date().toISOString()
     };
     setNotifications(prev => [notif, ...prev]);
+
+    sendNativeNotification('TrafficSell Deposit Submitted 💳', `Your ${data.method} deposit request of $${data.amount.toFixed(2)} was submitted and is pending verification.`);
   };
 
   const approveDeposit = (depositId: string, adminNote?: string) => {
@@ -418,6 +462,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       createdAt: new Date().toISOString()
     };
     setNotifications(prev => [notif, ...prev]);
+
+    sendNativeNotification('TrafficSell Deposit Approved! 🎉', `$${deposit.amount.toFixed(2)} deposit + ${bonusAmount.toFixed(2)} bonus credited to your TrafficSell wallet!`);
   };
 
   const rejectDeposit = (depositId: string, adminNote?: string) => {
@@ -436,6 +482,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       createdAt: new Date().toISOString()
     };
     setNotifications(prev => [notif, ...prev]);
+
+    sendNativeNotification('TrafficSell Deposit Declined ⚠️', `Deposit request of $${deposit.amount.toFixed(2)} was declined. ${adminNote ? 'Reason: ' + adminNote : ''}`);
   };
 
   const createTicket = (data: { subject: string; category: SupportTicket['category']; priority: SupportTicket['priority']; message: string }) => {
@@ -455,6 +503,34 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           id: `msg_${Date.now()}`,
           sender: 'user',
           senderName: user.fullName,
+          text: data.message,
+          createdAt: new Date().toISOString()
+        }
+      ]
+    };
+
+    setSupportTickets(prev => [newTicket, ...prev]);
+  };
+
+  const createTicketForUser = (targetUserId: string, data: { subject: string; category: SupportTicket['category']; priority: SupportTicket['priority']; message: string }) => {
+    const targetUser = allUsers.find(u => u.id === targetUserId);
+    if (!targetUser) return;
+
+    const newTicket: SupportTicket = {
+      id: `tkt_${Date.now()}`,
+      userId: targetUser.id,
+      userName: targetUser.fullName,
+      userEmail: targetUser.email,
+      subject: data.subject,
+      category: data.category,
+      priority: data.priority,
+      status: 'open',
+      createdAt: new Date().toISOString(),
+      messages: [
+        {
+          id: `msg_${Date.now()}`,
+          sender: 'admin',
+          senderName: user?.fullName || 'Support Desk',
           text: data.message,
           createdAt: new Date().toISOString()
         }
@@ -487,12 +563,56 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }));
   };
 
+  const updateTicketStatus = (ticketId: string, status: SupportTicket['status']) => {
+    setSupportTickets(prev => prev.map(t => t.id === ticketId ? { ...t, status } : t));
+  };
+
   const markNotificationRead = (id: string) => {
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
   };
 
   const updatePlatformSettings = (settings: PlatformSettings) => {
     setPlatformSettings(settings);
+  };
+
+  const addTestimonial = (data: Omit<Testimonial, 'id' | 'createdAt'>) => {
+    const newT: Testimonial = {
+      ...data,
+      id: 'tstm_' + Date.now(),
+      createdAt: new Date().toISOString()
+    };
+    setTestimonials(prev => [newT, ...prev]);
+  };
+
+  const updateTestimonial = (id: string, data: Partial<Testimonial>) => {
+    setTestimonials(prev => prev.map(t => t.id === id ? { ...t, ...data } : t));
+  };
+
+  const deleteTestimonial = (id: string) => {
+    setTestimonials(prev => prev.filter(t => t.id !== id));
+  };
+
+  const getUserStats = (userId: string) => {
+    const userCampaigns = campaigns.filter(c => c.userId === userId);
+    const activeCampaignsCount = userCampaigns.filter(c => c.status === 'running').length;
+    
+    const userSpends = transactions.filter(t => t.userId === userId && t.type === 'spend');
+    const totalSpent = userSpends.reduce((acc, t) => acc + t.amount, 0);
+
+    const totalDelivered = userCampaigns.reduce((acc, c) => acc + c.visitorsDelivered, 0);
+    const todayHits = Math.round(totalDelivered * 0.45);
+    const yesterdayHits = Math.round(totalDelivered * 0.35);
+
+    const targetUser = allUsers.find(u => u.id === userId);
+    const currentBalance = targetUser ? targetUser.walletBalance : 0;
+
+    return {
+      todayHits,
+      yesterdayHits,
+      activeCampaignsCount,
+      totalSpent,
+      currentBalance
+    };
   };
 
   const updateProfile = (data: Partial<UserProfile>) => {
@@ -509,6 +629,13 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   };
 
+  const toggleUserSuspension = (userId: string, isSuspended: boolean, reason?: string) => {
+    setAllUsers(prev => prev.map(u => u.id === userId ? { ...u, isSuspended, suspendedReason: reason } : u));
+    if (user && user.id === userId) {
+      setUser(prev => prev ? { ...prev, isSuspended, suspendedReason: reason } : null);
+    }
+  };
+
   const resetToInitialData = () => {
     setAllUsers(INITIAL_USERS);
     setCampaigns(INITIAL_CAMPAIGNS);
@@ -516,6 +643,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setTransactions(INITIAL_TRANSACTIONS);
     setSupportTickets(INITIAL_TICKETS);
     setNotifications(INITIAL_NOTIFICATIONS);
+    setTestimonials(INITIAL_TESTIMONIALS);
     setPlatformSettings(DEFAULT_SETTINGS);
     localStorage.setItem('trafficsell_users', JSON.stringify(INITIAL_USERS));
     localStorage.setItem('trafficsell_campaigns', JSON.stringify(INITIAL_CAMPAIGNS));
@@ -523,6 +651,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     localStorage.setItem('trafficsell_transactions', JSON.stringify(INITIAL_TRANSACTIONS));
     localStorage.setItem('trafficsell_tickets', JSON.stringify(INITIAL_TICKETS));
     localStorage.setItem('trafficsell_notifications', JSON.stringify(INITIAL_NOTIFICATIONS));
+    localStorage.setItem('trafficsell_testimonials', JSON.stringify(INITIAL_TESTIMONIALS));
     localStorage.setItem('trafficsell_settings', JSON.stringify(DEFAULT_SETTINGS));
   };
 
@@ -531,10 +660,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       user, theme, toggleTheme, login, register, logout, switchUserRole,
       campaigns, addCampaign, updateCampaignStatus, deleteCampaign,
       walletDeposits, requestDeposit, approveDeposit, rejectDeposit, transactions,
-      supportTickets, createTicket, addTicketMessage,
+      supportTickets, createTicket, createTicketForUser, addTicketMessage, updateTicketStatus,
       notifications, markNotificationRead,
       platformSettings, updatePlatformSettings,
-      updateProfile, allUsers, updateUserBalanceByAdmin, resetToInitialData
+      testimonials, addTestimonial, updateTestimonial, deleteTestimonial,
+      updateProfile, allUsers, updateUserBalanceByAdmin, toggleUserSuspension, getUserStats, resetToInitialData
     }}>
       {children}
     </StoreContext.Provider>

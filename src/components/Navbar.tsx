@@ -13,9 +13,13 @@ interface NavbarProps {
 }
 
 export const Navbar: React.FC<NavbarProps> = ({ onOpenAuth, onNavigateView, currentView }) => {
-  const { user, theme, toggleTheme, logout, notifications } = useStore();
+  const { user, theme, toggleTheme, logout, notifications, platformSettings } = useStore();
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const siteName = platformSettings?.siteName || 'TrafficSell';
+  const siteIconUrl = platformSettings?.siteIconUrl || 'https://images.unsplash.com/photo-1559526324-4b87b5e36e44?auto=format&fit=crop&q=80&w=250';
+  const brandDisplayMode = platformSettings?.brandDisplayMode || 'both';
 
   const isAdmin = user?.email?.toLowerCase() === 'developershanawar@gmail.com' || user?.role === 'admin';
 
@@ -41,22 +45,38 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAuth, onNavigateView, curr
     <header className="sticky top-0 z-40 w-full backdrop-blur-xl bg-white/70 dark:bg-slate-900/90 border-b border-white/60 dark:border-slate-800 text-[#111827] dark:text-white transition-all shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
         
-        {/* Brand Logo */}
+        {/* Brand Logo & Name */}
         <div
           onClick={() => handleNavClick('landing')}
           className="flex items-center gap-2.5 cursor-pointer group"
         >
-          <div className="h-9 w-9 rounded-xl bg-[#111827] dark:bg-[#DFFF2F] text-[#DFFF2F] dark:text-[#111827] flex items-center justify-center font-black text-xl uppercase shadow-md group-hover:scale-105 transition-transform">
-            T
-          </div>
-          <div>
-            <span className="text-xl font-bold tracking-tight text-[#111827] dark:text-white flex items-center gap-1">
-              Traffic<span className="text-[#111827] dark:text-[#DFFF2F]">Sell</span>
-            </span>
-            <span className="block text-[9px] tracking-widest font-bold uppercase opacity-70 text-[#111827] dark:text-slate-400 -mt-1">
-              Traffic Marketplace
-            </span>
-          </div>
+          {(brandDisplayMode === 'both' || brandDisplayMode === 'icon') && (
+            siteIconUrl ? (
+              <img
+                src={siteIconUrl}
+                alt={siteName}
+                className="h-10 w-10 rounded-xl object-cover shadow-md border-2 border-[#DFFF2F] group-hover:scale-105 transition-transform"
+              />
+            ) : (
+              <div className="h-9 w-9 rounded-xl bg-[#111827] dark:bg-[#DFFF2F] text-[#DFFF2F] dark:text-[#111827] flex items-center justify-center font-black text-xl uppercase shadow-md group-hover:scale-105 transition-transform">
+                {siteName.charAt(0)}
+              </div>
+            )
+          )}
+
+          {(brandDisplayMode === 'both' || brandDisplayMode === 'text') && (
+            <div>
+              <span className="text-xl font-bold tracking-tight text-[#111827] dark:text-white flex items-center gap-1.5">
+                {siteName}
+                <span className="px-1.5 py-0.5 text-[10px] font-black uppercase rounded-md bg-[#DFFF2F] text-slate-950 shadow-sm border border-emerald-400">
+                  Beta
+                </span>
+              </span>
+              <span className="block text-[9px] tracking-widest font-bold uppercase opacity-70 text-[#111827] dark:text-slate-400 -mt-1">
+                Traffic Marketplace
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Center Nav Items (Desktop) */}
@@ -67,14 +87,14 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAuth, onNavigateView, curr
           >
             Home
           </button>
+          <button onClick={() => handleNavClick('about')} className="hover:opacity-100 transition-opacity cursor-pointer font-bold text-[#111827] dark:text-[#DFFF2F]">
+            About Us
+          </button>
           <button onClick={() => handleNavClick('#features')} className="hover:opacity-100 transition-opacity cursor-pointer">
             Features
           </button>
           <button onClick={() => handleNavClick('#estimator')} className="hover:opacity-100 transition-opacity cursor-pointer">
             Calculator
-          </button>
-          <button onClick={() => handleNavClick('#pricing')} className="hover:opacity-100 transition-opacity cursor-pointer">
-            Pricing
           </button>
           <button onClick={() => handleNavClick('#payment-methods')} className="hover:opacity-100 transition-opacity cursor-pointer">
             Payment Methods
@@ -213,16 +233,16 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAuth, onNavigateView, curr
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setMobileMenuOpen(false)}
-              className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-50"
+              className="fixed inset-0 bg-slate-950/70 backdrop-blur-md z-[998]"
             />
 
-            {/* Slide-over Drawer Panel */}
+            {/* Slide Down Drawer Panel */}
             <motion.div
-              initial={{ x: '100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 220 }}
-              className="fixed top-0 right-0 bottom-0 w-80 max-w-[85vw] bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 z-50 shadow-2xl p-6 flex flex-col justify-between overflow-y-auto text-[#111827] dark:text-white"
+              initial={{ y: '-100%', opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: '-100%', opacity: 0 }}
+              transition={{ type: 'spring', damping: 24, stiffness: 220 }}
+              className="fixed top-0 left-0 right-0 max-h-[92vh] bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 z-[999] shadow-2xl p-6 rounded-b-3xl flex flex-col justify-between overflow-y-auto text-[#111827] dark:text-white"
             >
               <div>
                 {/* Drawer Header */}
@@ -231,7 +251,12 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAuth, onNavigateView, curr
                     <div className="h-8 w-8 rounded-lg bg-[#111827] dark:bg-[#DFFF2F] text-[#DFFF2F] dark:text-[#111827] flex items-center justify-center font-black text-lg">
                       T
                     </div>
-                    <span className="text-lg font-black tracking-tight">TrafficSell</span>
+                    <span className="text-lg font-black tracking-tight flex items-center gap-1.5">
+                      TrafficSell
+                      <span className="px-1.5 py-0.5 text-[9px] font-black uppercase rounded bg-[#DFFF2F] text-slate-950">
+                        Beta
+                      </span>
+                    </span>
                   </div>
 
                   <button
@@ -276,6 +301,12 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAuth, onNavigateView, curr
                     <span>Home</span>
                   </button>
                   <button
+                    onClick={() => handleNavClick('about')}
+                    className="w-full text-left py-2.5 px-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors font-bold text-[#111827] dark:text-[#DFFF2F]"
+                  >
+                    About Us
+                  </button>
+                  <button
                     onClick={() => handleNavClick('#features')}
                     className="w-full text-left py-2.5 px-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                   >
@@ -286,12 +317,6 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAuth, onNavigateView, curr
                     className="w-full text-left py-2.5 px-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                   >
                     Calculator
-                  </button>
-                  <button
-                    onClick={() => handleNavClick('#pricing')}
-                    className="w-full text-left py-2.5 px-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                  >
-                    Pricing
                   </button>
                   <button
                     onClick={() => handleNavClick('#payment-methods')}
@@ -358,7 +383,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAuth, onNavigateView, curr
                       onClick={() => handleNavClick('register')}
                       className="w-full py-3.5 px-4 bg-[#111827] dark:bg-[#DFFF2F] hover:bg-slate-800 dark:hover:bg-[#cbe820] text-white dark:text-[#111827] rounded-2xl font-black text-xs transition-colors shadow-lg flex items-center justify-center gap-2 cursor-pointer"
                     >
-                      <Sparkles className="w-4 h-4 text-[#DFFF2F] dark:text-[#111827]" /> Create Account (20% Bonus)
+                      <Sparkles className="w-4 h-4 text-[#DFFF2F] dark:text-[#111827]" /> Get Started
                     </button>
                   </div>
                 )}

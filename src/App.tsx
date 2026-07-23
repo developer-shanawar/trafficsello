@@ -8,6 +8,7 @@ import { RegisterPage } from './components/RegisterPage';
 import { AuthModal } from './components/AuthModal';
 import { ReportModal } from './components/ReportModal';
 import { LegalPages } from './components/LegalPages';
+import { StandalonePage } from './components/StandalonePage';
 import { DashboardLayout } from './components/DashboardLayout';
 
 import { OverviewView } from './components/dashboard/OverviewView';
@@ -43,16 +44,24 @@ function AppContent() {
     }
   }, [user, currentView]);
 
-  // SEO Friendly URL hash sync
+  // SEO Friendly URL slug/hash sync
   React.useEffect(() => {
     const handleHashChange = () => {
-      const hash = window.location.hash.replace('#', '');
-      if (!hash || hash === 'landing') {
+      const hash = window.location.hash.replace('#', '').toLowerCase();
+      if (!hash || hash === 'landing' || hash === 'home') {
         setCurrentView('landing');
       } else if (hash === 'login') {
         setCurrentView('login');
       } else if (hash === 'register') {
         setCurrentView('register');
+      } else if (hash === 'about') {
+        setCurrentView('standalone-about');
+      } else if (hash === 'privacy') {
+        setCurrentView('standalone-privacy');
+      } else if (hash === 'terms') {
+        setCurrentView('standalone-terms');
+      } else if (hash === 'refund') {
+        setCurrentView('standalone-refund');
       } else if (hash === 'admin') {
         if (user) {
           setCurrentView('dashboard');
@@ -78,7 +87,10 @@ function AppContent() {
   // Update hash when view or tab changes
   const changeViewWithHash = (view: string, tab?: string) => {
     setCurrentView(view);
-    if (view === 'landing' || view === 'login' || view === 'register') {
+    if (view.startsWith('standalone-')) {
+      const pageKey = view.replace('standalone-', '');
+      window.history.pushState(null, '', `#${pageKey}`);
+    } else if (view === 'landing' || view === 'login' || view === 'register' || view === 'about') {
       window.history.pushState(null, '', `#${view}`);
     } else if (view === 'dashboard' && tab) {
       setDashboardTab(tab);
@@ -91,7 +103,15 @@ function AppContent() {
   };
 
   const handleNavigateView = (view: string) => {
-    if (view === 'landing' || view === 'login' || view === 'register') {
+    if (view === 'about') {
+      changeViewWithHash('standalone-about');
+    } else if (view === 'privacy') {
+      changeViewWithHash('standalone-privacy');
+    } else if (view === 'terms') {
+      changeViewWithHash('standalone-terms');
+    } else if (view === 'refund') {
+      changeViewWithHash('standalone-refund');
+    } else if (view === 'landing' || view === 'login' || view === 'register') {
       changeViewWithHash(view);
     } else {
       if (!user) {
@@ -144,7 +164,22 @@ function AppContent() {
             />
           </main>
 
-          <Footer onOpenLegal={(type) => setLegalType(type)} />
+          <Footer onOpenLegal={(type) => handleNavigateView(type)} />
+        </div>
+      ) : currentView.startsWith('standalone-') ? (
+        <div className="flex-1 flex flex-col">
+          <Navbar
+            onOpenAuth={handleOpenAuth}
+            onNavigateView={handleNavigateView}
+            currentView={currentView}
+          />
+          <main className="flex-1">
+            <StandalonePage
+              page={currentView.replace('standalone-', '') as 'about' | 'privacy' | 'terms' | 'refund'}
+              onNavigateHome={() => changeViewWithHash('landing')}
+            />
+          </main>
+          <Footer onOpenLegal={(type) => handleNavigateView(type)} />
         </div>
       ) : currentView === 'login' ? (
         <div className="flex-1 flex flex-col">
@@ -163,7 +198,7 @@ function AppContent() {
               }}
             />
           </main>
-          <Footer onOpenLegal={(type) => setLegalType(type)} />
+          <Footer onOpenLegal={(type) => handleNavigateView(type)} />
         </div>
       ) : currentView === 'register' ? (
         <div className="flex-1 flex flex-col">
@@ -182,7 +217,7 @@ function AppContent() {
               }}
             />
           </main>
-          <Footer onOpenLegal={(type) => setLegalType(type)} />
+          <Footer onOpenLegal={(type) => handleNavigateView(type)} />
         </div>
       ) : (
         <DashboardLayout

@@ -244,6 +244,31 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ currentTab, on
 
         {/* Dynamic View Body */}
         <main className="flex-1 p-4 sm:p-8 max-w-7xl w-full mx-auto">
+          {user?.isSuspended && (
+            <div className="mb-6 p-5 bg-rose-500/10 border-2 border-rose-500/30 rounded-3xl text-rose-400 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-lg">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="px-2.5 py-0.5 rounded-full bg-rose-500 text-slate-950 font-black text-[10px] uppercase">
+                    Account Suspended
+                  </span>
+                  <p className="font-extrabold text-sm text-white">Your TrafficSell Account is Currently Suspended</p>
+                </div>
+                <p className="text-xs text-rose-200">
+                  Reason: <strong className="text-white">{user.suspendedReason || 'Terms or quality policy compliance review'}</strong>
+                </p>
+                <p className="text-[11px] text-slate-300">
+                  While suspended, new campaign creation and balance withdrawals are disabled. You can appeal this decision by emailing our compliance team.
+                </p>
+              </div>
+
+              <a
+                href={`mailto:developershanawar@gmail.com?subject=Appeal%20Suspension%20-%20User%20${user.email}&body=Hello%20TrafficSell%20Compliance%20Team,%0A%0AI%20would%20like%20to%20appeal%20the%20suspension%20of%20my%20account%20(${user.email}).%0A%0AReason:%20${encodeURIComponent(user.suspendedReason || '')}%0A%0AThank%20you.`}
+                className="py-2.5 px-5 bg-rose-500 hover:bg-rose-600 text-slate-950 font-black text-xs rounded-xl flex items-center gap-2 transition-all shrink-0 cursor-pointer shadow-md"
+              >
+                📩 Appeal Suspension via Email
+              </a>
+            </div>
+          )}
           {children}
         </main>
       </div>

@@ -19,8 +19,9 @@ interface OverviewViewProps {
 }
 
 export const OverviewView: React.FC<OverviewViewProps> = ({ onNavigate, onOpenReport }) => {
-  const { user, campaigns, transactions } = useStore();
+  const { user, campaigns, transactions, getUserStats } = useStore();
 
+  const userStats = getUserStats(user?.id);
   const userCampaigns = campaigns.filter(c => c.userId === user?.id || user?.role === 'admin');
   const activeCampaigns = userCampaigns.filter(c => c.status === 'running');
   const completedCampaigns = userCampaigns.filter(c => c.status === 'completed');
@@ -96,7 +97,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({ onNavigate, onOpenRe
       </div>
 
       {/* Stats Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
         
         {/* Wallet Balance */}
         <div className="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden group">
@@ -117,37 +118,53 @@ export const OverviewView: React.FC<OverviewViewProps> = ({ onNavigate, onOpenRe
           </button>
         </div>
 
+        {/* Today Hits */}
+        <div className="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
+          <div className="flex justify-between items-center mb-3">
+            <span className="text-xs font-bold text-slate-500 dark:text-slate-400">Today's Hits</span>
+            <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-500">
+              <Activity className="w-4 h-4" />
+            </div>
+          </div>
+          <p className="text-2xl font-black text-emerald-500">
+            {userStats.todayHits.toLocaleString()}
+          </p>
+          <span className="text-[11px] text-emerald-500 font-semibold flex items-center gap-1 mt-2">
+            <TrendingUp className="w-3 h-3" /> Live Delivery
+          </span>
+        </div>
+
+        {/* Yesterday Hits */}
+        <div className="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
+          <div className="flex justify-between items-center mb-3">
+            <span className="text-xs font-bold text-slate-500 dark:text-slate-400">Yesterday's Hits</span>
+            <div className="p-2 rounded-xl bg-sky-500/20 text-sky-500">
+              <Users className="w-4 h-4" />
+            </div>
+          </div>
+          <p className="text-2xl font-black text-slate-900 dark:text-white">
+            {userStats.yesterdayHits.toLocaleString()}
+          </p>
+          <span className="text-[11px] text-slate-400 mt-2 block">Verified Visitors</span>
+        </div>
+
         {/* Active Campaigns */}
         <div className="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
           <div className="flex justify-between items-center mb-3">
             <span className="text-xs font-bold text-slate-500 dark:text-slate-400">Active Campaigns</span>
-            <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-500">
+            <div className="p-2 rounded-xl bg-purple-500/20 text-purple-400">
               <Layers className="w-4 h-4" />
             </div>
           </div>
           <p className="text-2xl font-black text-slate-900 dark:text-white">
             {activeCampaigns.length}
           </p>
-          <span className="text-[11px] text-emerald-500 font-semibold flex items-center gap-1 mt-2">
-            <Activity className="w-3 h-3 animate-pulse" /> Live Delivering
+          <span className="text-[11px] text-purple-400 font-semibold flex items-center gap-1 mt-2">
+            <Activity className="w-3 h-3 animate-pulse" /> Live Pacing
           </span>
         </div>
 
-        {/* Completed Campaigns */}
-        <div className="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
-          <div className="flex justify-between items-center mb-3">
-            <span className="text-xs font-bold text-slate-500 dark:text-slate-400">Completed</span>
-            <div className="p-2 rounded-xl bg-blue-500/20 text-blue-500">
-              <CheckCircle2 className="w-4 h-4" />
-            </div>
-          </div>
-          <p className="text-2xl font-black text-slate-900 dark:text-white">
-            {completedCampaigns.length}
-          </p>
-          <span className="text-[11px] text-slate-400 mt-2 block">100% Target Met</span>
-        </div>
-
-        {/* Visitors Delivered */}
+        {/* Total Visitors */}
         <div className="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
           <div className="flex justify-between items-center mb-3">
             <span className="text-xs font-bold text-slate-500 dark:text-slate-400">Total Visitors</span>
@@ -158,13 +175,13 @@ export const OverviewView: React.FC<OverviewViewProps> = ({ onNavigate, onOpenRe
           <p className="text-2xl font-black text-slate-900 dark:text-white">
             {totalDelivered.toLocaleString()}
           </p>
-          <span className="text-[11px] text-indigo-400 font-medium mt-2 block">Real Human Hits</span>
+          <span className="text-[11px] text-indigo-400 font-medium mt-2 block">All Time Delivered</span>
         </div>
 
         {/* Total Spent */}
         <div className="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
           <div className="flex justify-between items-center mb-3">
-            <span className="text-xs font-bold text-slate-500 dark:text-slate-400">Total Investment</span>
+            <span className="text-xs font-bold text-slate-500 dark:text-slate-400">Total Spent</span>
             <div className="p-2 rounded-xl bg-amber-500/20 text-amber-500">
               <DollarSign className="w-4 h-4" />
             </div>
@@ -172,7 +189,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({ onNavigate, onOpenRe
           <p className="text-2xl font-black text-slate-900 dark:text-white">
             ${totalSpent.toFixed(2)}
           </p>
-          <span className="text-[11px] text-slate-400 mt-2 block">Low $0.05 CPM Rate</span>
+          <span className="text-[11px] text-slate-400 mt-2 block">Low $0.05 CPM</span>
         </div>
       </div>
 
