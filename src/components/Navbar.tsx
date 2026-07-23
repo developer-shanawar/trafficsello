@@ -245,6 +245,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAuth, onNavigateView, curr
                       <img
                         src={siteIconUrl}
                         alt={siteName}
+                        onError={(e) => { (e.target as HTMLImageElement).src = '/logo.png'; }}
                         className="h-9 w-9 rounded-xl object-cover border border-[#DFFF2F]"
                       />
                     ) : (

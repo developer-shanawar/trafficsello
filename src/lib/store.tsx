@@ -145,6 +145,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         if (!parsed.pageContent) {
           parsed.pageContent = DEFAULT_SETTINGS.pageContent;
         }
+        if (!parsed.siteIconUrl || parsed.siteIconUrl.includes('unsplash.com') || parsed.siteIconUrl.includes('/src/assets/images')) {
+          parsed.siteIconUrl = '/logo.png';
+        }
         return parsed;
       } catch (e) {
         return DEFAULT_SETTINGS;
