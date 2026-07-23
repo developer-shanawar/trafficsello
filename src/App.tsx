@@ -23,7 +23,7 @@ import { AdminDashboard } from './components/admin/AdminDashboard';
 import { Campaign } from './types';
 
 function AppContent() {
-  const { user } = useStore();
+  const { user, platformSettings } = useStore();
 
   const [currentView, setCurrentView] = useState<string>('landing');
   const [dashboardTab, setDashboardTab] = useState<string>('overview');
@@ -33,6 +33,22 @@ function AppContent() {
   const [authModalMode, setAuthModalMode] = useState<'login' | 'register'>('login');
   const [reportCampaign, setReportCampaign] = useState<Campaign | null>(null);
   const [legalType, setLegalType] = useState<'privacy' | 'terms' | 'refund' | null>(null);
+
+  // Sync favicon and document title with platformSettings siteIconUrl and siteName
+  React.useEffect(() => {
+    if (platformSettings?.siteName) {
+      document.title = `${platformSettings.siteName} - Premium Organic & SmartLink Traffic Marketplace`;
+    }
+    if (platformSettings?.siteIconUrl) {
+      let favicon = document.querySelector("link[rel*='icon']") as HTMLLinkElement;
+      if (!favicon) {
+        favicon = document.createElement('link');
+        favicon.rel = 'shortcut icon';
+        document.getElementsByTagName('head')[0].appendChild(favicon);
+      }
+      favicon.href = platformSettings.siteIconUrl;
+    }
+  }, [platformSettings?.siteName, platformSettings?.siteIconUrl]);
 
   // Auto redirect on user signout
   React.useEffect(() => {

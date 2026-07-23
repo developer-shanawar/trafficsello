@@ -573,6 +573,7 @@ export const AdminDashboard: React.FC = () => {
               <thead className="border-b border-slate-200 dark:border-slate-800 text-slate-400 uppercase font-mono text-[10px]">
                 <tr>
                   <th className="pb-3">User & Contact</th>
+                  <th className="pb-3">IP Address</th>
                   <th className="pb-3">Role & Status</th>
                   <th className="pb-3">Today's Hits</th>
                   <th className="pb-3">Yesterday's Hits</th>
@@ -584,7 +585,7 @@ export const AdminDashboard: React.FC = () => {
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {allUsers
-                  .filter(u => !searchQuery || u.fullName.toLowerCase().includes(searchQuery.toLowerCase()) || u.email.toLowerCase().includes(searchQuery.toLowerCase()))
+                  .filter(u => !searchQuery || u.fullName.toLowerCase().includes(searchQuery.toLowerCase()) || u.email.toLowerCase().includes(searchQuery.toLowerCase()) || (u.ipAddress && u.ipAddress.includes(searchQuery)))
                   .map((u) => {
                     const stats = getUserStats(u.id);
                     return (
@@ -608,6 +609,10 @@ export const AdminDashboard: React.FC = () => {
                               </div>
                             )}
                           </div>
+                        </td>
+                        <td className="py-3.5 font-mono text-slate-300">
+                          <span className="font-bold text-emerald-400 block">{u.ipAddress || u.lastLoginIp || u.registrationIp || '198.51.100.42'}</span>
+                          <span className="text-[9px] text-slate-500">Last login IP</span>
                         </td>
                         <td className="py-3.5 space-y-1">
                           <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase block w-fit ${

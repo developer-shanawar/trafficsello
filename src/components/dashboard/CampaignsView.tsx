@@ -25,6 +25,7 @@ export const CampaignsView: React.FC<CampaignsViewProps> = ({ onNavigate, onOpen
   const [name, setName] = useState('');
   const [url, setUrl] = useState('https://');
   const [format, setFormat] = useState<CampaignFormat>('smartlink');
+  const [keywords, setKeywords] = useState('');
   const [country, setCountry] = useState<TrafficCountry>('All Countries (Cheap)');
   const [deviceType, setDeviceType] = useState<DeviceType>('both');
   const [visitorsTarget, setVisitorsTarget] = useState<number>(20000);
@@ -34,7 +35,13 @@ export const CampaignsView: React.FC<CampaignsViewProps> = ({ onNavigate, onOpen
   const [successMsg, setSuccessMsg] = useState('');
 
   // Tier CPM Pricing Map
-  const getMinCpmForCountry = (ctry: TrafficCountry): number => {
+  const getMinCpmForCountry = (ctry: TrafficCountry, fmt: CampaignFormat): number => {
+    if (fmt === 'organic') {
+      if (ctry === 'All Countries (Cheap)' || ctry === 'Other Tier 3') {
+        return 0.50; // $0.50 USD for worldwide
+      }
+      return 1.00; // $1.00 USD for all premium countries
+    }
     if (ctry === 'All Countries (Cheap)') return 0.05;
     if (['United States', 'United Kingdom', 'Germany', 'Canada', 'Australia', 'France', 'Japan'].includes(ctry)) return 0.25;
     if (['Spain', 'Italy', 'Brazil', 'Mexico', 'Pakistan', 'India', 'Saudi Arabia', 'UAE'].includes(ctry)) return 0.20;
@@ -43,14 +50,20 @@ export const CampaignsView: React.FC<CampaignsViewProps> = ({ onNavigate, onOpen
 
   const handleCountrySelect = (ctry: TrafficCountry) => {
     setCountry(ctry);
-    const minRate = getMinCpmForCountry(ctry);
+    const minRate = getMinCpmForCountry(ctry, format);
     setCpm(minRate);
     if (ctry === 'All Countries (Cheap)') {
       setDeviceType('both');
     }
   };
 
-  const minAllowedCpm = getMinCpmForCountry(country);
+  const handleFormatSelect = (fmt: CampaignFormat) => {
+    setFormat(fmt);
+    const minRate = getMinCpmForCountry(country, fmt);
+    setCpm(minRate);
+  };
+
+  const minAllowedCpm = getMinCpmForCountry(country, format);
   const isAllCountries = country === 'All Countries (Cheap)';
   const budget = (visitorsTarget / 1000) * cpm;
   const estimatedDeliveryHours = Math.max(2, Math.round(visitorsTarget / 3000));
@@ -61,7 +74,8 @@ export const CampaignsView: React.FC<CampaignsViewProps> = ({ onNavigate, onOpen
   const filteredCampaigns = userCampaigns.filter(c => {
     const matchesFilter = filter === 'all' || c.status === filter;
     const matchesSearch = c.name.toLowerCase().includes(search.toLowerCase()) ||
-                          c.url.toLowerCase().includes(search.toLowerCase());
+                          c.url.toLowerCase().includes(search.toLowerCase()) ||
+                          (c.keywords && c.keywords.toLowerCase().includes(search.toLowerCase()));
     return matchesFilter && matchesSearch;
   });
 
@@ -75,20 +89,26 @@ export const CampaignsView: React.FC<CampaignsViewProps> = ({ onNavigate, onOpen
       return;
     }
 
+    if (format === 'organic' && (!keywords || keywords.trim().length === 0)) {
+      setError('Please enter target organic search keywords (e.g. website ranks on this keyword)');
+      return;
+    }
+
     if (cpm < minAllowedCpm) {
-      setError(`Minimum CPM for ${country} is ${minAllowedCpm.toFixed(2)} USD.`);
+      setError(`Minimum CPM for ${country} (${format === 'organic' ? 'Organic Traffic' : 'Standard Traffic'}) is $${minAllowedCpm.toFixed(2)} USD.`);
       return;
     }
 
     if (!hasEnoughWallet) {
-      setError(`Insufficient wallet balance (${user?.walletBalance.toFixed(2)}). Required budget is ${budget.toFixed(2)}. Please deposit funds first.`);
+      setError(`Insufficient wallet balance (${user?.walletBalance.toFixed(2)}). Required budget is $${budget.toFixed(2)}. Please deposit funds first.`);
       return;
     }
 
     setLoading(true);
     const result = await addCampaign({
-      name: name || `${format === 'smartlink' ? 'SmartLink' : 'Pop-up'} Traffic Campaign`,
+      name: name || `${format === 'organic' ? 'Organic Search' : format === 'smartlink' ? 'SmartLink' : 'Pop-Up'} Traffic Campaign`,
       url,
+      keywords: format === 'organic' ? keywords : undefined,
       format,
       country,
       deviceType: isAllCountries ? 'both' : deviceType,
@@ -105,6 +125,7 @@ export const CampaignsView: React.FC<CampaignsViewProps> = ({ onNavigate, onOpen
       setSuccessMsg('Campaign order created! Status set to Pending Admin Review (Max 12 Hours Review Time).');
       setName('');
       setUrl('https://');
+      setKeywords('');
       setTimeout(() => {
         setActiveSubTab('list');
       }, 1500);
@@ -237,10 +258,24 @@ export const CampaignsView: React.FC<CampaignsViewProps> = ({ onNavigate, onOpen
               {/* Campaign Format Selection */}
               <div>
                 <label className="block text-xs font-extrabold uppercase tracking-wider mb-2">Campaign Format</label>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <button
                     type="button"
-                    onClick={() => setFormat('smartlink')}
+                    onClick={() => handleFormatSelect('organic')}
+                    className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
+                      format === 'organic'
+                        ? 'bg-[#111827] text-white dark:bg-[#DFFF2F] dark:text-[#111827] border-[#111827] dark:border-[#DFFF2F] shadow-md'
+                        : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 hover:border-slate-400'
+                    }`}
+                  >
+                    <Search className="w-5 h-5 mb-1.5 text-emerald-500 dark:text-slate-950" />
+                    <strong className="block text-xs font-extrabold">Organic Search</strong>
+                    <span className="text-[11px] opacity-80 block mt-0.5">$0.50 - $1.00 Search / CPM targeting</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleFormatSelect('smartlink')}
                     className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
                       format === 'smartlink'
                         ? 'bg-[#111827] text-white dark:bg-[#DFFF2F] dark:text-[#111827] border-[#111827] dark:border-[#DFFF2F] shadow-md'
@@ -248,13 +283,13 @@ export const CampaignsView: React.FC<CampaignsViewProps> = ({ onNavigate, onOpen
                     }`}
                   >
                     <Sparkles className="w-5 h-5 mb-1.5" />
-                    <strong className="block text-xs font-extrabold">Smart Link Format</strong>
+                    <strong className="block text-xs font-extrabold">Smart Link</strong>
                     <span className="text-[11px] opacity-80 block mt-0.5">Auto AI optimization matching highest converting offers</span>
                   </button>
 
                   <button
                     type="button"
-                    onClick={() => setFormat('popup')}
+                    onClick={() => handleFormatSelect('popup')}
                     className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
                       format === 'popup'
                         ? 'bg-[#111827] text-white dark:bg-[#DFFF2F] dark:text-[#111827] border-[#111827] dark:border-[#DFFF2F] shadow-md'
@@ -267,6 +302,29 @@ export const CampaignsView: React.FC<CampaignsViewProps> = ({ onNavigate, onOpen
                   </button>
                 </div>
               </div>
+
+              {/* Organic Search Keywords Field */}
+              {format === 'organic' && (
+                <div className="p-4 bg-emerald-500/10 dark:bg-emerald-500/20 rounded-2xl border border-emerald-500/30 space-y-2">
+                  <label className="block text-xs font-extrabold uppercase text-emerald-900 dark:text-emerald-300">
+                    Organic Search Keywords *
+                  </label>
+                  <p className="text-[11px] text-emerald-800/80 dark:text-emerald-400">
+                    Enter the search terms for organic ranking. Visitors will search these exact keywords before clicking your website URL.
+                  </p>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. website ranks on this keyword, buy cheap laptops 2026, travel guide"
+                    value={keywords}
+                    onChange={(e) => setKeywords(e.target.value)}
+                    className="w-full px-4 py-3 bg-white dark:bg-slate-950 border border-emerald-500/40 rounded-2xl text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:border-[#DFFF2F]"
+                  />
+                  <div className="flex items-center justify-between text-[11px] font-bold text-emerald-700 dark:text-emerald-300 pt-1">
+                    <span>Pricing: $0.50 USD Worldwide | $1.00 USD Premium Countries</span>
+                  </div>
+                </div>
+              )}
 
               {/* Country & Tier Pricing Selection */}
               <div>
@@ -542,38 +600,21 @@ export const CampaignsView: React.FC<CampaignsViewProps> = ({ onNavigate, onOpen
                         >
                           {cmp.url} <ExternalLink className="w-3 h-3" />
                         </a>
+                        {cmp.keywords && (
+                          <div className="mt-1.5 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-800 dark:text-emerald-300 text-xs font-bold">
+                            <Search className="w-3 h-3" />
+                            <span>Keywords: "{cmp.keywords}"</span>
+                          </div>
+                        )}
                       </div>
 
-                      {/* Actions */}
+                      {/* Actions: User can view details/report */}
                       <div className="flex items-center gap-2 shrink-0">
-                        {cmp.status === 'running' && (
-                          <button
-                            onClick={() => updateCampaignStatus(cmp.id, 'paused')}
-                            className="py-1.5 px-3 bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-400 rounded-xl text-xs font-bold transition-colors flex items-center gap-1 cursor-pointer"
-                          >
-                            <Pause className="w-3.5 h-3.5" /> Pause
-                          </button>
-                        )}
-                        {cmp.status === 'paused' && (
-                          <button
-                            onClick={() => updateCampaignStatus(cmp.id, 'running')}
-                            className="py-1.5 px-3 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 rounded-xl text-xs font-bold transition-colors flex items-center gap-1 cursor-pointer"
-                          >
-                            <Play className="w-3.5 h-3.5" /> Resume
-                          </button>
-                        )}
                         <button
                           onClick={() => onOpenReport(cmp)}
-                          className="py-1.5 px-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-[#111827] dark:text-white rounded-xl text-xs font-bold transition-colors flex items-center gap-1 cursor-pointer"
+                          className="py-2 px-4 bg-[#111827] text-white dark:bg-[#DFFF2F] dark:text-[#111827] rounded-xl text-xs font-extrabold transition-all flex items-center gap-1.5 cursor-pointer shadow"
                         >
-                          <Eye className="w-3.5 h-3.5" /> Report
-                        </button>
-                        <button
-                          onClick={() => deleteCampaign(cmp.id)}
-                          className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 rounded-xl transition-colors cursor-pointer"
-                          title="Delete Campaign"
-                        >
-                          <Trash2 className="w-4 h-4" />
+                          <Eye className="w-3.5 h-3.5" /> View Report
                         </button>
                       </div>
                     </div>

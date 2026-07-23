@@ -37,9 +37,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, initialMode, onClo
           setLoading(false);
           return;
         }
-        await register({ fullName, email, telegram, whatsApp });
+        await register({ fullName, email, password, telegram, whatsApp });
       } else {
-        await login(email);
+        await login(email, password);
       }
       setLoading(false);
       onSuccess();

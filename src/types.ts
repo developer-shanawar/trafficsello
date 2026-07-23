@@ -3,6 +3,7 @@ export type UserRole = 'user' | 'admin';
 export interface UserProfile {
   id: string;
   email: string;
+  password?: string;
   fullName: string;
   username?: string;
   telegram?: string;
@@ -17,6 +18,9 @@ export interface UserProfile {
   isSuspended?: boolean;
   suspendedReason?: string;
   isVerified?: boolean;
+  ipAddress?: string;
+  registrationIp?: string;
+  lastLoginIp?: string;
 }
 
 export type TrafficCountry = 
@@ -40,7 +44,7 @@ export type TrafficCountry =
 
 export type DeviceType = 'desktop' | 'mobile' | 'both';
 
-export type CampaignFormat = 'smartlink' | 'popup';
+export type CampaignFormat = 'smartlink' | 'popup' | 'organic';
 
 export type CampaignStatus = 'pending' | 'running' | 'completed' | 'paused' | 'cancelled';
 
@@ -50,6 +54,7 @@ export interface Campaign {
   userName: string;
   name: string;
   url: string;
+  keywords?: string;
   format: CampaignFormat;
   country: TrafficCountry;
   deviceType: DeviceType;

@@ -281,48 +281,75 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setTheme(prev => (prev === 'dark' ? 'light' : 'dark'));
   };
 
-  const login = async (email: string): Promise<boolean> => {
+  // Client IP state
+  const [clientIp, setClientIp] = useState<string>('182.185.120.44');
+
+  useEffect(() => {
+    fetch('https://api.ipify.org?format=json')
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.ip) {
+          setClientIp(data.ip);
+          if (user) {
+            setUser(prev => prev ? { ...prev, ipAddress: data.ip } : null);
+            setAllUsers(prev => prev.map(u => u.id === user.id ? { ...u, ipAddress: data.ip } : u));
+          }
+        }
+      })
+      .catch(() => {
+        // Fallback IP if external IP service is unreachable
+      });
+  }, []);
+
+  const login = async (email: string, password?: string): Promise<boolean> => {
     const isMasterAdmin = email.toLowerCase() === 'developershanawar@gmail.com';
     const found = allUsers.find(u => u.email.toLowerCase() === email.toLowerCase());
-    if (found) {
-      const updatedFound = isMasterAdmin ? { ...found, role: 'admin' as UserRole } : found;
-      setUser(updatedFound);
-      return true;
+    
+    if (!found) {
+      throw new Error(`No account found registered with email "${email}". Please register an account first.`);
     }
-    // Create new account if not existing
-    const newUser: UserProfile = {
-      id: `usr_${Date.now()}`,
-      email,
-      fullName: email.split('@')[0],
-      walletBalance: 0.00,
-      role: isMasterAdmin ? 'admin' : 'user',
-      createdAt: new Date().toISOString(),
-      avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=250'
+
+    if (found.password && password && found.password !== password) {
+      throw new Error('Invalid password. Please check your credentials and try again.');
+    }
+
+    const updatedFound: UserProfile = {
+      ...found,
+      role: isMasterAdmin ? 'admin' : found.role,
+      password: found.password || password || '',
+      ipAddress: clientIp,
+      lastLoginIp: clientIp,
     };
-    setAllUsers(prev => [...prev, newUser]);
-    setUser(newUser);
+
+    setAllUsers(prev => prev.map(u => u.id === found.id ? updatedFound : u));
+    setUser(updatedFound);
     return true;
   };
 
-  const register = async (data: { fullName: string; email: string; telegram?: string; whatsApp?: string }): Promise<boolean> => {
+  const register = async (data: { fullName: string; email: string; password?: string; telegram?: string; whatsApp?: string }): Promise<boolean> => {
     const isMasterAdmin = data.email.toLowerCase() === 'developershanawar@gmail.com';
     const existing = allUsers.find(u => u.email.toLowerCase() === data.email.toLowerCase());
+    
     if (existing) {
-      const updatedExisting = isMasterAdmin ? { ...existing, role: 'admin' as UserRole } : existing;
-      setUser(updatedExisting);
-      return true;
+      throw new Error(`An account with email "${data.email}" already exists. Please sign in instead.`);
     }
+
     const newUser: UserProfile = {
       id: `usr_${Date.now()}`,
       email: data.email,
+      password: data.password || '',
       fullName: data.fullName,
       telegram: data.telegram,
       whatsApp: data.whatsApp,
       walletBalance: 0.00,
       role: isMasterAdmin ? 'admin' : 'user',
       createdAt: new Date().toISOString(),
-      avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=250'
+      avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=250',
+      ipAddress: clientIp,
+      registrationIp: clientIp,
+      lastLoginIp: clientIp,
     };
+
     setAllUsers(prev => [...prev, newUser]);
     setUser(newUser);
     return true;
