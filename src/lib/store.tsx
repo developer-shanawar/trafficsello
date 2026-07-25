@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { supabase } from './supabase';
 import {
   UserProfile, Campaign, PaymentDeposit, WalletTransaction,
   SupportTicket, AppNotification, PlatformSettings, CampaignStatus, UserRole, Testimonial
@@ -413,6 +414,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setUser(updatedUser);
     setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
 
+    // Update user balance in Supabase
+    supabase.from('users').update({ wallet_balance: newBalance }).eq('id', user.id).then();
+
     // Create campaign - default status is pending admin approval (max 12 hours)
     const newCampaign: Campaign = {
       ...data,
@@ -425,6 +429,28 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
 
     setCampaigns(prev => [newCampaign, ...prev]);
+
+    // Insert campaign to Supabase
+    supabase.from('campaigns').insert([{
+      id: newCampaign.id,
+      user_id: newCampaign.userId,
+      user_name: newCampaign.userName,
+      name: newCampaign.name,
+      url: newCampaign.url,
+      keywords: newCampaign.keywords,
+      format: newCampaign.format,
+      country: newCampaign.country,
+      device_type: newCampaign.deviceType,
+      visitors_target: newCampaign.visitorsTarget,
+      visitors_delivered: newCampaign.visitorsDelivered,
+      cpm: newCampaign.cpm,
+      budget: newCampaign.budget,
+      status: newCampaign.status,
+      estimated_delivery_hours: newCampaign.estimatedDeliveryHours,
+      created_at: newCampaign.createdAt
+    }]).then(({ error }) => {
+      if (error) console.error('Error inserting campaign into Supabase:', error);
+    });
 
     // Add spend transaction log
     const newTx: WalletTransaction = {
@@ -439,6 +465,17 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     setTransactions(prev => [newTx, ...prev]);
 
+    // Insert transaction to Supabase
+    supabase.from('transactions').insert([{
+      id: newTx.id,
+      user_id: newTx.userId,
+      type: newTx.type,
+      amount: newTx.amount,
+      description: newTx.description,
+      status: newTx.status,
+      created_at: newTx.createdAt
+    }]).then();
+
     // Add notification
     const newNotif: AppNotification = {
       id: `ntf_${Date.now()}`,
@@ -451,15 +488,27 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
     setNotifications(prev => [newNotif, ...prev]);
 
+    supabase.from('notifications').insert([{
+      id: newNotif.id,
+      user_id: newNotif.userId,
+      title: newNotif.title,
+      message: newNotif.message,
+      type: newNotif.type,
+      read: false,
+      created_at: newNotif.createdAt
+    }]).then();
+
     return { success: true };
   };
 
   const updateCampaignStatus = (id: string, status: CampaignStatus) => {
     setCampaigns(prev => prev.map(c => c.id === id ? { ...c, status } : c));
+    supabase.from('campaigns').update({ status }).eq('id', id).then();
   };
 
   const deleteCampaign = (id: string) => {
     setCampaigns(prev => prev.filter(c => c.id !== id));
+    supabase.from('campaigns').delete().eq('id', id).then();
   };
 
   const requestDeposit = async (data: Omit<PaymentDeposit, 'id' | 'userId' | 'userName' | 'userEmail' | 'status' | 'createdAt'>) => {
@@ -476,6 +525,22 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     setWalletDeposits(prev => [newDeposit, ...prev]);
 
+    // Insert deposit to Supabase
+    supabase.from('deposits').insert([{
+      id: newDeposit.id,
+      user_id: newDeposit.userId,
+      user_name: newDeposit.userName,
+      user_email: newDeposit.userEmail,
+      method: newDeposit.method,
+      amount: newDeposit.amount,
+      trx_ref: newDeposit.trxRef,
+      screenshot_url: newDeposit.screenshotUrl,
+      status: newDeposit.status,
+      created_at: newDeposit.createdAt
+    }]).then(({ error }) => {
+      if (error) console.error('Error inserting deposit to Supabase:', error);
+    });
+
     // Notification
     const notif: AppNotification = {
       id: `ntf_${Date.now()}`,
@@ -487,6 +552,16 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       createdAt: new Date().toISOString()
     };
     setNotifications(prev => [notif, ...prev]);
+
+    supabase.from('notifications').insert([{
+      id: notif.id,
+      user_id: notif.userId,
+      title: notif.title,
+      message: notif.message,
+      type: notif.type,
+      read: false,
+      created_at: notif.createdAt
+    }]).then();
 
     sendNativeNotification('TrafficSell Deposit Submitted 💳', `Your ${data.method} deposit request of $${data.amount.toFixed(2)} was submitted and is pending verification.`);
   };
@@ -502,16 +577,24 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     // Update deposit status
     setWalletDeposits(prev => prev.map(p => p.id === depositId ? { ...p, status: 'approved', adminNote } : p));
 
+    supabase.from('deposits').update({ status: 'approved', admin_note: adminNote }).eq('id', depositId).then();
+
     // Update user balance with total credited amount (deposit + 20% bonus)
+    let newBal = 0;
     setAllUsers(prev => prev.map(u => {
       if (u.id === deposit.userId) {
-        return { ...u, walletBalance: u.walletBalance + totalCredited };
+        newBal = u.walletBalance + totalCredited;
+        return { ...u, walletBalance: newBal };
       }
       return u;
     }));
 
     if (user && user.id === deposit.userId) {
       setUser(prev => prev ? { ...prev, walletBalance: prev.walletBalance + totalCredited } : null);
+    }
+
+    if (newBal > 0) {
+      supabase.from('users').update({ wallet_balance: newBal }).eq('id', deposit.userId).then();
     }
 
     // Add completion transaction log
@@ -526,6 +609,16 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
     setTransactions(prev => [tx, ...prev]);
 
+    supabase.from('transactions').insert([{
+      id: tx.id,
+      user_id: tx.userId,
+      type: tx.type,
+      amount: tx.amount,
+      description: tx.description,
+      status: tx.status,
+      created_at: tx.createdAt
+    }]).then();
+
     // Send notification
     const notif: AppNotification = {
       id: `ntf_${Date.now()}`,
@@ -538,6 +631,16 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
     setNotifications(prev => [notif, ...prev]);
 
+    supabase.from('notifications').insert([{
+      id: notif.id,
+      user_id: notif.userId,
+      title: notif.title,
+      message: notif.message,
+      type: notif.type,
+      read: false,
+      created_at: notif.createdAt
+    }]).then();
+
     sendNativeNotification('TrafficSell Deposit Approved! 🎉', `$${deposit.amount.toFixed(2)} deposit + ${bonusAmount.toFixed(2)} bonus credited to your TrafficSell wallet!`);
   };
 
@@ -546,6 +649,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (!deposit) return;
 
     setWalletDeposits(prev => prev.map(p => p.id === depositId ? { ...p, status: 'rejected', adminNote } : p));
+
+    supabase.from('deposits').update({ status: 'rejected', admin_note: adminNote }).eq('id', depositId).then();
 
     const notif: AppNotification = {
       id: `ntf_${Date.now()}`,
@@ -557,6 +662,16 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       createdAt: new Date().toISOString()
     };
     setNotifications(prev => [notif, ...prev]);
+
+    supabase.from('notifications').insert([{
+      id: notif.id,
+      user_id: notif.userId,
+      title: notif.title,
+      message: notif.message,
+      type: notif.type,
+      read: false,
+      created_at: notif.createdAt
+    }]).then();
 
     sendNativeNotification('TrafficSell Deposit Declined ⚠️', `Deposit request of $${deposit.amount.toFixed(2)} was declined. ${adminNote ? 'Reason: ' + adminNote : ''}`);
   };
@@ -585,6 +700,21 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
 
     setSupportTickets(prev => [newTicket, ...prev]);
+
+    supabase.from('tickets').insert([{
+      id: newTicket.id,
+      user_id: newTicket.userId,
+      user_name: newTicket.userName,
+      user_email: newTicket.userEmail,
+      subject: newTicket.subject,
+      category: newTicket.category,
+      priority: newTicket.priority,
+      status: newTicket.status,
+      created_at: newTicket.createdAt,
+      messages: newTicket.messages
+    }]).then(({ error }) => {
+      if (error) console.error('Error inserting ticket to Supabase:', error);
+    });
   };
 
   const createTicketForUser = (targetUserId: string, data: { subject: string; category: SupportTicket['category']; priority: SupportTicket['priority']; message: string }) => {
@@ -613,6 +743,21 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
 
     setSupportTickets(prev => [newTicket, ...prev]);
+
+    supabase.from('tickets').insert([{
+      id: newTicket.id,
+      user_id: newTicket.userId,
+      user_name: newTicket.userName,
+      user_email: newTicket.userEmail,
+      subject: newTicket.subject,
+      category: newTicket.category,
+      priority: newTicket.priority,
+      status: newTicket.status,
+      created_at: newTicket.createdAt,
+      messages: newTicket.messages
+    }]).then(({ error }) => {
+      if (error) console.error('Error inserting ticket to Supabase:', error);
+    });
   };
 
   const addTicketMessage = (ticketId: string, text: string) => {
@@ -626,51 +771,108 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       createdAt: new Date().toISOString()
     };
 
+    let updatedTicket: SupportTicket | null = null;
+
     setSupportTickets(prev => prev.map(t => {
       if (t.id === ticketId) {
-        return {
+        updatedTicket = {
           ...t,
           status: isUserAdmin ? 'in_progress' : t.status,
           messages: [...t.messages, newMessage]
         };
+        return updatedTicket;
       }
       return t;
     }));
+
+    setTimeout(() => {
+      const ticketToSave = supportTickets.find(t => t.id === ticketId);
+      const msgs = ticketToSave ? [...ticketToSave.messages, newMessage] : [newMessage];
+      supabase.from('tickets').update({
+        status: isUserAdmin ? 'in_progress' : undefined,
+        messages: msgs
+      }).eq('id', ticketId).then();
+    }, 100);
   };
 
   const updateTicketStatus = (ticketId: string, status: SupportTicket['status']) => {
     setSupportTickets(prev => prev.map(t => t.id === ticketId ? { ...t, status } : t));
+    supabase.from('tickets').update({ status }).eq('id', ticketId).then();
   };
 
   const markNotificationRead = (id: string) => {
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
   };
 
-  const sendAdminNotification = (data: { userId: string; title: string; message: string; type?: AppNotification['type'] }) => {
-    if (data.userId === 'all') {
+  const sendAdminNotification = (dataOrUserId: any, titleArg?: string, messageArg?: string, typeArg?: AppNotification['type']) => {
+    let targetUserId: string;
+    let notifTitle: string;
+    let notifMessage: string;
+    let notifType: AppNotification['type'];
+
+    if (typeof dataOrUserId === 'object' && dataOrUserId !== null) {
+      targetUserId = dataOrUserId.userId;
+      notifTitle = dataOrUserId.title;
+      notifMessage = dataOrUserId.message;
+      notifType = dataOrUserId.type || 'system';
+    } else {
+      targetUserId = dataOrUserId;
+      notifTitle = titleArg || 'Notification';
+      notifMessage = messageArg || '';
+      notifType = typeArg || 'system';
+    }
+
+    if (targetUserId === 'all') {
       const newNotifs: AppNotification[] = allUsers.map(u => ({
-        id: `ntf_${Date.now()}_${u.id}`,
+        id: `ntf_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
         userId: u.id,
-        title: data.title,
-        message: data.message,
-        type: data.type || 'system',
+        title: notifTitle,
+        message: notifMessage,
+        type: notifType,
         read: false,
         createdAt: new Date().toISOString()
       }));
       setNotifications(prev => [...newNotifs, ...prev]);
-      sendNativeNotification(data.title, data.message);
+      sendNativeNotification(notifTitle, notifMessage);
+
+      // Persist broadcast to Supabase
+      const dbRows = newNotifs.map(n => ({
+        id: n.id,
+        user_id: n.userId,
+        title: n.title,
+        message: n.message,
+        type: n.type,
+        read: false,
+        created_at: n.createdAt
+      }));
+      supabase.from('notifications').insert(dbRows).then(({ error }) => {
+        if (error) console.error('Error inserting broadcast notifications to Supabase:', error);
+      });
     } else {
       const newNotif: AppNotification = {
         id: `ntf_${Date.now()}`,
-        userId: data.userId,
-        title: data.title,
-        message: data.message,
-        type: data.type || 'system',
+        userId: targetUserId,
+        title: notifTitle,
+        message: notifMessage,
+        type: notifType,
         read: false,
         createdAt: new Date().toISOString()
       };
       setNotifications(prev => [newNotif, ...prev]);
-      sendNativeNotification(data.title, data.message);
+      sendNativeNotification(notifTitle, notifMessage);
+
+      // Persist to Supabase
+      supabase.from('notifications').insert([{
+        id: newNotif.id,
+        user_id: newNotif.userId,
+        title: newNotif.title,
+        message: newNotif.message,
+        type: newNotif.type,
+        read: false,
+        created_at: newNotif.createdAt
+      }]).then(({ error }) => {
+        if (error) console.error('Error inserting notification to Supabase:', error);
+      });
     }
   };
 

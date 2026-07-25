@@ -1,0 +1,171 @@
+-- TrafficSell Supabase Database Schema
+-- Run this SQL in your Supabase SQL Editor (https://wpqttbdtsolbydffawzg.supabase.co)
+
+-- Enable UUID extension if needed
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+-- 1. USERS / PROFILES TABLE
+CREATE TABLE IF NOT EXISTS public.users (
+  id TEXT PRIMARY KEY,
+  email TEXT UNIQUE NOT NULL,
+  full_name TEXT NOT NULL,
+  telegram TEXT,
+  whats_app TEXT,
+  wallet_balance NUMERIC DEFAULT 0.00,
+  role TEXT DEFAULT 'user',
+  country TEXT,
+  city TEXT,
+  postal_code TEXT,
+  is_verified BOOLEAN DEFAULT true,
+  is_suspended BOOLEAN DEFAULT false,
+  avatar TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 2. CAMPAIGNS TABLE
+CREATE TABLE IF NOT EXISTS public.campaigns (
+  id TEXT PRIMARY KEY,
+  user_id TEXT REFERENCES public.users(id) ON DELETE CASCADE,
+  user_name TEXT,
+  name TEXT NOT NULL,
+  url TEXT NOT NULL,
+  format TEXT NOT NULL,
+  country TEXT NOT NULL,
+  device_type TEXT NOT NULL,
+  visitors_target BIGINT NOT NULL,
+  visitors_delivered BIGINT DEFAULT 0,
+  cpm NUMERIC NOT NULL,
+  budget NUMERIC NOT NULL,
+  status TEXT DEFAULT 'pending',
+  estimated_delivery_hours INT DEFAULT 24,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 3. PAYMENT DEPOSITS TABLE
+CREATE TABLE IF NOT EXISTS public.payment_deposits (
+  id TEXT PRIMARY KEY,
+  user_id TEXT REFERENCES public.users(id) ON DELETE CASCADE,
+  user_name TEXT,
+  user_email TEXT,
+  method TEXT NOT NULL,
+  amount NUMERIC NOT NULL,
+  trx_ref TEXT NOT NULL,
+  screenshot_url TEXT,
+  status TEXT DEFAULT 'pending',
+  admin_note TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 4. TRANSACTIONS TABLE
+CREATE TABLE IF NOT EXISTS public.transactions (
+  id TEXT PRIMARY KEY,
+  user_id TEXT REFERENCES public.users(id) ON DELETE CASCADE,
+  type TEXT NOT NULL,
+  amount NUMERIC NOT NULL,
+  description TEXT,
+  status TEXT DEFAULT 'completed',
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 5. SUPPORT TICKETS TABLE
+CREATE TABLE IF NOT EXISTS public.support_tickets (
+  id TEXT PRIMARY KEY,
+  user_id TEXT REFERENCES public.users(id) ON DELETE CASCADE,
+  user_name TEXT,
+  user_email TEXT,
+  subject TEXT NOT NULL,
+  category TEXT DEFAULT 'general',
+  priority TEXT DEFAULT 'medium',
+  status TEXT DEFAULT 'open',
+  messages JSONB DEFAULT '[]'::jsonb,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 6. NOTIFICATIONS TABLE
+CREATE TABLE IF NOT EXISTS public.notifications (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  title TEXT NOT NULL,
+  message TEXT NOT NULL,
+  type TEXT DEFAULT 'system',
+  read BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 7. PLATFORM SETTINGS TABLE
+CREATE TABLE IF NOT EXISTS public.platform_settings (
+  id TEXT PRIMARY KEY DEFAULT 'main',
+  site_name TEXT DEFAULT 'TrafficSell',
+  site_icon_url TEXT DEFAULT '/logo.svg',
+  brand_display_mode TEXT DEFAULT 'both',
+  default_cpm NUMERIC DEFAULT 0.05,
+  min_deposit_amount NUMERIC DEFAULT 10.00,
+  easypaisa_number TEXT,
+  easypaisa_title TEXT,
+  jazzcash_number TEXT,
+  jazzcash_title TEXT,
+  usdt_trc20_address TEXT,
+  bank_account_title TEXT,
+  bank_name TEXT,
+  bank_account_number TEXT,
+  bank_iban TEXT,
+  page_content JSONB,
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 8. TESTIMONIALS TABLE
+CREATE TABLE IF NOT EXISTS public.testimonials (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  role TEXT,
+  company TEXT,
+  avatar TEXT,
+  content TEXT NOT NULL,
+  rating INT DEFAULT 5,
+  active BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ENABLE ROW LEVEL SECURITY (RLS) FOR PUBLIC ACCESS (OR ALLOW ALL FOR APP)
+ALTER TABLE public.users DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.campaigns DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.payment_deposits DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.transactions DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.support_tickets DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.notifications DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.platform_settings DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.testimonials DISABLE ROW LEVEL SECURITY;
+
+-- SEED INITIAL MASTER ADMIN USER
+INSERT INTO public.users (id, email, full_name, telegram, whats_app, wallet_balance, role, created_at, avatar, country, is_verified)
+VALUES (
+  'usr_master_admin',
+  'developershanawar@gmail.com',
+  'Shanawar Admin',
+  '@developershanawar',
+  '+92 300-1234567',
+  2500.00,
+  'admin',
+  NOW(),
+  'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=250',
+  'Pakistan',
+  true
+)
+ON CONFLICT (id) DO NOTHING;
+
+-- SEED INITIAL PLATFORM SETTINGS
+INSERT INTO public.platform_settings (id, site_name, site_icon_url, brand_display_mode, default_cpm, min_deposit_amount, easypaisa_number, easypaisa_title, jazzcash_number, jazzcash_title, usdt_trc20_address)
+VALUES (
+  'main',
+  'TrafficSell',
+  '/logo.svg',
+  'both',
+  0.05,
+  10.00,
+  '03001234567',
+  'TrafficSell Official EasyPaisa',
+  '03001234567',
+  'TrafficSell Official JazzCash',
+  'TY38a7Kx99mQLLzX21TRC20WalletAddress'
+)
+ON CONFLICT (id) DO NOTHING;

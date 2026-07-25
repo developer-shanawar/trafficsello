@@ -91,3 +91,24 @@ export const exportToPDF = (title: string, headers: string[], rows: (string | nu
   printWindow.document.write(htmlContent);
   printWindow.document.close();
 };
+
+export const getCountryFlag = (country?: string): string => {
+  if (!country) return '🌐';
+  const c = country.toLowerCase();
+  if (c.includes('united states') || c.includes('us')) return '🇺🇸';
+  if (c.includes('united kingdom') || c.includes('uk')) return '🇬🇧';
+  if (c.includes('germany') || c.includes('de')) return '🇩🇪';
+  if (c.includes('canada') || c.includes('ca')) return '🇨🇦';
+  if (c.includes('australia') || c.includes('au')) return '🇦🇺';
+  if (c.includes('france') || c.includes('fr')) return '🇫🇷';
+  if (c.includes('japan') || c.includes('jp')) return '🇯🇵';
+  if (c.includes('spain') || c.includes('es')) return '🇪🇸';
+  if (c.includes('italy') || c.includes('it')) return '🇮🇹';
+  if (c.includes('brazil') || c.includes('br')) return '🇧🇷';
+  if (c.includes('mexico') || c.includes('mx')) return '🇲🇽';
+  if (c.includes('pakistan') || c.includes('pk')) return '🇵🇰';
+  if (c.includes('india') || c.includes('in')) return '🇮🇳';
+  if (c.includes('saudi') || c.includes('sa')) return '🇸🇦';
+  if (c.includes('uae') || c.includes('emirates')) return '🇦🇪';
+  return '🌐';
+};

@@ -15,7 +15,7 @@ export const AdminDashboard: React.FC = () => {
   const {
     walletDeposits, approveDeposit, rejectDeposit, campaigns, updateCampaignStatus,
     allUsers, updateUserBalanceByAdmin, toggleUserSuspension, platformSettings, updatePlatformSettings,
-    testimonials, addTestimonial, updateTestimonial, deleteTestimonial, getUserStats, currentUser,
+    testimonials, addTestimonial, updateTestimonial, deleteTestimonial, getUserStats, user,
     supportTickets, createTicketForUser, addTicketMessage, updateTicketStatus, sendAdminNotification
   } = useStore();
 
@@ -141,7 +141,7 @@ export const AdminDashboard: React.FC = () => {
   const selectedChatTicket = supportTickets.find(t => t.id === activeChatTicketId);
 
   const handleApproveDeposit = (id: string) => {
-    approveDeposit(id, `Deposit verified & credited by Admin ${currentUser?.fullName || 'Admin'}.`);
+    approveDeposit(id, `Deposit verified & credited by Admin ${user?.fullName || 'Admin'}.`);
   };
 
   const handleRejectDeposit = (id: string) => {
@@ -160,7 +160,7 @@ export const AdminDashboard: React.FC = () => {
     e.preventDefault();
     if (!notifTitle.trim() || !notifMessage.trim()) return;
 
-    sendAdminNotification(notifTargetUserId, notifTitle, notifMessage, notifType);
+    sendAdminNotification({ userId: notifTargetUserId, title: notifTitle, message: notifMessage, type: notifType });
     setNotifTitle('');
     setNotifMessage('');
     setNotifSentSuccess(true);
@@ -643,11 +643,11 @@ export const AdminDashboard: React.FC = () => {
                                 {userCampaigns.map(c => (
                                   <div key={c.id} className="p-2.5 bg-slate-950 rounded-xl border border-slate-800 flex items-center justify-between text-xs">
                                     <div>
-                                      <span className="font-extrabold text-white">{c.title}</span>
-                                      <span className="text-[10px] text-slate-400 block font-mono">{c.targetUrl}</span>
+                                      <span className="font-extrabold text-white">{c.name}</span>
+                                      <span className="text-[10px] text-slate-400 block font-mono">{c.url}</span>
                                     </div>
                                     <div className="flex items-center gap-3">
-                                      <span className="text-emerald-400 font-mono font-bold">{c.visitorsDelivered.toLocaleString()} / {c.totalVisitorsOrdered.toLocaleString()} hits</span>
+                                      <span className="text-emerald-400 font-mono font-bold">{c.visitorsDelivered.toLocaleString()} / {(c.visitorsTarget || 0).toLocaleString()} hits</span>
                                       <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-slate-800 text-slate-300">
                                         {c.status}
                                       </span>
@@ -727,8 +727,8 @@ export const AdminDashboard: React.FC = () => {
                   .filter(c => {
                     const matchStatus = campaignFilter === 'all' || c.status === campaignFilter;
                     const matchSearch = !campaignSearchQuery ||
-                      c.title.toLowerCase().includes(campaignSearchQuery.toLowerCase()) ||
-                      c.targetUrl.toLowerCase().includes(campaignSearchQuery.toLowerCase()) ||
+                      (c.name && c.name.toLowerCase().includes(campaignSearchQuery.toLowerCase())) ||
+                      (c.url && c.url.toLowerCase().includes(campaignSearchQuery.toLowerCase())) ||
                       (c.userId && c.userId.toLowerCase().includes(campaignSearchQuery.toLowerCase()));
                     return matchStatus && matchSearch;
                   })
@@ -739,17 +739,17 @@ export const AdminDashboard: React.FC = () => {
                       <tr key={c.id} className="hover:bg-slate-800/40">
                         <td className="py-3.5">
                           <span className="font-mono text-[10px] text-amber-400 block">{c.id}</span>
-                          <p className="font-extrabold text-white text-xs">{c.title}</p>
+                          <p className="font-extrabold text-white text-xs">{c.name}</p>
                         </td>
 
                         <td className="py-3.5">
                           <a
-                            href={c.targetUrl}
+                            href={c.url}
                             target="_blank"
                             rel="noreferrer"
                             className="text-emerald-400 hover:underline font-mono truncate max-w-xs block text-[11px]"
                           >
-                            {c.targetUrl}
+                            {c.url}
                           </a>
                         </td>
 
@@ -759,19 +759,19 @@ export const AdminDashboard: React.FC = () => {
                         </td>
 
                         <td className="py-3.5">
-                          <span className="font-bold uppercase text-slate-300 block">{c.trafficType}</span>
-                          <span className="text-[10px] text-amber-400 font-mono">${c.cpmRate.toFixed(2)} CPM</span>
+                          <span className="font-bold uppercase text-slate-300 block">{c.format || 'SmartLink'}</span>
+                          <span className="text-[10px] text-amber-400 font-mono">${(c.cpm || 0.05).toFixed(2)} CPM</span>
                         </td>
 
                         <td className="py-3.5 font-mono">
                           <div className="flex items-center gap-1.5">
-                            <span className="text-emerald-400 font-bold">{c.visitorsDelivered.toLocaleString()}</span>
-                            <span className="text-slate-500">/ {c.totalVisitorsOrdered.toLocaleString()}</span>
+                            <span className="text-emerald-400 font-bold">{(c.visitorsDelivered || 0).toLocaleString()}</span>
+                            <span className="text-slate-500">/ {(c.visitorsTarget || 0).toLocaleString()}</span>
                           </div>
                         </td>
 
                         <td className="py-3.5 font-extrabold text-[#DFFF2F] font-mono">
-                          ${(c.totalVisitorsOrdered * c.cpmRate / 1000).toFixed(2)}
+                          ${(c.budget || ((c.visitorsTarget || 0) * (c.cpm || 0.05) / 1000)).toFixed(2)}
                         </td>
 
                         <td className="py-3.5">
@@ -1154,7 +1154,7 @@ export const AdminDashboard: React.FC = () => {
                       </td>
 
                       <td className="py-3.5">
-                        <span className="font-bold text-amber-400">{d.paymentMethod}</span>
+                        <span className="font-bold text-amber-400">{d.method}</span>
                       </td>
 
                       <td className="py-3.5 font-mono text-slate-300">
