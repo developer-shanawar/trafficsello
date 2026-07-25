@@ -41,6 +41,7 @@ interface StoreContextType {
   // Notifications
   notifications: AppNotification[];
   markNotificationRead: (id: string) => void;
+  sendAdminNotification: (data: { userId: string; title: string; message: string; type?: AppNotification['type'] }) => void;
 
   // Platform Settings & Pages Content
   platformSettings: PlatformSettings;
@@ -79,25 +80,16 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // Load state from localStorage or initial fallback
   const [allUsers, setAllUsers] = useState<UserProfile[]>(() => {
     const saved = localStorage.getItem('trafficsell_users');
-    let usersList: UserProfile[] = saved ? JSON.parse(saved) : INITIAL_USERS;
-    if (!usersList || usersList.length === 0) usersList = INITIAL_USERS;
-    // Guarantee master admin exists
-    const hasMaster = usersList.some(u => u.email.toLowerCase() === 'developershanawar@gmail.com');
-    if (!hasMaster) {
-      const masterUser: UserProfile = {
-        id: 'usr_master_admin',
-        email: 'developershanawar@gmail.com',
-        fullName: 'Shanawar Admin',
-        telegram: '@developershanawar',
-        whatsApp: '+92 300-1234567',
-        walletBalance: 0.00,
-        role: 'admin',
-        createdAt: '2026-01-01T00:00:00Z',
-        avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=250'
-      };
-      usersList = [masterUser, ...usersList];
+    let usersList: UserProfile[] = saved ? JSON.parse(saved) : [];
+    
+    // Merge INITIAL_USERS to ensure all sample users exist
+    const merged = [...usersList];
+    for (const seedUser of INITIAL_USERS) {
+      if (!merged.some(u => u.id === seedUser.id || u.email.toLowerCase() === seedUser.email.toLowerCase())) {
+        merged.push(seedUser);
+      }
     }
-    return usersList;
+    return merged.length > 0 ? merged : INITIAL_USERS;
   });
 
   const [user, setUser] = useState<UserProfile | null>(() => {
@@ -114,27 +106,62 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const [campaigns, setCampaigns] = useState<Campaign[]>(() => {
     const saved = localStorage.getItem('trafficsell_campaigns');
-    return saved !== null ? JSON.parse(saved) : INITIAL_CAMPAIGNS;
+    let list: Campaign[] = saved ? JSON.parse(saved) : [];
+    const merged = [...list];
+    for (const seedCmp of INITIAL_CAMPAIGNS) {
+      if (!merged.some(c => c.id === seedCmp.id)) {
+        merged.push(seedCmp);
+      }
+    }
+    return merged.length > 0 ? merged : INITIAL_CAMPAIGNS;
   });
 
   const [walletDeposits, setWalletDeposits] = useState<PaymentDeposit[]>(() => {
     const saved = localStorage.getItem('trafficsell_payments');
-    return saved !== null ? JSON.parse(saved) : INITIAL_PAYMENTS;
+    let list: PaymentDeposit[] = saved ? JSON.parse(saved) : [];
+    const merged = [...list];
+    for (const seedDep of INITIAL_PAYMENTS) {
+      if (!merged.some(p => p.id === seedDep.id)) {
+        merged.push(seedDep);
+      }
+    }
+    return merged.length > 0 ? merged : INITIAL_PAYMENTS;
   });
 
   const [transactions, setTransactions] = useState<WalletTransaction[]>(() => {
     const saved = localStorage.getItem('trafficsell_transactions');
-    return saved !== null ? JSON.parse(saved) : INITIAL_TRANSACTIONS;
+    let list: WalletTransaction[] = saved ? JSON.parse(saved) : [];
+    const merged = [...list];
+    for (const seedTx of INITIAL_TRANSACTIONS) {
+      if (!merged.some(t => t.id === seedTx.id)) {
+        merged.push(seedTx);
+      }
+    }
+    return merged.length > 0 ? merged : INITIAL_TRANSACTIONS;
   });
 
   const [supportTickets, setSupportTickets] = useState<SupportTicket[]>(() => {
     const saved = localStorage.getItem('trafficsell_tickets');
-    return saved !== null ? JSON.parse(saved) : INITIAL_TICKETS;
+    let list: SupportTicket[] = saved ? JSON.parse(saved) : [];
+    const merged = [...list];
+    for (const seedTkt of INITIAL_TICKETS) {
+      if (!merged.some(t => t.id === seedTkt.id)) {
+        merged.push(seedTkt);
+      }
+    }
+    return merged.length > 0 ? merged : INITIAL_TICKETS;
   });
 
   const [notifications, setNotifications] = useState<AppNotification[]>(() => {
     const saved = localStorage.getItem('trafficsell_notifications');
-    return saved !== null ? JSON.parse(saved) : INITIAL_NOTIFICATIONS;
+    let list: AppNotification[] = saved ? JSON.parse(saved) : [];
+    const merged = [...list];
+    for (const seedNtf of INITIAL_NOTIFICATIONS) {
+      if (!merged.some(n => n.id === seedNtf.id)) {
+        merged.push(seedNtf);
+      }
+    }
+    return merged.length > 0 ? merged : INITIAL_NOTIFICATIONS;
   });
 
   const [platformSettings, setPlatformSettings] = useState<PlatformSettings>(() => {
@@ -619,6 +646,34 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
   };
 
+  const sendAdminNotification = (data: { userId: string; title: string; message: string; type?: AppNotification['type'] }) => {
+    if (data.userId === 'all') {
+      const newNotifs: AppNotification[] = allUsers.map(u => ({
+        id: `ntf_${Date.now()}_${u.id}`,
+        userId: u.id,
+        title: data.title,
+        message: data.message,
+        type: data.type || 'system',
+        read: false,
+        createdAt: new Date().toISOString()
+      }));
+      setNotifications(prev => [...newNotifs, ...prev]);
+      sendNativeNotification(data.title, data.message);
+    } else {
+      const newNotif: AppNotification = {
+        id: `ntf_${Date.now()}`,
+        userId: data.userId,
+        title: data.title,
+        message: data.message,
+        type: data.type || 'system',
+        read: false,
+        createdAt: new Date().toISOString()
+      };
+      setNotifications(prev => [newNotif, ...prev]);
+      sendNativeNotification(data.title, data.message);
+    }
+  };
+
   const updatePlatformSettings = (settings: PlatformSettings) => {
     setPlatformSettings(settings);
   };
@@ -719,7 +774,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       campaigns, addCampaign, updateCampaignStatus, deleteCampaign,
       walletDeposits, requestDeposit, approveDeposit, rejectDeposit, transactions,
       supportTickets, createTicket, createTicketForUser, addTicketMessage, updateTicketStatus,
-      notifications, markNotificationRead,
+      notifications, markNotificationRead, sendAdminNotification,
       platformSettings, updatePlatformSettings,
       testimonials, addTestimonial, updateTestimonial, deleteTestimonial,
       updateProfile, allUsers, updateUserBalanceByAdmin, toggleUserSuspension, getUserStats, resetToInitialData

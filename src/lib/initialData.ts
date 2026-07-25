@@ -258,20 +258,390 @@ export const INITIAL_USERS: UserProfile[] = [
     fullName: 'Shanawar Admin',
     telegram: '@developershanawar',
     whatsApp: '+92 300-1234567',
-    walletBalance: 0.00,
+    walletBalance: 2500.00,
     role: 'admin',
     createdAt: '2026-01-01T00:00:00Z',
-    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=250'
+    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=250',
+    country: 'Pakistan',
+    city: 'Lahore',
+    postalCode: '54000',
+    isVerified: true
+  },
+  {
+    id: 'usr_2',
+    email: 'demoadvertiser@trafficsell.com',
+    fullName: 'Alex Vance',
+    telegram: '@alexvance_ad',
+    whatsApp: '+1 415-555-0199',
+    walletBalance: 145.50,
+    role: 'advertiser',
+    createdAt: '2026-06-15T10:00:00Z',
+    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=250',
+    country: 'United States',
+    city: 'San Francisco',
+    postalCode: '94103',
+    isVerified: true
+  },
+  {
+    id: 'usr_3',
+    email: 'demopublisher@trafficsell.com',
+    fullName: 'Marcus Sterling',
+    telegram: '@marcus_pub',
+    whatsApp: '+44 20-7946-0912',
+    walletBalance: 320.00,
+    role: 'publisher',
+    createdAt: '2026-06-20T14:20:00Z',
+    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=250',
+    country: 'United Kingdom',
+    city: 'London',
+    postalCode: 'EC1A 1BB',
+    isVerified: true
+  },
+  {
+    id: 'usr_4',
+    email: 'tenant1@trafficsell.com',
+    fullName: 'Nexus Traffic Partner',
+    telegram: '@nexus_tenant',
+    whatsApp: '+92 321-9988776',
+    walletBalance: 500.00,
+    role: 'tenant',
+    createdAt: '2026-07-01T08:00:00Z',
+    avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=250',
+    country: 'Pakistan',
+    city: 'Karachi',
+    postalCode: '75500',
+    isVerified: true
+  },
+  {
+    id: 'usr_5',
+    email: 'sarah.k@trendify.com',
+    fullName: 'Sarah Jenkins',
+    telegram: '@sarah_trendify',
+    whatsApp: '+1 212-555-0144',
+    walletBalance: 210.00,
+    role: 'advertiser',
+    createdAt: '2026-07-05T11:30:00Z',
+    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=250',
+    country: 'United States',
+    city: 'New York',
+    postalCode: '10001',
+    isVerified: true
+  },
+  {
+    id: 'usr_6',
+    email: 'usman.a@techpulse.pk',
+    fullName: 'Usman Ali',
+    telegram: '@usman_techpulse',
+    whatsApp: '+92 300-9876543',
+    walletBalance: 85.20,
+    role: 'publisher',
+    createdAt: '2026-07-10T16:45:00Z',
+    avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&q=80&w=250',
+    country: 'Pakistan',
+    city: 'Rawalpindi',
+    postalCode: '46000',
+    isVerified: true
+  },
+  {
+    id: 'usr_7',
+    email: 'alexandre.dubois@apexgrowth.eu',
+    fullName: 'Alexandre Dubois',
+    telegram: '@alex_apexgrowth',
+    whatsApp: '+33 1-4268-5500',
+    walletBalance: 450.00,
+    role: 'advertiser',
+    createdAt: '2026-07-12T09:15:00Z',
+    avatar: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?auto=format&fit=crop&q=80&w=250',
+    country: 'France',
+    city: 'Paris',
+    postalCode: '75008',
+    isVerified: true
   }
 ];
 
-export const INITIAL_CAMPAIGNS: Campaign[] = [];
+export const INITIAL_CAMPAIGNS: Campaign[] = [
+  {
+    id: 'cmp_101',
+    userId: 'usr_2',
+    userName: 'Alex Vance',
+    name: 'High Converting US Popunder Offer',
+    url: 'https://example.com/landing-page-us',
+    format: 'popup',
+    country: 'United States',
+    deviceType: 'both',
+    visitorsTarget: 100000,
+    visitorsDelivered: 45200,
+    cpm: 0.08,
+    budget: 8.00,
+    status: 'running',
+    estimatedDeliveryHours: 24,
+    createdAt: '2026-07-18T10:00:00Z'
+  },
+  {
+    id: 'cmp_102',
+    userId: 'usr_5',
+    userName: 'Sarah Jenkins',
+    name: 'Global SmartLink E-commerce Campaign',
+    url: 'https://trendify.com/flash-sale',
+    format: 'smartlink',
+    country: 'All Countries (Cheap)',
+    deviceType: 'mobile',
+    visitorsTarget: 500000,
+    visitorsDelivered: 320000,
+    cpm: 0.05,
+    budget: 25.00,
+    status: 'running',
+    estimatedDeliveryHours: 48,
+    createdAt: '2026-07-20T14:30:00Z'
+  },
+  {
+    id: 'cmp_103',
+    userId: 'usr_7',
+    userName: 'Alexandre Dubois',
+    name: 'Europe Direct Organic Web Visits',
+    url: 'https://apexgrowth.eu/promotions',
+    format: 'organic',
+    country: 'France',
+    deviceType: 'desktop',
+    visitorsTarget: 250000,
+    visitorsDelivered: 250000,
+    cpm: 0.12,
+    budget: 30.00,
+    status: 'completed',
+    estimatedDeliveryHours: 12,
+    createdAt: '2026-07-15T08:00:00Z'
+  },
+  {
+    id: 'cmp_104',
+    userId: 'usr_2',
+    userName: 'Alex Vance',
+    name: 'Mobile App Store Click Boost',
+    url: 'https://example.com/app-install',
+    format: 'popup',
+    country: 'All Countries (Cheap)',
+    deviceType: 'mobile',
+    visitorsTarget: 50000,
+    visitorsDelivered: 12000,
+    cpm: 0.06,
+    budget: 3.00,
+    status: 'paused',
+    estimatedDeliveryHours: 24,
+    createdAt: '2026-07-22T11:15:00Z'
+  },
+  {
+    id: 'cmp_105',
+    userId: 'usr_5',
+    userName: 'Sarah Jenkins',
+    name: 'Crypto SmartLink Premium LeadGen',
+    url: 'https://trendify.com/crypto-lander',
+    format: 'smartlink',
+    country: 'United States',
+    deviceType: 'both',
+    visitorsTarget: 80000,
+    visitorsDelivered: 0,
+    cpm: 0.10,
+    budget: 8.00,
+    status: 'pending',
+    estimatedDeliveryHours: 12,
+    createdAt: '2026-07-25T02:00:00Z'
+  }
+];
 
-export const INITIAL_PAYMENTS: PaymentDeposit[] = [];
+export const INITIAL_PAYMENTS: PaymentDeposit[] = [
+  {
+    id: 'dep_1001',
+    userId: 'usr_6',
+    userName: 'Usman Ali',
+    userEmail: 'usman.a@techpulse.pk',
+    method: 'JazzCash',
+    amount: 50.00,
+    trxRef: 'TRX-99882211',
+    screenshotUrl: 'https://images.unsplash.com/photo-1559526324-4b87b5e36e44?auto=format&fit=crop&q=80&w=400',
+    status: 'approved',
+    createdAt: '2026-07-22T09:00:00Z',
+    adminNote: 'Verified and credited to wallet.'
+  },
+  {
+    id: 'dep_1002',
+    userId: 'usr_5',
+    userName: 'Sarah Jenkins',
+    userEmail: 'sarah.k@trendify.com',
+    method: 'EasyPaisa',
+    amount: 100.00,
+    trxRef: 'EP-77441100',
+    screenshotUrl: 'https://images.unsplash.com/photo-1563986768609-322da13575f3?auto=format&fit=crop&q=80&w=400',
+    status: 'pending',
+    createdAt: '2026-07-24T18:00:00Z'
+  },
+  {
+    id: 'dep_1003',
+    userId: 'usr_2',
+    userName: 'Alex Vance',
+    userEmail: 'demoadvertiser@trafficsell.com',
+    method: 'PayPal',
+    amount: 250.00,
+    trxRef: 'PAYPAL-INV-9901',
+    screenshotUrl: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=400',
+    status: 'approved',
+    createdAt: '2026-07-20T12:00:00Z',
+    adminNote: 'PayPal payment confirmed.'
+  },
+  {
+    id: 'dep_1004',
+    userId: 'usr_7',
+    userName: 'Alexandre Dubois',
+    userEmail: 'alexandre.dubois@apexgrowth.eu',
+    method: 'USDT TRC20',
+    amount: 500.00,
+    trxRef: '0x8f2a7b...99a0',
+    screenshotUrl: 'https://images.unsplash.com/photo-1621416894569-0f39ed31d247?auto=format&fit=crop&q=80&w=400',
+    status: 'pending',
+    createdAt: '2026-07-25T01:30:00Z'
+  }
+];
 
-export const INITIAL_TRANSACTIONS: WalletTransaction[] = [];
+export const INITIAL_TRANSACTIONS: WalletTransaction[] = [
+  {
+    id: 'tx_101',
+    userId: 'usr_2',
+    type: 'deposit',
+    amount: 250.00,
+    description: 'Wallet Deposit via PayPal (Approved)',
+    status: 'completed',
+    createdAt: '2026-07-20T12:00:00Z'
+  },
+  {
+    id: 'tx_102',
+    userId: 'usr_2',
+    type: 'spend',
+    amount: 8.00,
+    description: 'Campaign cmp_101 Popunder US Allocation',
+    status: 'completed',
+    createdAt: '2026-07-20T12:05:00Z'
+  },
+  {
+    id: 'tx_103',
+    userId: 'usr_6',
+    type: 'deposit',
+    amount: 50.00,
+    description: 'Wallet Deposit via JazzCash (Approved)',
+    status: 'completed',
+    createdAt: '2026-07-22T09:00:00Z'
+  }
+];
 
-export const INITIAL_TICKETS: SupportTicket[] = [];
+export const INITIAL_TICKETS: SupportTicket[] = [
+  {
+    id: 'tkt_101',
+    userId: 'usr_2',
+    userName: 'Alex Vance',
+    userEmail: 'demoadvertiser@trafficsell.com',
+    subject: 'How fast will my pop-under campaign be approved?',
+    category: 'Campaign Delivery',
+    priority: 'high',
+    status: 'open',
+    createdAt: '2026-07-25T03:15:00Z',
+    messages: [
+      {
+        id: 'msg_1',
+        sender: 'user',
+        senderName: 'Alex Vance',
+        text: 'Hi! I just created a new campaign for US Popunder traffic. How long does manual review usually take?',
+        createdAt: '2026-07-25T03:15:00Z'
+      },
+      {
+        id: 'msg_2',
+        sender: 'admin',
+        senderName: 'Shanawar Admin',
+        text: 'Hello Alex! Campaigns are usually reviewed within 5 to 15 minutes. Yours is currently in queue.',
+        createdAt: '2026-07-25T03:20:00Z'
+      },
+      {
+        id: 'msg_3',
+        sender: 'user',
+        senderName: 'Alex Vance',
+        text: 'Awesome, thank you! Ready to scale once approved.',
+        createdAt: '2026-07-25T03:22:00Z'
+      }
+    ]
+  },
+  {
+    id: 'tkt_102',
+    userId: 'usr_6',
+    userName: 'Usman Ali',
+    userEmail: 'usman.a@techpulse.pk',
+    subject: 'JazzCash deposit reference confirmation',
+    category: 'Billing & Wallet',
+    priority: 'high',
+    status: 'open',
+    createdAt: '2026-07-25T04:00:00Z',
+    messages: [
+      {
+        id: 'msg_4',
+        sender: 'user',
+        senderName: 'Usman Ali',
+        text: 'Hello, I submitted a deposit via JazzCash TRX ID #TRX-99882211. Please verify and credit my wallet.',
+        createdAt: '2026-07-25T04:00:00Z'
+      }
+    ]
+  },
+  {
+    id: 'tkt_103',
+    userId: 'usr_5',
+    userName: 'Sarah Jenkins',
+    userEmail: 'sarah.k@trendify.com',
+    subject: 'Custom CPM rate for 1M+ monthly volume',
+    category: 'General Inquiry',
+    priority: 'medium',
+    status: 'in_progress',
+    createdAt: '2026-07-24T18:30:00Z',
+    messages: [
+      {
+        id: 'msg_5',
+        sender: 'user',
+        senderName: 'Sarah Jenkins',
+        text: 'We are looking to order 1,000,000+ US impressions monthly. Do you offer bulk CPM discounts?',
+        createdAt: '2026-07-24T18:30:00Z'
+      },
+      {
+        id: 'msg_6',
+        sender: 'admin',
+        senderName: 'Shanawar Admin',
+        text: 'Hello Sarah! Yes, for orders above 1M impressions, we offer $0.04 CPM special rate. Let us know your target geos.',
+        createdAt: '2026-07-24T19:00:00Z'
+      }
+    ]
+  }
+];
 
-export const INITIAL_NOTIFICATIONS: AppNotification[] = [];
+export const INITIAL_NOTIFICATIONS: AppNotification[] = [
+  {
+    id: 'ntf_201',
+    userId: 'usr_2',
+    title: 'Deposit Approved',
+    message: 'Your PayPal deposit of $250.00 has been credited to your wallet balance.',
+    type: 'payment',
+    read: false,
+    createdAt: '2026-07-20T12:00:00Z'
+  },
+  {
+    id: 'ntf_202',
+    userId: 'usr_2',
+    title: 'Campaign Live',
+    message: 'Campaign cmp_101 "High Converting US Popunder Offer" is now actively delivering visitors.',
+    type: 'campaign',
+    read: true,
+    createdAt: '2026-07-20T12:10:00Z'
+  },
+  {
+    id: 'ntf_203',
+    userId: 'all',
+    title: '🚀 TrafficSell Platform Upgrade',
+    message: 'New high-conversion SmartLink targeting now available with 0% commission fees on bulk orders!',
+    type: 'system',
+    read: false,
+    createdAt: '2026-07-24T10:00:00Z'
+  }
+];
+
 
