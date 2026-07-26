@@ -42,13 +42,13 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAuth, onNavigateView, curr
   };
 
   return (
-    <header className="sticky top-0 z-40 w-full backdrop-blur-xl bg-white/70 dark:bg-slate-900/90 border-b border-white/60 dark:border-slate-800 text-[#111827] dark:text-white transition-all shadow-sm">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+    <header className="sticky top-0 z-40 w-full backdrop-blur-xl bg-white/80 dark:bg-slate-900/90 border-b border-slate-200/80 dark:border-slate-800 text-[#111827] dark:text-white transition-all shadow-sm">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-2">
         
         {/* Brand Logo & Name */}
         <div
           onClick={() => handleNavClick('landing')}
-          className="flex items-center gap-2.5 cursor-pointer group"
+          className="flex items-center gap-2.5 cursor-pointer group shrink-0"
         >
           {(brandDisplayMode === 'both' || brandDisplayMode === 'icon') && (
             siteIconUrl ? (
@@ -66,8 +66,8 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAuth, onNavigateView, curr
           )}
 
           {(brandDisplayMode === 'both' || brandDisplayMode === 'text') && (
-            <div>
-              <span className="text-xl font-bold tracking-tight text-[#111827] dark:text-white flex items-center gap-1.5">
+            <div className="hidden xs:block">
+              <span className="text-lg sm:text-xl font-bold tracking-tight text-[#111827] dark:text-white flex items-center gap-1.5">
                 {siteName}
               </span>
               <span className="block text-[9px] tracking-widest font-bold uppercase opacity-70 text-[#111827] dark:text-slate-400 -mt-1">
@@ -78,7 +78,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAuth, onNavigateView, curr
         </div>
 
         {/* Center Nav Items (Desktop) */}
-        <nav className="hidden lg:flex items-center gap-8 text-sm font-semibold opacity-90 text-[#111827] dark:text-slate-200">
+        <nav className="hidden lg:flex items-center gap-6 xl:gap-8 text-sm font-semibold opacity-90 text-[#111827] dark:text-slate-200">
           <button
             onClick={() => handleNavClick('landing')}
             className={`hover:opacity-100 transition-opacity cursor-pointer ${currentView === 'landing' ? 'font-bold text-[#111827] dark:text-[#DFFF2F]' : ''}`}
@@ -88,6 +88,9 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAuth, onNavigateView, curr
           <button onClick={() => handleNavClick('about')} className="hover:opacity-100 transition-opacity cursor-pointer font-bold text-[#111827] dark:text-[#DFFF2F]">
             About Us
           </button>
+          <button onClick={() => handleNavClick('#smm-services')} className="hover:opacity-100 transition-opacity cursor-pointer flex items-center gap-1 text-amber-500 dark:text-[#DFFF2F] font-extrabold">
+            <Sparkles className="w-3.5 h-3.5" /> SMM Ads
+          </button>
           <button onClick={() => handleNavClick('#features')} className="hover:opacity-100 transition-opacity cursor-pointer">
             Features
           </button>
@@ -95,7 +98,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAuth, onNavigateView, curr
             Calculator
           </button>
           <button onClick={() => handleNavClick('#payment-methods')} className="hover:opacity-100 transition-opacity cursor-pointer">
-            Payment Methods
+            Payments
           </button>
           <button onClick={() => handleNavClick('#faq')} className="hover:opacity-100 transition-opacity cursor-pointer">
             FAQ
@@ -103,24 +106,24 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAuth, onNavigateView, curr
         </nav>
 
         {/* Right Action Controls */}
-        <div className="flex items-center gap-2.5 sm:gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           
           {/* Currency Selector */}
           <select
             value={currency}
             onChange={(e) => setCurrency(e.target.value as any)}
-            className="py-2 px-2.5 rounded-xl bg-white/60 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-[#111827] dark:text-slate-200 focus:outline-none cursor-pointer shadow-sm"
+            className="py-1.5 sm:py-2 px-2 sm:px-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-[#111827] dark:text-slate-200 focus:outline-none cursor-pointer shadow-sm"
           >
-            <option value="USD">🇺🇸 USD ($)</option>
-            <option value="PKR">🇵🇰 PKR (Rs)</option>
-            <option value="INR">🇮🇳 INR (₹)</option>
-            <option value="BDT">🇧🇩 BDT (৳)</option>
+            <option value="USD">🇺🇸 USD</option>
+            <option value="PKR">🇵🇰 PKR</option>
+            <option value="INR">🇮🇳 INR</option>
+            <option value="BDT">🇧🇩 BDT</option>
           </select>
 
           {/* Theme Switcher */}
           <button
             onClick={toggleTheme}
-            className="p-2.5 rounded-xl bg-white/60 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-[#111827] dark:text-slate-300 hover:scale-105 transition-all cursor-pointer shadow-sm"
+            className="p-2 sm:p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-[#111827] dark:text-slate-300 hover:scale-105 transition-all cursor-pointer shadow-sm"
             title="Toggle theme"
           >
             {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-[#111827]" />}
@@ -128,11 +131,11 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAuth, onNavigateView, curr
 
           {/* User Logged In State */}
           {user ? (
-            <div className="flex items-center gap-2.5 relative">
+            <div className="flex items-center gap-2 relative">
               {/* Wallet Balance Badge */}
               <button
                 onClick={() => handleNavClick('wallet')}
-                className="hidden sm:flex items-center gap-2 py-2 px-3.5 bg-[#111827] dark:bg-slate-800 hover:bg-slate-800 border border-slate-700 rounded-xl text-xs font-bold text-white transition-all shadow-sm"
+                className="hidden md:flex items-center gap-2 py-2 px-3 bg-[#111827] dark:bg-slate-800 hover:bg-slate-800 border border-slate-700 rounded-xl text-xs font-bold text-white transition-all shadow-sm"
               >
                 <Wallet className="w-3.5 h-3.5 text-[#DFFF2F]" />
                 <span>{formatMoney(user.walletBalance)}</span>
@@ -147,9 +150,9 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAuth, onNavigateView, curr
                 <img
                   src={user.avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=250"}
                   alt={user.fullName}
-                  className="w-8 h-8 rounded-lg object-cover border border-slate-300 dark:border-slate-600"
+                  className="w-7 h-7 rounded-lg object-cover border border-slate-300 dark:border-slate-600"
                 />
-                <span className="text-xs font-bold max-w-[100px] truncate">{user.fullName}</span>
+                <span className="text-xs font-bold max-w-[90px] truncate">{user.fullName}</span>
                 <ChevronDown className="w-3.5 h-3.5 text-slate-500" />
               </button>
 
@@ -180,7 +183,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAuth, onNavigateView, curr
                       onClick={() => { handleNavClick('wallet'); setProfileDropdownOpen(false); }}
                       className="w-full text-left px-3 py-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2 font-bold cursor-pointer"
                     >
-                      <Wallet className="w-4 h-4 text-emerald-600 dark:text-[#DFFF2F]" /> Wallet (${user.walletBalance.toFixed(2)})
+                      <Wallet className="w-4 h-4 text-emerald-600 dark:text-[#DFFF2F]" /> Wallet ({formatMoney(user.walletBalance)})
                     </button>
                   </div>
 
@@ -201,16 +204,16 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAuth, onNavigateView, curr
             </div>
           ) : (
             /* Logged Out Buttons (Desktop) */
-            <div className="hidden sm:flex items-center gap-2.5">
+            <div className="hidden sm:flex items-center gap-2">
               <button
                 onClick={() => handleNavClick('login')}
-                className="py-2.5 px-4 text-xs font-bold text-[#111827] dark:text-white hover:opacity-80 transition-opacity cursor-pointer bg-white/80 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-sm"
+                className="py-2 px-3.5 text-xs font-bold text-[#111827] dark:text-white hover:opacity-80 transition-opacity cursor-pointer bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-sm"
               >
                 Sign In
               </button>
               <button
                 onClick={() => handleNavClick('register')}
-                className="py-2.5 px-5 bg-[#111827] dark:bg-[#DFFF2F] hover:bg-slate-800 dark:hover:bg-[#cbe820] text-white dark:text-[#111827] text-xs font-extrabold rounded-xl transition-all shadow-md hover:scale-105 cursor-pointer flex items-center gap-1.5"
+                className="py-2 px-4 bg-[#111827] dark:bg-[#DFFF2F] hover:bg-slate-800 dark:hover:bg-[#cbe820] text-white dark:text-[#111827] text-xs font-extrabold rounded-xl transition-all shadow-md hover:scale-105 cursor-pointer flex items-center gap-1.5 whitespace-nowrap"
               >
                 <Sparkles className="w-3.5 h-3.5 text-[#DFFF2F] dark:text-[#111827]" /> Get Started
               </button>
@@ -220,7 +223,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAuth, onNavigateView, curr
           {/* Mobile / Tablet 3-Line Hamburger Menu Toggle Button */}
           <button
             onClick={() => setMobileMenuOpen(true)}
-            className="lg:hidden p-2.5 rounded-xl bg-[#111827] text-[#DFFF2F] dark:bg-[#DFFF2F] dark:text-[#111827] hover:scale-105 transition-all cursor-pointer shadow-md"
+            className="lg:hidden p-2 sm:p-2.5 rounded-xl bg-[#111827] text-[#DFFF2F] dark:bg-[#DFFF2F] dark:text-[#111827] hover:scale-105 transition-all cursor-pointer shadow-md shrink-0"
             aria-label="Open Navigation Menu"
           >
             <Menu className="w-5 h-5" />
@@ -241,31 +244,31 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAuth, onNavigateView, curr
               className="fixed inset-0 bg-slate-950/70 backdrop-blur-md z-[998]"
             />
 
-            {/* Slide Down Drawer Panel */}
+            {/* Slide-Over Drawer Panel from Right */}
             <motion.div
-              initial={{ y: '-100%', opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: '-100%', opacity: 0 }}
-              transition={{ type: 'spring', damping: 24, stiffness: 220 }}
-              className="fixed top-0 left-0 right-0 max-h-[92vh] bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 z-[999] shadow-2xl p-6 rounded-b-3xl flex flex-col justify-between overflow-y-auto text-[#111827] dark:text-white"
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ type: 'spring', damping: 26, stiffness: 220 }}
+              className="fixed top-0 right-0 bottom-0 w-80 max-w-full bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 z-[999] shadow-2xl p-6 flex flex-col justify-between overflow-y-auto text-[#111827] dark:text-white"
             >
               <div>
                 {/* Drawer Header */}
-                <div className="flex items-center justify-between pb-5 border-b border-slate-200 dark:border-slate-800">
+                <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800">
                   <div className="flex items-center gap-2.5">
                     {siteIconUrl ? (
                       <img
                         src={siteIconUrl}
                         alt={siteName}
                         onError={(e) => { (e.target as HTMLImageElement).src = '/logo.png'; }}
-                        className="h-9 w-9 rounded-xl object-cover border border-[#DFFF2F]"
+                        className="h-8 w-8 rounded-xl object-cover border border-[#DFFF2F]"
                       />
                     ) : (
-                      <div className="h-9 w-9 rounded-xl bg-[#111827] dark:bg-[#DFFF2F] text-[#DFFF2F] dark:text-[#111827] flex items-center justify-center font-black text-lg">
+                      <div className="h-8 w-8 rounded-xl bg-[#111827] dark:bg-[#DFFF2F] text-[#DFFF2F] dark:text-[#111827] flex items-center justify-center font-black text-base">
                         {siteName.charAt(0)}
                       </div>
                     )}
-                    <span className="text-lg font-black tracking-tight flex items-center gap-1.5">
+                    <span className="text-base font-black tracking-tight flex items-center gap-1.5">
                       {siteName}
                     </span>
                   </div>
@@ -279,8 +282,8 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAuth, onNavigateView, curr
                 </div>
 
                 {/* Logged-In User Quick Header */}
-                {user && (
-                  <div className="mt-5 p-3.5 bg-slate-100 dark:bg-slate-800/80 rounded-2xl border border-slate-200 dark:border-slate-700">
+                {user ? (
+                  <div className="mt-4 p-3.5 bg-slate-100 dark:bg-slate-800/80 rounded-2xl border border-slate-200 dark:border-slate-700">
                     <div className="flex items-center gap-3">
                       <img
                         src={user.avatar || "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=250"}
@@ -295,13 +298,28 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAuth, onNavigateView, curr
 
                     <div className="mt-3 pt-2.5 border-t border-slate-200 dark:border-slate-700 flex justify-between items-center text-xs">
                       <span className="font-bold text-[#111827]/70 dark:text-slate-400">Wallet Balance</span>
-                      <span className="font-black text-emerald-600 dark:text-[#DFFF2F]">${user.walletBalance.toFixed(2)}</span>
+                      <span className="font-black text-emerald-600 dark:text-[#DFFF2F]">{formatMoney(user.walletBalance)}</span>
                     </div>
+                  </div>
+                ) : (
+                  <div className="mt-4 grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => handleNavClick('login')}
+                      className="py-2.5 text-center text-xs font-bold bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-[#111827] dark:text-white"
+                    >
+                      Sign In
+                    </button>
+                    <button
+                      onClick={() => handleNavClick('register')}
+                      className="py-2.5 text-center text-xs font-extrabold bg-[#111827] dark:bg-[#DFFF2F] text-white dark:text-slate-950 rounded-xl"
+                    >
+                      Get Started
+                    </button>
                   </div>
                 )}
 
                 {/* Navigation Links */}
-                <div className="mt-6 space-y-1.5 font-bold text-sm">
+                <div className="mt-5 space-y-1 font-bold text-sm">
                   <button
                     onClick={() => handleNavClick('landing')}
                     className="w-full text-left py-2.5 px-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex items-center justify-between"
@@ -313,6 +331,15 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAuth, onNavigateView, curr
                     className="w-full text-left py-2.5 px-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors font-bold text-[#111827] dark:text-[#DFFF2F]"
                   >
                     About Us
+                  </button>
+                  <button
+                    onClick={() => handleNavClick('#smm-services')}
+                    className="w-full text-left py-2.5 px-3 rounded-xl bg-amber-500/10 text-amber-600 dark:text-[#DFFF2F] flex items-center justify-between font-extrabold"
+                  >
+                    <span className="flex items-center gap-2">
+                      <Sparkles className="w-4 h-4" /> SMM & Social Ads
+                    </span>
+                    <span className="text-[10px] bg-[#DFFF2F] text-slate-950 px-1.5 py-0.5 rounded uppercase font-black">Hot</span>
                   </button>
                   <button
                     onClick={() => handleNavClick('#features')}
@@ -340,60 +367,49 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAuth, onNavigateView, curr
                   </button>
 
                   {user && (
-                    <div className="pt-4 border-t border-slate-200 dark:border-slate-800 space-y-1.5">
+                    <div className="pt-3 mt-3 border-t border-slate-200 dark:border-slate-800 space-y-1">
                       <button
                         onClick={() => handleNavClick('dashboard')}
-                        className="w-full text-left py-2.5 px-3 rounded-xl bg-slate-100 dark:bg-slate-800 text-[#111827] dark:text-white flex items-center gap-2.5 font-extrabold"
+                        className="w-full text-left py-2.5 px-3 rounded-xl bg-slate-900 text-white dark:bg-[#DFFF2F] dark:text-slate-950 flex items-center gap-2.5 font-extrabold"
                       >
-                        <LayoutDashboard className="w-4 h-4 text-[#111827] dark:text-[#DFFF2F]" /> Dashboard
+                        <LayoutDashboard className="w-4 h-4" /> Go to Dashboard
                       </button>
                       {isAdmin && (
                         <button
                           onClick={() => handleNavClick('admin')}
-                          className="w-full text-left py-2.5 px-3 rounded-xl bg-amber-500/10 text-amber-900 dark:text-amber-300 border border-amber-500/20 flex items-center gap-2.5 font-extrabold"
+                          className="w-full text-left py-2.5 px-3 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-300 flex items-center gap-2.5 font-bold"
                         >
-                          <ShieldAlert className="w-4 h-4 text-amber-600 dark:text-amber-400" /> Admin Panel
+                          <ShieldAlert className="w-4 h-4" /> Admin Control Panel
                         </button>
                       )}
-                      <button
-                        onClick={() => handleNavClick('wallet')}
-                        className="w-full text-left py-2.5 px-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-emerald-600 dark:text-[#DFFF2F] flex items-center gap-2.5 font-extrabold"
-                      >
-                        <Wallet className="w-4 h-4" /> Wallet & Deposit
-                      </button>
                     </div>
                   )}
                 </div>
               </div>
 
-              {/* Drawer Bottom Actions */}
-              <div className="pt-6 border-t border-slate-200 dark:border-slate-800 space-y-3">
-                {user ? (
-                  <button
-                    onClick={() => {
-                      logout();
-                      setMobileMenuOpen(false);
-                      handleNavClick('landing');
-                    }}
-                    className="w-full py-3 px-4 bg-rose-500/10 hover:bg-rose-500/20 text-rose-700 dark:text-rose-400 rounded-2xl font-bold text-xs flex items-center justify-center gap-2 transition-colors cursor-pointer"
+              {/* Bottom Actions */}
+              <div className="pt-4 border-t border-slate-200 dark:border-slate-800 space-y-2">
+                <div className="flex justify-between items-center bg-slate-100 dark:bg-slate-800 p-3 rounded-xl text-xs font-bold">
+                  <span>Display Currency</span>
+                  <select
+                    value={currency}
+                    onChange={(e) => setCurrency(e.target.value as any)}
+                    className="bg-transparent text-xs font-extrabold text-[#111827] dark:text-[#DFFF2F] focus:outline-none cursor-pointer"
                   >
-                    <LogOut className="w-4 h-4" /> Sign Out Account
+                    <option value="USD">USD ($)</option>
+                    <option value="PKR">PKR (Rs)</option>
+                    <option value="INR">INR (₹)</option>
+                    <option value="BDT">BDT (৳)</option>
+                  </select>
+                </div>
+
+                {user && (
+                  <button
+                    onClick={() => { logout(); setMobileMenuOpen(false); handleNavClick('landing'); }}
+                    className="w-full py-2.5 bg-rose-500/10 text-rose-600 dark:text-rose-400 hover:bg-rose-500 hover:text-white font-bold rounded-xl text-xs transition-colors flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <LogOut className="w-4 h-4" /> Sign Out
                   </button>
-                ) : (
-                  <div className="space-y-2">
-                    <button
-                      onClick={() => handleNavClick('login')}
-                      className="w-full py-3 px-4 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-[#111827] dark:text-white rounded-2xl font-bold text-xs transition-colors cursor-pointer"
-                    >
-                      Sign In
-                    </button>
-                    <button
-                      onClick={() => handleNavClick('register')}
-                      className="w-full py-3.5 px-4 bg-[#111827] dark:bg-[#DFFF2F] hover:bg-slate-800 dark:hover:bg-[#cbe820] text-white dark:text-[#111827] rounded-2xl font-black text-xs transition-colors shadow-lg flex items-center justify-center gap-2 cursor-pointer"
-                    >
-                      <Sparkles className="w-4 h-4 text-[#DFFF2F] dark:text-[#111827]" /> Get Started
-                    </button>
-                  </div>
                 )}
               </div>
             </motion.div>

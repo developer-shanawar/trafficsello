@@ -3,7 +3,8 @@ import { motion } from 'framer-motion';
 import {
   Activity, Zap, ShieldCheck, Globe, Smartphone, BarChart3, Clock,
   ArrowRight, Check, CheckCircle2, ChevronDown, Sparkles, Wallet, Users,
-  Award, HeartHandshake, HelpCircle, Layers, Play, Star, Quote, ChevronLeft, ChevronRight
+  Award, HeartHandshake, HelpCircle, Layers, Play, Star, Quote, ChevronLeft, ChevronRight,
+  Share2, Youtube, Video, Eye, ThumbsUp, Flame, TrendingUp
 } from 'lucide-react';
 import { TrafficCalculator } from './TrafficCalculator';
 import { useStore } from '../lib/store';
@@ -249,6 +250,137 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 </div>
               </div>
             </motion.div>
+          </div>
+        </div>
+      </section>
+
+      {/* SMM & Social Media Ads Services Section */}
+      <section id="smm-services" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 text-white rounded-3xl p-8 md:p-12 border border-slate-800 shadow-2xl relative overflow-hidden">
+          {/* Subtle background glow */}
+          <div className="absolute top-0 right-0 w-96 h-96 bg-[#DFFF2F]/10 blur-[120px] rounded-full pointer-events-none" />
+          <div className="absolute bottom-0 left-0 w-96 h-96 bg-amber-500/10 blur-[120px] rounded-full pointer-events-none" />
+
+          <div className="relative z-10 flex flex-col lg:flex-row items-center justify-between gap-10">
+            {/* Left Column: Heading & Info */}
+            <div className="max-w-xl space-y-4 text-center lg:text-left">
+              <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-black uppercase tracking-widest bg-[#DFFF2F] text-slate-950">
+                <Sparkles className="w-3.5 h-3.5" /> High Speed Social Ads (SMM)
+              </span>
+              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white leading-tight">
+                Grow YouTube, TikTok & Social Accounts
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-300 font-medium leading-relaxed">
+                Unlock rapid social media growth with our automated SMM Ad network. Monetize YouTube watch hours, boost TikTok views & viral reach, gain active Instagram followers, and build Facebook page engagement with instant start delivery.
+              </p>
+
+              <div className="pt-2 flex flex-wrap justify-center lg:justify-start gap-3 text-xs font-bold">
+                <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800/80 border border-slate-700 text-slate-200">
+                  <CheckCircle2 className="w-4 h-4 text-[#DFFF2F]" /> 4,000 YouTube Watch Hours
+                </span>
+                <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800/80 border border-slate-700 text-slate-200">
+                  <CheckCircle2 className="w-4 h-4 text-[#DFFF2F]" /> TikTok Viral Views & Likes
+                </span>
+                <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800/80 border border-slate-700 text-slate-200">
+                  <CheckCircle2 className="w-4 h-4 text-[#DFFF2F]" /> Non-Drop Guarantee
+                </span>
+                <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800/80 border border-slate-700 text-slate-200">
+                  <CheckCircle2 className="w-4 h-4 text-[#DFFF2F]" /> Instant Auto-Start
+                </span>
+              </div>
+
+              <div className="pt-4 flex justify-center lg:justify-start">
+                <button
+                  onClick={onGetStarted}
+                  className="py-3.5 px-8 bg-[#DFFF2F] hover:bg-[#cbe820] text-slate-950 font-black rounded-2xl text-xs sm:text-sm transition-all shadow-xl hover:scale-105 cursor-pointer flex items-center gap-2"
+                >
+                  <Share2 className="w-4 h-4" /> Order Social Media Ads <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Right Column: Platform Services Showcase Cards */}
+            <div className="w-full lg:w-auto grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-lg">
+              {/* YouTube Service Card */}
+              <div className="p-5 rounded-2xl bg-slate-800/60 border border-slate-700/80 hover:border-red-500/50 transition-all space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="p-2.5 rounded-xl bg-red-500/20 text-red-500 font-bold">
+                    <Youtube className="w-5 h-5" />
+                  </div>
+                  <span className="text-[10px] font-black uppercase tracking-wider text-red-400 bg-red-500/10 px-2 py-0.5 rounded">
+                    Monetization
+                  </span>
+                </div>
+                <h4 className="font-extrabold text-sm text-white">YouTube Growth</h4>
+                <p className="text-[11px] text-slate-400">
+                  Real views, subscribers, & 4,000 monetization watch time hours.
+                </p>
+                <div className="pt-1 flex justify-between text-[11px] font-mono font-bold text-[#DFFF2F]">
+                  <span>From $0.40 / 1K</span>
+                  <span>Instant Start</span>
+                </div>
+              </div>
+
+              {/* TikTok Service Card */}
+              <div className="p-5 rounded-2xl bg-slate-800/60 border border-slate-700/80 hover:border-sky-500/50 transition-all space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="p-2.5 rounded-xl bg-sky-500/20 text-sky-400 font-bold">
+                    <Video className="w-5 h-5" />
+                  </div>
+                  <span className="text-[10px] font-black uppercase tracking-wider text-sky-400 bg-sky-500/10 px-2 py-0.5 rounded">
+                    Viral Boost
+                  </span>
+                </div>
+                <h4 className="font-extrabold text-sm text-white">TikTok Boost</h4>
+                <p className="text-[11px] text-slate-400">
+                  Instant FYP views, likes, comments, and authentic followers.
+                </p>
+                <div className="pt-1 flex justify-between text-[11px] font-mono font-bold text-[#DFFF2F]">
+                  <span>From $0.15 / 1K</span>
+                  <span>High Velocity</span>
+                </div>
+              </div>
+
+              {/* Instagram Service Card */}
+              <div className="p-5 rounded-2xl bg-slate-800/60 border border-slate-700/80 hover:border-pink-500/50 transition-all space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="p-2.5 rounded-xl bg-pink-500/20 text-pink-400 font-bold">
+                    <Flame className="w-5 h-5" />
+                  </div>
+                  <span className="text-[10px] font-black uppercase tracking-wider text-pink-400 bg-pink-500/10 px-2 py-0.5 rounded">
+                    High Reach
+                  </span>
+                </div>
+                <h4 className="font-extrabold text-sm text-white">Instagram Reach</h4>
+                <p className="text-[11px] text-slate-400">
+                  Reels views, targeted followers, post likes & impression saves.
+                </p>
+                <div className="pt-1 flex justify-between text-[11px] font-mono font-bold text-[#DFFF2F]">
+                  <span>From $0.20 / 1K</span>
+                  <span>Refill Warranty</span>
+                </div>
+              </div>
+
+              {/* Facebook Service Card */}
+              <div className="p-5 rounded-2xl bg-slate-800/60 border border-slate-700/80 hover:border-blue-500/50 transition-all space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="p-2.5 rounded-xl bg-blue-500/20 text-blue-400 font-bold">
+                    <TrendingUp className="w-5 h-5" />
+                  </div>
+                  <span className="text-[10px] font-black uppercase tracking-wider text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded">
+                    Page Boost
+                  </span>
+                </div>
+                <h4 className="font-extrabold text-sm text-white">Facebook Ads</h4>
+                <p className="text-[11px] text-slate-400">
+                  Page followers, 60,000 video watch minutes, & post reactions.
+                </p>
+                <div className="pt-1 flex justify-between text-[11px] font-mono font-bold text-[#DFFF2F]">
+                  <span>From $0.35 / 1K</span>
+                  <span>Non-Drop</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>

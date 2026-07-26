@@ -54,138 +54,161 @@ function AppContent() {
     });
   }, [platformSettings?.siteName, platformSettings?.siteIconUrl]);
 
-  // Clean URL Path parser & route listener (No hash symbols)
+  // Route parser & hash listener with robust Fallback strategy for unknown routes
   React.useEffect(() => {
     const parseUrlRoute = () => {
-      let path = window.location.pathname.toLowerCase();
-      // Handle legacy hash URLs if present
-      if (window.location.hash) {
-        const hashVal = window.location.hash.replace('#', '').toLowerCase();
-        if (hashVal) {
-          if (hashVal === 'about') path = '/about-us';
-          else path = '/' + hashVal;
-          window.history.replaceState(null, '', path);
-        }
-      }
+      let rawPath = window.location.pathname.toLowerCase();
+      let rawHash = window.location.hash.replace('#', '').replace('/', '').toLowerCase();
 
-      if (path === '/' || path === '/landing' || path === '/home') {
+      // Normalize target route key from pathname or hash
+      let routeKey = rawHash || rawPath.replace('/', '');
+
+      // Sanitize standard path prefixes
+      if (routeKey.startsWith('advertiser')) routeKey = 'overview';
+
+      if (routeKey === '' || routeKey === 'landing' || routeKey === 'home') {
         setCurrentView('landing');
-      } else if (path === '/login') {
+      } else if (routeKey === 'login') {
         setCurrentView('login');
-      } else if (path === '/register') {
+      } else if (routeKey === 'register') {
         setCurrentView('register');
-      } else if (path === '/about-us' || path === '/about') {
+      } else if (routeKey === 'about-us' || routeKey === 'about') {
         setCurrentView('standalone-about');
-      } else if (path === '/privacy') {
+      } else if (routeKey === 'privacy') {
         setCurrentView('standalone-privacy');
-      } else if (path === '/terms') {
+      } else if (routeKey === 'terms') {
         setCurrentView('standalone-terms');
-      } else if (path === '/refund') {
+      } else if (routeKey === 'refund') {
         setCurrentView('standalone-refund');
-      } else if (path.startsWith('/advertiser') || path === '/dashboard' || path === '/overview') {
+      } else if (routeKey === 'dashboard' || routeKey === 'overview') {
         if (user) {
           setCurrentView('dashboard');
           setDashboardTab('overview');
         } else {
           setCurrentView('login');
         }
-      } else if (path === '/campaigns' || path === '/buy-traffic') {
+      } else if (routeKey === 'campaigns' || routeKey === 'buy-traffic') {
         if (user) {
           setCurrentView('dashboard');
           setDashboardTab('campaigns');
         } else {
           setCurrentView('login');
         }
-      } else if (path === '/social-ads' || path === '/social') {
+      } else if (routeKey === 'social-ads' || routeKey === 'social_ads' || routeKey === 'smm') {
         if (user) {
           setCurrentView('dashboard');
           setDashboardTab('social_ads');
         } else {
           setCurrentView('login');
         }
-      } else if (path === '/wallet') {
+      } else if (routeKey === 'wallet') {
         if (user) {
           setCurrentView('dashboard');
           setDashboardTab('wallet');
         } else {
           setCurrentView('login');
         }
-      } else if (path === '/analytics') {
+      } else if (routeKey === 'analytics') {
         if (user) {
           setCurrentView('dashboard');
           setDashboardTab('analytics');
         } else {
           setCurrentView('login');
         }
-      } else if (path === '/support') {
+      } else if (routeKey === 'support') {
         if (user) {
           setCurrentView('dashboard');
           setDashboardTab('support');
         } else {
           setCurrentView('login');
         }
-      } else if (path === '/profile') {
+      } else if (routeKey === 'profile') {
         if (user) {
           setCurrentView('dashboard');
           setDashboardTab('profile');
         } else {
           setCurrentView('login');
         }
-      } else if (path === '/settings') {
+      } else if (routeKey === 'settings') {
         if (user) {
           setCurrentView('dashboard');
           setDashboardTab('settings');
         } else {
           setCurrentView('login');
         }
-      } else if (path === '/admin') {
+      } else if (routeKey === 'admin') {
         if (user) {
           setCurrentView('dashboard');
           setDashboardTab('admin');
         } else {
           setCurrentView('login');
         }
+      } else {
+        // UNKNOWN ROUTE FALLBACK: Default safely to user dashboard or landing page
+        if (user) {
+          setCurrentView('dashboard');
+          setDashboardTab('overview');
+        } else {
+          setCurrentView('landing');
+        }
       }
     };
 
     parseUrlRoute();
     window.addEventListener('popstate', parseUrlRoute);
-    return () => window.removeEventListener('popstate', parseUrlRoute);
+    window.addEventListener('hashchange', parseUrlRoute);
+    return () => {
+      window.removeEventListener('popstate', parseUrlRoute);
+      window.removeEventListener('hashchange', parseUrlRoute);
+    };
   }, [user]);
 
-  // Clean navigation helper with history.pushState
+  // Clean navigation helper with history & hash sync
   const navigateToRoute = (view: string, tab?: string) => {
     setCurrentView(view);
     let targetPath = '/';
+    let targetHash = '';
 
     if (view === 'landing') {
       targetPath = '/';
     } else if (view === 'login') {
       targetPath = '/login';
+      targetHash = '#/login';
     } else if (view === 'register') {
       targetPath = '/register';
+      targetHash = '#/register';
     } else if (view === 'standalone-about') {
       targetPath = '/about-us';
+      targetHash = '#/about';
     } else if (view === 'standalone-privacy') {
       targetPath = '/privacy';
+      targetHash = '#/privacy';
     } else if (view === 'standalone-terms') {
       targetPath = '/terms';
+      targetHash = '#/terms';
     } else if (view === 'standalone-refund') {
       targetPath = '/refund';
+      targetHash = '#/refund';
     } else if (view === 'dashboard' && tab) {
       setDashboardTab(tab);
       if (tab === 'overview') {
         const uname = user?.username || (user?.email ? user.email.split('@')[0] : 'user');
         targetPath = `/advertiser/${uname}`;
+        targetHash = '#/dashboard';
       } else if (tab === 'social_ads') {
         targetPath = '/social-ads';
+        targetHash = '#/social-ads';
       } else {
         targetPath = `/${tab}`;
+        targetHash = `#/${tab}`;
       }
     }
 
-    if (window.location.pathname !== targetPath) {
-      window.history.pushState(null, '', targetPath);
+    try {
+      window.history.pushState(null, '', targetHash || targetPath);
+    } catch (e) {
+      // Fallback to hash navigation if pushState is restricted
+      window.location.hash = targetHash || targetPath;
     }
   };
 
