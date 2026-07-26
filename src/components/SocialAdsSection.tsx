@@ -10,7 +10,7 @@ export const SocialAdsSection: React.FC = () => {
   const { 
     user, socialServices, socialCampaigns, 
     addSocialCampaign, updateSocialCampaignStatus, deleteSocialCampaign,
-    addSocialService, updateSocialService, deleteSocialService 
+    addSocialService, updateSocialService, deleteSocialService, formatMoney
   } = useStore();
 
   const [activeTab, setActiveTab] = useState<'order' | 'history' | 'admin_manage' | 'admin_services'>('order');
@@ -276,7 +276,7 @@ export const SocialAdsSection: React.FC = () => {
                   >
                     {servicesForPlatform.map((srv) => (
                       <option key={srv.id} value={srv.id}>
-                        {srv.serviceName} — ${srv.pricePer1000.toFixed(2)} per 1,000 units
+                        {srv.serviceName} — {formatMoney(srv.pricePer1000)} per 1,000 units
                       </option>
                     ))}
                   </select>
@@ -368,7 +368,7 @@ export const SocialAdsSection: React.FC = () => {
                   </>
                 ) : (
                   <>
-                    <Check className="w-5 h-5" /> Confirm & Place Order (${calculatedCost.toFixed(2)})
+                    <Check className="w-5 h-5" /> Confirm & Place Order ({formatMoney(calculatedCost)})
                   </>
                 )}
               </button>
@@ -400,7 +400,7 @@ export const SocialAdsSection: React.FC = () => {
                 <div className="flex justify-between items-center pt-3">
                   <span className="text-slate-400">Rate per 1,000</span>
                   <span className="font-mono text-white">
-                    ${currentService ? currentService.pricePer1000.toFixed(2) : '0.00'}
+                    {currentService ? formatMoney(currentService.pricePer1000) : '0.00'}
                   </span>
                 </div>
 
@@ -421,7 +421,7 @@ export const SocialAdsSection: React.FC = () => {
                 <div className="pt-4 border-t border-slate-700 flex justify-between items-center">
                   <span className="text-base font-bold text-white">Total Charge</span>
                   <span className="text-2xl font-black text-purple-400 font-mono">
-                    ${calculatedCost.toFixed(2)}
+                    {formatMoney(calculatedCost)}
                   </span>
                 </div>
               </div>
@@ -431,7 +431,7 @@ export const SocialAdsSection: React.FC = () => {
             <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-purple-950/40 border border-purple-500/20 rounded-2xl p-6 shadow-xl">
               <span className="text-xs uppercase font-semibold tracking-wider text-slate-400">Your Wallet Balance</span>
               <div className="text-3xl font-extrabold text-emerald-400 font-mono mt-1 mb-2">
-                ${(user?.walletBalance || 0).toFixed(2)}
+                {formatMoney(user?.walletBalance || 0)}
               </div>
               <p className="text-xs text-slate-400 mb-4">
                 Funds are deducted instantly upon placing an order.

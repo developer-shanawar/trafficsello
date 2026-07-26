@@ -6,7 +6,7 @@ import { PaymentMethod } from '../../types';
 import confetti from 'canvas-confetti';
 
 export const WalletView: React.FC = () => {
-  const { user, walletDeposits, requestDeposit, transactions, platformSettings } = useStore();
+  const { user, walletDeposits, requestDeposit, transactions, platformSettings, formatMoney } = useStore();
 
   const [activeTab, setActiveTab] = useState<'deposit' | 'history'>('deposit');
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>('JazzCash');
@@ -120,8 +120,7 @@ export const WalletView: React.FC = () => {
           </span>
           <p className="text-xs text-slate-400">Available Balance for Campaign Launches</p>
           <div className="flex items-baseline gap-2 pt-1">
-            <span className="text-4xl sm:text-5xl font-black text-[#DFFF2F]">${user?.walletBalance.toFixed(2)}</span>
-            <span className="text-sm font-bold text-slate-400">USD</span>
+            <span className="text-4xl sm:text-5xl font-black text-[#DFFF2F]">{formatMoney(user?.walletBalance || 0)}</span>
           </div>
         </div>
 
@@ -129,7 +128,7 @@ export const WalletView: React.FC = () => {
           <div className="flex items-center gap-3 bg-slate-950/60 p-4 rounded-2xl border border-slate-800 text-xs">
             <div>
               <p className="text-slate-400">Minimum Deposit:</p>
-              <p className="font-extrabold text-white text-sm">${platformSettings.minDeposit.toFixed(2)} USD</p>
+              <p className="font-extrabold text-white text-sm">{formatMoney(platformSettings.minDeposit)}</p>
             </div>
             <div className="h-8 w-px bg-slate-800" />
             <div>
@@ -390,7 +389,7 @@ export const WalletView: React.FC = () => {
                       <td className="py-3.5 font-mono text-[11px] font-bold text-[#DFFF2F]">{dep.id}</td>
                       <td className="py-3.5 font-bold text-slate-900 dark:text-white">{dep.method}</td>
                       <td className="py-3.5 font-mono text-slate-500">{dep.trxRef}</td>
-                      <td className="py-3.5 font-bold text-[#DFFF2F]">${dep.amount.toFixed(2)}</td>
+                      <td className="py-3.5 font-bold text-[#DFFF2F]">{formatMoney(dep.amount)}</td>
                       <td className="py-3.5">
                         <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase ${
                           dep.status === 'approved' ? 'bg-emerald-500/10 text-emerald-500' :

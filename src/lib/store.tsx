@@ -110,7 +110,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const formatMoney = (amountInUSD: number, customCode?: CurrencyCode): string => {
-    const code = customCode || user?.currency || currency || 'USD';
+    const code = customCode || currency || user?.currency || 'USD';
     const conf = CURRENCIES[code] || CURRENCIES.USD;
     const val = amountInUSD * conf.rateVsUSD;
 
@@ -987,23 +987,22 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     supabase.from('deposits').update({ status: 'approved', admin_note: adminNote }).eq('id', depositId).then();
 
-    // Update user balance with total credited amount (deposit + 20% bonus)
-    let newBal = 0;
-    setAllUsers(prev => prev.map(u => {
-      if (u.id === deposit.userId) {
-        newBal = u.walletBalance + totalCredited;
-        return { ...u, walletBalance: newBal };
-      }
-      return u;
-    }));
+    // Calculate updated balance for target user
+    const targetUser = allUsers.find(u => u.id === deposit.userId);
+    const prevBalance = targetUser ? targetUser.walletBalance : 0;
+    const newBal = prevBalance + totalCredited;
+
+    // Update user balance in local state
+    setAllUsers(prev => prev.map(u => u.id === deposit.userId ? { ...u, walletBalance: newBal } : u));
 
     if (user && user.id === deposit.userId) {
-      setUser(prev => prev ? { ...prev, walletBalance: prev.walletBalance + totalCredited } : null);
+      setUser(prev => prev ? { ...prev, walletBalance: newBal } : null);
     }
 
-    if (newBal > 0) {
-      supabase.from('users').update({ wallet_balance: newBal }).eq('id', deposit.userId).then();
-    }
+    // Persist new balance to Supabase users table
+    supabase.from('users').update({ wallet_balance: newBal }).eq('id', deposit.userId).then(({ error }) => {
+      if (error) console.error('Error updating user wallet_balance in Supabase:', error);
+    });
 
     // Add completion transaction log
     const tx: WalletTransaction = {

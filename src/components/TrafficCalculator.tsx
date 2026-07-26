@@ -2,12 +2,14 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Calculator, ArrowRight, Zap, Globe, Smartphone, ShieldCheck, Check } from 'lucide-react';
 import { TrafficCountry, DeviceType } from '../types';
+import { useStore } from '../lib/store';
 
 interface TrafficCalculatorProps {
   onStartCampaign?: (details: { visitors: number; country: TrafficCountry; device: DeviceType; cpm: number; budget: number }) => void;
 }
 
 export const TrafficCalculator: React.FC<TrafficCalculatorProps> = ({ onStartCampaign }) => {
+  const { formatMoney } = useStore();
   const [visitors, setVisitors] = useState<number>(50000);
   const [country, setCountry] = useState<TrafficCountry>('United States');
   const [device, setDevice] = useState<DeviceType>('both');
@@ -149,11 +151,10 @@ export const TrafficCalculator: React.FC<TrafficCalculatorProps> = ({ onStartCam
 
           <div className="mb-6">
             <div className="flex items-baseline gap-2">
-              <span className="text-4xl font-extrabold text-[#DFFF2F]">${calculatedBudget.toFixed(2)}</span>
-              <span className="text-sm text-slate-400">USD total</span>
+              <span className="text-4xl font-extrabold text-[#DFFF2F]">{formatMoney(calculatedBudget)}</span>
             </div>
             <p className="text-xs text-slate-400 mt-1">
-              Effective CPM: <strong className="text-white">${cpm.toFixed(3)}</strong> per 1,000 visitors
+              Effective CPM: <strong className="text-white">{formatMoney(cpm)}</strong> per 1,000 visitors
             </p>
           </div>
 
