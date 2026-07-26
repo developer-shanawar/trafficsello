@@ -1,13 +1,14 @@
 -- TrafficSell Supabase Database Schema
 -- Run this SQL in your Supabase SQL Editor (https://wpqttbdtsolbydffawzg.supabase.co)
 
--- Enable UUID extension if needed
+-- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- 1. USERS / PROFILES TABLE
 CREATE TABLE IF NOT EXISTS public.users (
   id TEXT PRIMARY KEY,
   email TEXT UNIQUE NOT NULL,
+  password TEXT,
   full_name TEXT NOT NULL,
   telegram TEXT,
   whats_app TEXT,
@@ -22,6 +23,20 @@ CREATE TABLE IF NOT EXISTS public.users (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Ensure all columns exist on public.users even if table was created previously
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS password TEXT;
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS full_name TEXT;
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS telegram TEXT;
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS whats_app TEXT;
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS wallet_balance NUMERIC DEFAULT 0.00;
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS role TEXT DEFAULT 'user';
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS country TEXT;
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS city TEXT;
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS postal_code TEXT;
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS is_verified BOOLEAN DEFAULT true;
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS is_suspended BOOLEAN DEFAULT false;
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS avatar TEXT;
+
 -- 2. CAMPAIGNS TABLE
 CREATE TABLE IF NOT EXISTS public.campaigns (
   id TEXT PRIMARY KEY,
@@ -29,6 +44,7 @@ CREATE TABLE IF NOT EXISTS public.campaigns (
   user_name TEXT,
   name TEXT NOT NULL,
   url TEXT NOT NULL,
+  keywords TEXT,
   format TEXT NOT NULL,
   country TEXT NOT NULL,
   device_type TEXT NOT NULL,
@@ -40,6 +56,10 @@ CREATE TABLE IF NOT EXISTS public.campaigns (
   estimated_delivery_hours INT DEFAULT 24,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+ALTER TABLE public.campaigns ADD COLUMN IF NOT EXISTS user_name TEXT;
+ALTER TABLE public.campaigns ADD COLUMN IF NOT EXISTS keywords TEXT;
+ALTER TABLE public.campaigns ADD COLUMN IF NOT EXISTS visitors_delivered BIGINT DEFAULT 0;
 
 -- 3. PAYMENT DEPOSITS TABLE
 CREATE TABLE IF NOT EXISTS public.payment_deposits (
@@ -55,6 +75,9 @@ CREATE TABLE IF NOT EXISTS public.payment_deposits (
   admin_note TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+ALTER TABLE public.payment_deposits ADD COLUMN IF NOT EXISTS admin_note TEXT;
+ALTER TABLE public.payment_deposits ADD COLUMN IF NOT EXISTS screenshot_url TEXT;
 
 -- 4. TRANSACTIONS TABLE
 CREATE TABLE IF NOT EXISTS public.transactions (
@@ -126,7 +149,11 @@ CREATE TABLE IF NOT EXISTS public.testimonials (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- ENABLE ROW LEVEL SECURITY (RLS) FOR PUBLIC ACCESS (OR ALLOW ALL FOR APP)
+-- VIEWS FOR ALIASED COMPATIBILITY
+CREATE OR REPLACE VIEW public.deposits AS SELECT * FROM public.payment_deposits;
+CREATE OR REPLACE VIEW public.tickets AS SELECT * FROM public.support_tickets;
+
+-- DISABLE RLS FOR FREE ACCESS OR SET POLICIES
 ALTER TABLE public.users DISABLE ROW LEVEL SECURITY;
 ALTER TABLE public.campaigns DISABLE ROW LEVEL SECURITY;
 ALTER TABLE public.payment_deposits DISABLE ROW LEVEL SECURITY;
@@ -137,10 +164,11 @@ ALTER TABLE public.platform_settings DISABLE ROW LEVEL SECURITY;
 ALTER TABLE public.testimonials DISABLE ROW LEVEL SECURITY;
 
 -- SEED INITIAL MASTER ADMIN USER
-INSERT INTO public.users (id, email, full_name, telegram, whats_app, wallet_balance, role, created_at, avatar, country, is_verified)
+INSERT INTO public.users (id, email, password, full_name, telegram, whats_app, wallet_balance, role, created_at, avatar, country, is_verified)
 VALUES (
   'usr_master_admin',
   'developershanawar@gmail.com',
+  'admin123',
   'Shanawar Admin',
   '@developershanawar',
   '+92 300-1234567',
@@ -151,7 +179,8 @@ VALUES (
   'Pakistan',
   true
 )
-ON CONFLICT (id) DO NOTHING;
+ON CONFLICT (id) DO UPDATE 
+SET role = 'admin', full_name = 'Shanawar Admin';
 
 -- SEED INITIAL PLATFORM SETTINGS
 INSERT INTO public.platform_settings (id, site_name, site_icon_url, brand_display_mode, default_cpm, min_deposit_amount, easypaisa_number, easypaisa_title, jazzcash_number, jazzcash_title, usdt_trc20_address)

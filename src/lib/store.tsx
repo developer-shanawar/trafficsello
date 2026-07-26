@@ -229,6 +229,189 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   }, [theme]);
 
+  // Load initial data from Supabase
+  const loadSupabaseData = async () => {
+    try {
+      // 1. Users
+      const { data: dbUsers } = await supabase.from('users').select('*');
+      if (dbUsers && dbUsers.length > 0) {
+        const mappedUsers: UserProfile[] = dbUsers.map(u => ({
+          id: u.id,
+          email: u.email,
+          password: u.password || '',
+          fullName: u.full_name || u.email,
+          telegram: u.telegram || '',
+          whatsApp: u.whats_app || u.whatsapp || '',
+          walletBalance: Number(u.wallet_balance || 0),
+          role: u.role || 'user',
+          country: u.country || '',
+          city: u.city || '',
+          postalCode: u.postal_code || '',
+          isVerified: u.is_verified ?? true,
+          isSuspended: u.is_suspended ?? false,
+          suspendedReason: u.suspended_reason || '',
+          avatar: u.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=250',
+          createdAt: u.created_at || new Date().toISOString()
+        }));
+        setAllUsers(mappedUsers);
+
+        if (user) {
+          const refreshedUser = mappedUsers.find(u => u.id === user.id || u.email.toLowerCase() === user.email.toLowerCase());
+          if (refreshedUser) {
+            setUser(refreshedUser);
+          }
+        }
+      }
+
+      // 2. Campaigns
+      const { data: dbCampaigns } = await supabase.from('campaigns').select('*');
+      if (dbCampaigns && dbCampaigns.length > 0) {
+        const mappedCamps: Campaign[] = dbCampaigns.map(c => ({
+          id: c.id,
+          userId: c.user_id,
+          userName: c.user_name || 'Advertiser',
+          name: c.name || 'Campaign',
+          url: c.url,
+          keywords: c.keywords || '',
+          format: c.format || 'popup',
+          country: c.country || 'Global',
+          deviceType: c.device_type || 'both',
+          visitorsTarget: Number(c.visitors_target || 100000),
+          visitorsDelivered: Number(c.visitors_delivered || 0),
+          cpm: Number(c.cpm || 0.05),
+          budget: Number(c.budget || 5.00),
+          status: c.status || 'pending',
+          estimatedDeliveryHours: c.estimated_delivery_hours || 24,
+          createdAt: c.created_at || new Date().toISOString()
+        }));
+        setCampaigns(mappedCamps);
+      }
+
+      // 3. Payment Deposits
+      let { data: dbDeposits } = await supabase.from('payment_deposits').select('*');
+      if (!dbDeposits || dbDeposits.length === 0) {
+        const res = await supabase.from('deposits').select('*');
+        if (res.data) dbDeposits = res.data;
+      }
+      if (dbDeposits && dbDeposits.length > 0) {
+        const mappedDeposits: PaymentDeposit[] = dbDeposits.map(d => ({
+          id: d.id,
+          userId: d.user_id,
+          userName: d.user_name || 'User',
+          userEmail: d.user_email || '',
+          method: d.method,
+          amount: Number(d.amount),
+          trxRef: d.trx_ref,
+          screenshotUrl: d.screenshot_url || '',
+          status: d.status || 'pending',
+          adminNote: d.admin_note,
+          createdAt: d.created_at || new Date().toISOString()
+        }));
+        setWalletDeposits(mappedDeposits);
+      }
+
+      // 4. Transactions
+      const { data: dbTxs } = await supabase.from('transactions').select('*');
+      if (dbTxs && dbTxs.length > 0) {
+        const mappedTxs: WalletTransaction[] = dbTxs.map(t => ({
+          id: t.id,
+          userId: t.user_id,
+          type: t.type,
+          amount: Number(t.amount),
+          description: t.description || '',
+          status: t.status || 'completed',
+          createdAt: t.created_at || new Date().toISOString()
+        }));
+        setTransactions(mappedTxs);
+      }
+
+      // 5. Support Tickets
+      let { data: dbTickets } = await supabase.from('support_tickets').select('*');
+      if (!dbTickets || dbTickets.length === 0) {
+        const res = await supabase.from('tickets').select('*');
+        if (res.data) dbTickets = res.data;
+      }
+      if (dbTickets && dbTickets.length > 0) {
+        const mappedTickets: SupportTicket[] = dbTickets.map(t => ({
+          id: t.id,
+          userId: t.user_id,
+          userName: t.user_name || 'User',
+          userEmail: t.user_email || '',
+          subject: t.subject,
+          category: t.category || 'general',
+          priority: t.priority || 'medium',
+          status: t.status || 'open',
+          createdAt: t.created_at || new Date().toISOString(),
+          messages: Array.isArray(t.messages) ? t.messages : []
+        }));
+        setSupportTickets(mappedTickets);
+      }
+
+      // 6. Notifications
+      const { data: dbNotifs } = await supabase.from('notifications').select('*');
+      if (dbNotifs && dbNotifs.length > 0) {
+        const mappedNotifs: AppNotification[] = dbNotifs.map(n => ({
+          id: n.id,
+          userId: n.user_id,
+          title: n.title,
+          message: n.message,
+          type: n.type || 'system',
+          read: Boolean(n.read),
+          createdAt: n.created_at || new Date().toISOString()
+        }));
+        setNotifications(mappedNotifs);
+      }
+
+      // 7. Platform Settings
+      const { data: dbSettings } = await supabase.from('platform_settings').select('*').limit(1);
+      if (dbSettings && dbSettings.length > 0) {
+        const s = dbSettings[0];
+        setPlatformSettings({
+          siteName: s.site_name || 'TrafficSell',
+          siteIconUrl: s.site_icon_url || '/logo.svg',
+          brandDisplayMode: s.brand_display_mode || 'both',
+          minCPM: Number(s.default_cpm || 0.05),
+          minDeposit: Number(s.min_deposit_amount || 10.00),
+          announcement: DEFAULT_SETTINGS.announcement,
+          paymentAccounts: {
+            easyPaisaAccount: s.easypaisa_number || DEFAULT_SETTINGS.paymentAccounts.easyPaisaAccount,
+            easyPaisaTitle: s.easypaisa_title || DEFAULT_SETTINGS.paymentAccounts.easyPaisaTitle,
+            jazzCashAccount: s.jazzcash_number || DEFAULT_SETTINGS.paymentAccounts.jazzCashAccount,
+            jazzCashTitle: s.jazzcash_title || DEFAULT_SETTINGS.paymentAccounts.jazzCashTitle,
+            payPalEmail: DEFAULT_SETTINGS.paymentAccounts.payPalEmail,
+            usdtTrc20Address: s.usdt_trc20_address || DEFAULT_SETTINGS.paymentAccounts.usdtTrc20Address,
+            usdtErc20Address: DEFAULT_SETTINGS.paymentAccounts.usdtErc20Address,
+            usdtBep20Address: DEFAULT_SETTINGS.paymentAccounts.usdtBep20Address,
+          },
+          pageContent: s.page_content || DEFAULT_SETTINGS.pageContent
+        });
+      }
+
+      // 8. Testimonials
+      const { data: dbTestimonials } = await supabase.from('testimonials').select('*');
+      if (dbTestimonials && dbTestimonials.length > 0) {
+        const mappedT: Testimonial[] = dbTestimonials.map(t => ({
+          id: t.id,
+          name: t.name,
+          role: t.role || '',
+          company: t.company || '',
+          avatar: t.avatar || '',
+          content: t.content,
+          rating: Number(t.rating || 5),
+          active: Boolean(t.active ?? true),
+          createdAt: t.created_at || new Date().toISOString()
+        }));
+        setTestimonials(mappedT);
+      }
+    } catch (err) {
+      console.warn('Supabase initial load notice:', err);
+    }
+  };
+
+  useEffect(() => {
+    loadSupabaseData();
+  }, []);
+
   useEffect(() => {
     localStorage.setItem('trafficsell_users', JSON.stringify(allUsers));
   }, [allUsers]);
@@ -335,44 +518,121 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const login = async (email: string, password?: string): Promise<boolean> => {
     const isMasterAdmin = email.toLowerCase() === 'developershanawar@gmail.com';
-    const found = allUsers.find(u => u.email.toLowerCase() === email.toLowerCase());
-    
-    if (!found) {
+    const cleanEmail = email.trim().toLowerCase();
+
+    // 1. Try Supabase Auth signin if password provided
+    if (password) {
+      try {
+        await supabase.auth.signInWithPassword({
+          email: cleanEmail,
+          password
+        });
+      } catch (authErr) {
+        console.warn('Supabase Auth signin attempt:', authErr);
+      }
+    }
+
+    // 2. Query Supabase users table
+    const { data: dbUsers } = await supabase
+      .from('users')
+      .select('*')
+      .eq('email', cleanEmail);
+
+    let foundUser = dbUsers && dbUsers.length > 0 ? dbUsers[0] : null;
+
+    if (!foundUser) {
+      const localFound = allUsers.find(u => u.email.toLowerCase() === cleanEmail);
+      if (localFound) {
+        foundUser = {
+          id: localFound.id,
+          email: localFound.email,
+          password: localFound.password,
+          full_name: localFound.fullName,
+          telegram: localFound.telegram,
+          whats_app: localFound.whatsApp,
+          wallet_balance: localFound.walletBalance,
+          role: localFound.role,
+          avatar: localFound.avatar,
+          created_at: localFound.createdAt
+        };
+      }
+    }
+
+    if (!foundUser) {
       throw new Error(`No account found registered with email "${email}". Please register an account first.`);
     }
 
-    if (found.password && password && found.password !== password) {
+    if (foundUser.password && password && foundUser.password !== password) {
       throw new Error('Invalid password. Please check your credentials and try again.');
     }
 
     const updatedFound: UserProfile = {
-      ...found,
-      role: isMasterAdmin ? 'admin' : found.role,
-      password: found.password || password || '',
+      id: foundUser.id,
+      email: foundUser.email,
+      password: foundUser.password || password || '',
+      fullName: foundUser.full_name || foundUser.email,
+      telegram: foundUser.telegram || '',
+      whatsApp: foundUser.whats_app || foundUser.whatsapp || '',
+      walletBalance: Number(foundUser.wallet_balance || 0),
+      role: isMasterAdmin ? 'admin' : (foundUser.role || 'user'),
+      country: foundUser.country || '',
+      city: foundUser.city || '',
+      postalCode: foundUser.postal_code || '',
+      isVerified: foundUser.is_verified ?? true,
+      isSuspended: foundUser.is_suspended ?? false,
+      suspendedReason: foundUser.suspended_reason || '',
+      avatar: foundUser.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=250',
+      createdAt: foundUser.created_at || new Date().toISOString(),
       ipAddress: clientIp,
       lastLoginIp: clientIp,
     };
 
-    setAllUsers(prev => prev.map(u => u.id === found.id ? updatedFound : u));
+    // Sync role and password in Supabase
+    supabase.from('users').update({
+      role: updatedFound.role,
+      password: updatedFound.password
+    }).eq('id', updatedFound.id).then();
+
+    setAllUsers(prev => [...prev.filter(u => u.id !== updatedFound.id), updatedFound]);
     setUser(updatedFound);
     return true;
   };
 
   const register = async (data: { fullName: string; email: string; password?: string; telegram?: string; whatsApp?: string }): Promise<boolean> => {
     const isMasterAdmin = data.email.toLowerCase() === 'developershanawar@gmail.com';
-    const existing = allUsers.find(u => u.email.toLowerCase() === data.email.toLowerCase());
-    
-    if (existing) {
+    const cleanEmail = data.email.trim().toLowerCase();
+
+    // Check existing user in Supabase
+    const { data: dbUsers } = await supabase.from('users').select('*').eq('email', cleanEmail);
+    if (dbUsers && dbUsers.length > 0) {
       throw new Error(`An account with email "${data.email}" already exists. Please sign in instead.`);
+    }
+
+    // Try Supabase Auth Sign Up
+    if (data.password) {
+      try {
+        await supabase.auth.signUp({
+          email: cleanEmail,
+          password: data.password,
+          options: {
+            data: {
+              full_name: data.fullName,
+              role: isMasterAdmin ? 'admin' : 'user'
+            }
+          }
+        });
+      } catch (authErr) {
+        console.warn('Supabase Auth signup notice:', authErr);
+      }
     }
 
     const newUser: UserProfile = {
       id: `usr_${Date.now()}`,
-      email: data.email,
+      email: cleanEmail,
       password: data.password || '',
       fullName: data.fullName,
-      telegram: data.telegram,
-      whatsApp: data.whatsApp,
+      telegram: data.telegram || '',
+      whatsApp: data.whatsApp || '',
       walletBalance: 0.00,
       role: isMasterAdmin ? 'admin' : 'user',
       createdAt: new Date().toISOString(),
@@ -380,9 +640,30 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       ipAddress: clientIp,
       registrationIp: clientIp,
       lastLoginIp: clientIp,
+      isVerified: true,
+      isSuspended: false
     };
 
-    setAllUsers(prev => [...prev, newUser]);
+    const { error: dbErr } = await supabase.from('users').insert([{
+      id: newUser.id,
+      email: newUser.email,
+      password: newUser.password,
+      full_name: newUser.fullName,
+      telegram: newUser.telegram,
+      whats_app: newUser.whatsApp,
+      wallet_balance: newUser.walletBalance,
+      role: newUser.role,
+      avatar: newUser.avatar,
+      is_verified: true,
+      is_suspended: false,
+      created_at: newUser.createdAt
+    }]);
+
+    if (dbErr) {
+      console.error('Error creating user profile in Supabase:', dbErr);
+    }
+
+    setAllUsers(prev => [...prev.filter(u => u.email.toLowerCase() !== newUser.email.toLowerCase()), newUser]);
     setUser(newUser);
     return true;
   };
@@ -878,6 +1159,20 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const updatePlatformSettings = (settings: PlatformSettings) => {
     setPlatformSettings(settings);
+    supabase.from('platform_settings').upsert([{
+      id: 'main',
+      site_name: settings.siteName,
+      site_icon_url: settings.siteIconUrl,
+      brand_display_mode: settings.brandDisplayMode,
+      default_cpm: settings.minCPM,
+      min_deposit_amount: settings.minDeposit,
+      easypaisa_number: settings.paymentAccounts?.easyPaisaAccount,
+      easypaisa_title: settings.paymentAccounts?.easyPaisaTitle,
+      jazzcash_number: settings.paymentAccounts?.jazzCashAccount,
+      jazzcash_title: settings.paymentAccounts?.jazzCashTitle,
+      usdt_trc20_address: settings.paymentAccounts?.usdtTrc20Address,
+      page_content: settings.pageContent
+    }]).then();
   };
 
   const addTestimonial = (data: Omit<Testimonial, 'id' | 'createdAt'>) => {
@@ -887,14 +1182,27 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       createdAt: new Date().toISOString()
     };
     setTestimonials(prev => [newT, ...prev]);
+    supabase.from('testimonials').insert([{
+      id: newT.id,
+      name: newT.name,
+      role: newT.role,
+      company: newT.company,
+      avatar: newT.avatar,
+      content: newT.content,
+      rating: newT.rating,
+      active: newT.active,
+      created_at: newT.createdAt
+    }]).then();
   };
 
   const updateTestimonial = (id: string, data: Partial<Testimonial>) => {
     setTestimonials(prev => prev.map(t => t.id === id ? { ...t, ...data } : t));
+    supabase.from('testimonials').update(data).eq('id', id).then();
   };
 
   const deleteTestimonial = (id: string) => {
     setTestimonials(prev => prev.filter(t => t.id !== id));
+    supabase.from('testimonials').delete().eq('id', id).then();
   };
 
   const getUserStats = (userId: string) => {
@@ -935,6 +1243,17 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     setUser(updated);
     setAllUsers(prev => prev.map(u => u.id === user.id ? updated : u));
+
+    supabase.from('users').update({
+      full_name: updated.fullName,
+      telegram: updated.telegram,
+      whats_app: updated.whatsApp,
+      country: updated.country,
+      city: updated.city,
+      postal_code: updated.postalCode,
+      is_verified: updated.isVerified,
+      avatar: updated.avatar
+    }).eq('id', updated.id).then();
   };
 
   const updateUserBalanceByAdmin = (userId: string, newBalance: number) => {
@@ -942,6 +1261,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (user && user.id === userId) {
       setUser(prev => prev ? { ...prev, walletBalance: newBalance } : null);
     }
+    supabase.from('users').update({ wallet_balance: newBalance }).eq('id', userId).then();
   };
 
   const toggleUserSuspension = (userId: string, isSuspended: boolean, reason?: string) => {
@@ -949,6 +1269,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (user && user.id === userId) {
       setUser(prev => prev ? { ...prev, isSuspended, suspendedReason: reason } : null);
     }
+    supabase.from('users').update({ is_suspended: isSuspended }).eq('id', userId).then();
   };
 
   const resetToInitialData = () => {
