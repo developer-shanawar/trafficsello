@@ -1,5 +1,14 @@
 export type UserRole = 'user' | 'admin' | 'advertiser' | 'publisher' | 'tenant';
 
+export type CurrencyCode = 'USD' | 'PKR' | 'INR' | 'BDT';
+
+export interface CurrencyConfig {
+  code: CurrencyCode;
+  symbol: string;
+  name: string;
+  rateVsUSD: number;
+}
+
 export interface UserProfile {
   id: string;
   email: string;
@@ -12,6 +21,7 @@ export interface UserProfile {
   city?: string;
   postalCode?: string;
   walletBalance: number;
+  currency?: CurrencyCode;
   role: UserRole;
   createdAt: string;
   avatar?: string;

@@ -11,6 +11,7 @@ import { LegalPages } from './components/LegalPages';
 import { StandalonePage } from './components/StandalonePage';
 import { DashboardLayout } from './components/DashboardLayout';
 import { SocialAdsSection } from './components/SocialAdsSection';
+import { ToastContainer } from './components/ToastContainer';
 
 import { OverviewView } from './components/dashboard/OverviewView';
 import { BuyTrafficView } from './components/dashboard/BuyTrafficView';
@@ -367,6 +368,9 @@ function AppContent() {
         campaign={reportCampaign}
         onClose={() => setReportCampaign(null)}
       />
+
+      {/* Toast Notification Container */}
+      <ToastContainer />
 
       {/* Legal Overlay Modal */}
       <LegalPages

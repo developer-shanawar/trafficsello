@@ -11,13 +11,13 @@ interface BuyTrafficViewProps {
 }
 
 export const BuyTrafficView: React.FC<BuyTrafficViewProps> = ({ onSuccess, onGoDeposit }) => {
-  const { user, addCampaign, platformSettings } = useStore();
+  const { user, addCampaign, platformSettings, formatMoney } = useStore();
 
   const [name, setName] = useState('');
   const [url, setUrl] = useState('https://');
   const [country, setCountry] = useState<TrafficCountry>('All Countries (Cheap)');
   const [deviceType, setDeviceType] = useState<DeviceType>('both');
-  const [visitorsTarget, setVisitorsTarget] = useState<number>(50000);
+  const [visitorsTarget, setVisitorsTarget] = useState<number>(10000);
   const [cpm, setCpm] = useState<number>(0.05);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -210,31 +210,63 @@ export const BuyTrafficView: React.FC<BuyTrafficViewProps> = ({ onSuccess, onGoD
             </div>
           </div>
 
-          {/* Visitor Target Slider */}
+          {/* Visitor Target Selector (Custom & Range) */}
           <div>
             <div className="flex justify-between items-center mb-2">
               <label className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                Total Visitors Required
+                Total Daily Visitors (Hits)
               </label>
-              <span className="text-sm font-extrabold text-[#111827] dark:text-[#DFFF2F] bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-full">
-                {visitorsTarget.toLocaleString()} Hits
-              </span>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  min={1000}
+                  max={100000}
+                  step={1000}
+                  value={visitorsTarget}
+                  onChange={(e) => setVisitorsTarget(Math.max(1000, Math.min(100000, Number(e.target.value))))}
+                  className="w-28 px-3 py-1 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-mono font-bold text-[#111827] dark:text-[#DFFF2F] text-right focus:outline-none focus:border-[#DFFF2F]"
+                />
+                <span className="text-xs font-bold text-slate-500">Hits</span>
+              </div>
             </div>
+
             <input
               type="range"
-              min={5000}
-              max={1000000}
-              step={5000}
+              min={1000}
+              max={100000}
+              step={1000}
               value={visitorsTarget}
               onChange={(e) => setVisitorsTarget(Number(e.target.value))}
               className="w-full h-2.5 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-[#DFFF2F]"
             />
-            <div className="flex justify-between text-[10px] text-slate-400 mt-1 font-mono">
-              <span>5K</span>
-              <span>250K</span>
-              <span>500K</span>
-              <span>1M+</span>
+
+            {/* Quick Visitor Presets */}
+            <div className="flex flex-wrap gap-1.5 mt-3">
+              {[
+                { val: 1000, label: '1,000 (1K)' },
+                { val: 5000, label: '5,000 (5K)' },
+                { val: 10000, label: '10,000 (10K)' },
+                { val: 25000, label: '25,000 (25K)' },
+                { val: 50000, label: '50,000 (50K)' },
+                { val: 100000, label: '100,000 (1 Lakh)' },
+              ].map((p) => (
+                <button
+                  key={p.val}
+                  type="button"
+                  onClick={() => setVisitorsTarget(p.val)}
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all ${
+                    visitorsTarget === p.val
+                      ? 'bg-[#111827] text-white dark:bg-[#DFFF2F] dark:text-slate-950 shadow-sm'
+                      : 'bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
+                  }`}
+                >
+                  {p.label}
+                </button>
+              ))}
             </div>
+            <p className="text-[10px] text-slate-400 mt-2">
+              💡 Select any quantity between 1,000 and 100,000 (1 Lakh daily visitors).
+            </p>
           </div>
         </div>
 
@@ -253,8 +285,7 @@ export const BuyTrafficView: React.FC<BuyTrafficViewProps> = ({ onSuccess, onGoD
             <div className="mb-6">
               <span className="text-xs text-slate-400 block mb-1">Total Campaign Cost</span>
               <div className="flex items-baseline gap-2">
-                <span className="text-4xl font-extrabold text-[#DFFF2F]">${budget.toFixed(2)}</span>
-                <span className="text-xs text-slate-400">USD</span>
+                <span className="text-4xl font-extrabold text-[#DFFF2F]">{formatMoney(budget)}</span>
               </div>
             </div>
 
@@ -266,12 +297,12 @@ export const BuyTrafficView: React.FC<BuyTrafficViewProps> = ({ onSuccess, onGoD
             }`}>
               <div className="flex justify-between items-center mb-1 font-bold">
                 <span>Wallet Balance:</span>
-                <span>${user?.walletBalance.toFixed(2)} USD</span>
+                <span>{formatMoney(user?.walletBalance || 0)}</span>
               </div>
               <p className="text-[11px] opacity-80">
                 {hasEnoughWallet
                   ? '✓ Sufficient funds available. Budget will be deducted upon launch.'
-                  : `⚠️ Short by $${(budget - (user?.walletBalance || 0)).toFixed(2)}. Deposit funds first.`}
+                  : `⚠️ Short by ${formatMoney(budget - (user?.walletBalance || 0))}. Deposit funds first.`}
               </p>
             </div>
 

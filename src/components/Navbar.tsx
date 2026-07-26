@@ -13,7 +13,7 @@ interface NavbarProps {
 }
 
 export const Navbar: React.FC<NavbarProps> = ({ onOpenAuth, onNavigateView, currentView }) => {
-  const { user, theme, toggleTheme, logout, notifications, platformSettings } = useStore();
+  const { user, currency, setCurrency, formatMoney, theme, toggleTheme, logout, notifications, platformSettings } = useStore();
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -105,6 +105,18 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAuth, onNavigateView, curr
         {/* Right Action Controls */}
         <div className="flex items-center gap-2.5 sm:gap-3">
           
+          {/* Currency Selector */}
+          <select
+            value={currency}
+            onChange={(e) => setCurrency(e.target.value as any)}
+            className="py-2 px-2.5 rounded-xl bg-white/60 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-[#111827] dark:text-slate-200 focus:outline-none cursor-pointer shadow-sm"
+          >
+            <option value="USD">🇺🇸 USD ($)</option>
+            <option value="PKR">🇵🇰 PKR (Rs)</option>
+            <option value="INR">🇮🇳 INR (₹)</option>
+            <option value="BDT">🇧🇩 BDT (৳)</option>
+          </select>
+
           {/* Theme Switcher */}
           <button
             onClick={toggleTheme}
@@ -123,7 +135,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAuth, onNavigateView, curr
                 className="hidden sm:flex items-center gap-2 py-2 px-3.5 bg-[#111827] dark:bg-slate-800 hover:bg-slate-800 border border-slate-700 rounded-xl text-xs font-bold text-white transition-all shadow-sm"
               >
                 <Wallet className="w-3.5 h-3.5 text-[#DFFF2F]" />
-                <span>${user.walletBalance.toFixed(2)}</span>
+                <span>{formatMoney(user.walletBalance)}</span>
                 <span className="text-[10px] bg-[#DFFF2F] text-slate-900 px-1.5 py-0.2 rounded font-black">+ Deposit</span>
               </button>
 

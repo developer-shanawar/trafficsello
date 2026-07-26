@@ -3,7 +3,7 @@ import { supabase } from './supabase';
 import {
   UserProfile, Campaign, PaymentDeposit, WalletTransaction,
   SupportTicket, AppNotification, PlatformSettings, CampaignStatus, UserRole, Testimonial,
-  SocialService, SocialCampaign
+  SocialService, SocialCampaign, CurrencyCode, CurrencyConfig
 } from '../types';
 import {
   DEFAULT_SETTINGS, INITIAL_USERS, INITIAL_CAMPAIGNS,
@@ -12,8 +12,18 @@ import {
 } from './initialData';
 import { sendNativeNotification } from './notifications';
 
+export const CURRENCIES: Record<CurrencyCode, CurrencyConfig> = {
+  USD: { code: 'USD', symbol: '$', name: 'US Dollar ($)', rateVsUSD: 1 },
+  PKR: { code: 'PKR', symbol: 'Rs. ', name: 'Pakistani Rupee (PKR)', rateVsUSD: 278.5 },
+  INR: { code: 'INR', symbol: '₹', name: 'Indian Rupee (INR)', rateVsUSD: 83.5 },
+  BDT: { code: 'BDT', symbol: '৳', name: 'Bangladeshi Taka (BDT)', rateVsUSD: 117.2 },
+};
+
 interface StoreContextType {
   user: UserProfile | null;
+  currency: CurrencyCode;
+  setCurrency: (code: CurrencyCode) => void;
+  formatMoney: (amountInUSD: number, customCode?: CurrencyCode) => string;
   theme: 'dark' | 'light';
   toggleTheme: () => void;
   login: (email: string, password?: string) => Promise<boolean>;
@@ -84,6 +94,33 @@ interface StoreContextType {
 const StoreContext = createContext<StoreContextType | undefined>(undefined);
 
 export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  // Currency state
+  const [currency, setCurrencyState] = useState<CurrencyCode>(() => {
+    const saved = localStorage.getItem('trafficsell_currency');
+    return (saved as CurrencyCode) || 'USD';
+  });
+
+  const setCurrency = (code: CurrencyCode) => {
+    setCurrencyState(code);
+    localStorage.setItem('trafficsell_currency', code);
+    if (user) {
+      setUser(prev => prev ? { ...prev, currency: code } : null);
+      setAllUsers(prev => prev.map(u => u.id === user.id ? { ...u, currency: code } : u));
+    }
+  };
+
+  const formatMoney = (amountInUSD: number, customCode?: CurrencyCode): string => {
+    const code = customCode || user?.currency || currency || 'USD';
+    const conf = CURRENCIES[code] || CURRENCIES.USD;
+    const val = amountInUSD * conf.rateVsUSD;
+
+    if (code === 'USD') return `$${val.toFixed(2)}`;
+    if (code === 'PKR') return `Rs. ${Math.round(val).toLocaleString()}`;
+    if (code === 'INR') return `₹${Math.round(val).toLocaleString()}`;
+    if (code === 'BDT') return `৳${Math.round(val).toLocaleString()}`;
+    return `${conf.symbol}${val.toFixed(2)}`;
+  };
+
   // Theme state
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
     const saved = localStorage.getItem('trafficsell_theme');
@@ -1553,7 +1590,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   return (
     <StoreContext.Provider value={{
-      user, theme, toggleTheme, login, register, logout, switchUserRole,
+      user, currency, setCurrency, formatMoney, theme, toggleTheme, login, register, logout, switchUserRole,
       campaigns, addCampaign, updateCampaignStatus, deleteCampaign,
       socialServices, socialCampaigns, addSocialService, updateSocialService, deleteSocialService,
       addSocialCampaign, updateSocialCampaignStatus, deleteSocialCampaign,

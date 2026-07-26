@@ -14,9 +14,10 @@ interface DashboardLayoutProps {
 }
 
 export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ currentTab, onSelectTab, children }) => {
-  const { user, theme, toggleTheme, logout, notifications, markNotificationRead, platformSettings } = useStore();
+  const { user, currency, setCurrency, formatMoney, theme, toggleTheme, logout, notifications, markNotificationRead, platformSettings } = useStore();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [notifDropdownOpen, setNotifDropdownOpen] = useState(false);
+  const [launchModalOpen, setLaunchModalOpen] = useState(false);
 
   const siteName = platformSettings?.siteName || 'TrafficSell';
   const siteIconUrl = platformSettings?.siteIconUrl || '/logo.png';
@@ -95,7 +96,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ currentTab, on
                   </div>
                   {item.id === 'wallet' && user && (
                     <span className="text-[10px] font-mono font-extrabold px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-800 dark:text-[#DFFF2F]">
-                      ${user.walletBalance.toFixed(0)}
+                      {formatMoney(user.walletBalance)}
                     </span>
                   )}
                   {item.id === 'admin' && (
@@ -120,7 +121,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ currentTab, on
               />
               <div className="truncate">
                 <p className="text-xs font-bold text-slate-900 dark:text-white truncate">{user?.fullName}</p>
-                <p className="text-[10px] text-slate-400 truncate">${user?.walletBalance.toFixed(2)} USD</p>
+                <p className="text-[10px] text-slate-400 truncate">{user ? formatMoney(user.walletBalance) : '$0.00'}</p>
               </div>
             </div>
             <button
@@ -172,9 +173,21 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ currentTab, on
 
           <div className="flex items-center gap-3 ml-auto">
             
-            {/* Action: Buy Traffic / Create Campaign */}
+            {/* Currency Selector */}
+            <select
+              value={currency}
+              onChange={(e) => setCurrency(e.target.value as any)}
+              className="py-1.5 px-2 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-800 dark:text-slate-200 rounded-xl focus:outline-none cursor-pointer"
+            >
+              <option value="USD">🇺🇸 USD</option>
+              <option value="PKR">🇵🇰 PKR</option>
+              <option value="INR">🇮🇳 INR</option>
+              <option value="BDT">🇧🇩 BDT</option>
+            </select>
+
+            {/* Action: Launch Campaign Modal Prompt */}
             <button
-              onClick={() => onSelectTab('campaigns')}
+              onClick={() => setLaunchModalOpen(true)}
               className="py-1.5 px-3 bg-[#111827] text-white dark:bg-[#DFFF2F] dark:text-slate-950 text-xs font-extrabold rounded-xl shadow transition-all flex items-center gap-1.5 cursor-pointer hover:scale-105"
             >
               <Plus className="w-3.5 h-3.5 stroke-[3]" />
@@ -235,26 +248,146 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ currentTab, on
           </div>
         </header>
 
-        {/* Mobile Sidebar Dropdown */}
+        {/* Mobile Slide-Over Menu (Slides in from the Right) */}
         {mobileMenuOpen && (
-          <div className="md:hidden bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 p-4 space-y-2 z-30">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => { onSelectTab(item.id); setMobileMenuOpen(false); }}
-                  className={`w-full flex items-center justify-between p-3 rounded-xl text-xs font-bold ${
-                    currentTab === item.id ? 'bg-[#DFFF2F] text-slate-950' : 'text-slate-600 dark:text-slate-300'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <Icon className="w-4 h-4" />
-                    <span>{item.label}</span>
+          <div className="md:hidden fixed inset-0 z-50 flex justify-end">
+            <div
+              className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm transition-opacity"
+              onClick={() => setMobileMenuOpen(false)}
+            />
+            <div className="relative w-72 max-w-full bg-white dark:bg-slate-900 h-full p-6 shadow-2xl flex flex-col justify-between z-10 border-l border-slate-200 dark:border-slate-800 overflow-y-auto animate-in slide-in-from-right">
+              <div>
+                <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800 mb-6">
+                  <div className="flex items-center gap-2">
+                    <img
+                      src={siteIconUrl}
+                      alt={siteName}
+                      onError={(e) => { (e.target as HTMLImageElement).src = '/logo.png'; }}
+                      className="w-8 h-8 rounded-lg object-cover border-2 border-[#DFFF2F]"
+                    />
+                    <span className="font-extrabold text-sm text-slate-900 dark:text-white">{siteName}</span>
                   </div>
+                  <button
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="p-2 rounded-xl text-slate-400 hover:text-slate-900 dark:hover:text-white bg-slate-100 dark:bg-slate-800"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <div className="space-y-1.5">
+                  {navItems.map((item) => {
+                    const Icon = item.icon;
+                    const isActive = currentTab === item.id;
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => { onSelectTab(item.id); setMobileMenuOpen(false); }}
+                        className={`w-full flex items-center justify-between p-3 rounded-2xl text-xs font-bold transition-all ${
+                          isActive
+                            ? 'bg-slate-900 text-white dark:bg-[#DFFF2F] dark:text-slate-950 shadow-md'
+                            : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <Icon className="w-4 h-4" />
+                          <span>{item.label}</span>
+                        </div>
+                        {item.id === 'wallet' && user && (
+                          <span className="text-[10px] font-mono font-black px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-[#DFFF2F]">
+                            {formatMoney(user.walletBalance)}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-slate-200 dark:border-slate-800 space-y-3">
+                <div className="flex justify-between items-center bg-slate-100 dark:bg-slate-800 p-3 rounded-xl text-xs font-bold">
+                  <span>Display Currency</span>
+                  <select
+                    value={currency}
+                    onChange={(e) => setCurrency(e.target.value as any)}
+                    className="bg-transparent text-xs font-bold text-[#DFFF2F] focus:outline-none"
+                  >
+                    <option value="USD">USD ($)</option>
+                    <option value="PKR">PKR (Rs)</option>
+                    <option value="INR">INR (₹)</option>
+                    <option value="BDT">BDT (৳)</option>
+                  </select>
+                </div>
+                <button
+                  onClick={() => { logout(); setMobileMenuOpen(false); onSelectTab('landing'); }}
+                  className="w-full py-3 bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white font-bold rounded-2xl text-xs transition-colors flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <LogOut className="w-4 h-4" /> Sign Out
                 </button>
-              );
-            })}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Launch Campaign Selector Modal */}
+        {launchModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 md:p-8 max-w-lg w-full shadow-2xl relative animate-in zoom-in-95">
+              <button
+                onClick={() => setLaunchModalOpen(false)}
+                className="absolute top-5 right-5 p-2 rounded-xl text-slate-400 hover:text-white bg-slate-100 dark:bg-slate-800"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              <span className="inline-block px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-[#DFFF2F]/20 text-slate-900 dark:text-[#DFFF2F] mb-3">
+                New Campaign Launcher
+              </span>
+              <h3 className="text-2xl font-black text-slate-900 dark:text-white">Choose Campaign Targeting</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 mb-6">
+                What type of campaign would you like to launch today?
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Traffic Campaign Option */}
+                <button
+                  onClick={() => {
+                    setLaunchModalOpen(false);
+                    onSelectTab('campaigns');
+                  }}
+                  className="p-5 rounded-2xl border-2 border-slate-200 dark:border-slate-800 hover:border-[#DFFF2F] bg-slate-50 dark:bg-slate-800/50 hover:bg-[#DFFF2F]/10 text-left transition-all group cursor-pointer"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-slate-900 dark:bg-[#DFFF2F] text-white dark:text-slate-950 flex items-center justify-center mb-3 font-bold group-hover:scale-110 transition-transform">
+                    <Layers className="w-5 h-5" />
+                  </div>
+                  <h4 className="text-sm font-black text-slate-900 dark:text-white group-hover:text-[#DFFF2F]">
+                    Website Traffic
+                  </h4>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                    Organic website hits, GEO targeting, AdSense safe, custom CPM & daily limits.
+                  </p>
+                </button>
+
+                {/* Social Ads Option */}
+                <button
+                  onClick={() => {
+                    setLaunchModalOpen(false);
+                    onSelectTab('social_ads');
+                  }}
+                  className="p-5 rounded-2xl border-2 border-slate-200 dark:border-slate-800 hover:border-[#DFFF2F] bg-slate-50 dark:bg-slate-800/50 hover:bg-[#DFFF2F]/10 text-left transition-all group cursor-pointer"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center mb-3 font-bold group-hover:scale-110 transition-transform">
+                    <Share2 className="w-5 h-5" />
+                  </div>
+                  <h4 className="text-sm font-black text-slate-900 dark:text-white group-hover:text-[#DFFF2F]">
+                    Social Ads (SMM)
+                  </h4>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                    Followers, Likes, Views & Watch Time for YouTube, TikTok, Instagram & Facebook.
+                  </p>
+                </button>
+              </div>
+            </div>
           </div>
         )}
 
