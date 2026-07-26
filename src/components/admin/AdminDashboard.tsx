@@ -5,21 +5,37 @@ import {
   Users, Layers, Settings, Megaphone, Edit, Save, AlertTriangle, Image as ImageIcon,
   Bell, Plus, Trash2, Star, MessageSquare, Clock, ExternalLink, FileText, Send, Phone, Mail,
   Check, Sliders, Download, Search, Ticket, UserX, UserCheck, ChevronDown, ChevronUp,
-  Sparkles, CornerDownRight, Filter, RefreshCw
+  Sparkles, CornerDownRight, Filter, RefreshCw, Share2
 } from 'lucide-react';
 import { useStore } from '../../lib/store';
 import { PaymentDeposit, PlatformSettings, Testimonial, EditablePageContent, SupportTicket, UserProfile } from '../../types';
 import { exportToCSV, exportToExcel, exportToJSON, exportToPDF } from '../../lib/exportUtils';
+import { requestNativeNotificationPermission } from '../../lib/notifications';
+import { SocialAdsSection } from '../SocialAdsSection';
 
 export const AdminDashboard: React.FC = () => {
   const {
     walletDeposits, approveDeposit, rejectDeposit, campaigns, updateCampaignStatus,
     allUsers, updateUserBalanceByAdmin, toggleUserSuspension, platformSettings, updatePlatformSettings,
     testimonials, addTestimonial, updateTestimonial, deleteTestimonial, getUserStats, user,
-    supportTickets, createTicketForUser, addTicketMessage, updateTicketStatus, sendAdminNotification
+    supportTickets, createTicketForUser, addTicketMessage, updateTicketStatus, sendAdminNotification,
+    socialCampaigns
   } = useStore();
 
-  const [activeTab, setActiveTab] = useState<'users' | 'campaigns' | 'tickets' | 'notifications' | 'deposits' | 'pages' | 'testimonials' | 'settings'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'campaigns' | 'social_ads' | 'tickets' | 'notifications' | 'deposits' | 'pages' | 'testimonials' | 'settings'>('users');
+  const [notifGranted, setNotifGranted] = useState<boolean>(
+    typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted'
+  );
+
+  const handleEnableAlerts = async () => {
+    const granted = await requestNativeNotificationPermission();
+    setNotifGranted(granted);
+    if (granted) {
+      alert('✅ Desktop Push Notifications enabled! You will get alerts for new orders & deposits.');
+    } else {
+      alert('⚠️ Push Notification permission was blocked or not granted in your browser settings.');
+    }
+  };
   
   // User Management State
   const [userSearchQuery, setUserSearchQuery] = useState<string>('');
@@ -231,8 +247,20 @@ export const AdminDashboard: React.FC = () => {
           </p>
         </div>
 
-        {/* System Badges */}
+        {/* System Badges & Desktop Notification Alert toggle */}
         <div className="flex flex-wrap items-center gap-2 text-xs">
+          <button
+            onClick={handleEnableAlerts}
+            className={`px-3 py-1.5 rounded-xl border flex items-center gap-1.5 font-semibold transition-all ${
+              notifGranted
+                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                : 'bg-amber-500/10 border-amber-500/30 text-amber-300 hover:bg-amber-500/20'
+            }`}
+          >
+            <Bell className="w-3.5 h-3.5" />
+            {notifGranted ? 'Push Alerts Active' : 'Enable Push Alerts'}
+          </button>
+
           <div className="bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800 flex items-center gap-2">
             <Users className="w-3.5 h-3.5 text-blue-400" />
             <span className="text-slate-400">Users:</span>
@@ -282,7 +310,18 @@ export const AdminDashboard: React.FC = () => {
               : 'text-slate-400 hover:text-white hover:bg-slate-800'
           }`}
         >
-          <Layers className="w-4 h-4" /> All Campaigns ({campaigns.length})
+          <Layers className="w-4 h-4" /> Traffic Campaigns ({campaigns.length})
+        </button>
+
+        <button
+          onClick={() => setActiveTab('social_ads')}
+          className={`px-4 py-2 rounded-xl transition-all flex items-center gap-2 cursor-pointer ${
+            activeTab === 'social_ads'
+              ? 'bg-[#DFFF2F] text-slate-950 font-black shadow'
+              : 'text-slate-400 hover:text-white hover:bg-slate-800'
+          }`}
+        >
+          <Share2 className="w-4 h-4" /> Social Ads ({socialCampaigns.length})
         </button>
 
         <button
@@ -822,6 +861,11 @@ export const AdminDashboard: React.FC = () => {
             </table>
           </div>
         </div>
+      )}
+
+      {/* TAB: SOCIAL ADS SMM */}
+      {activeTab === 'social_ads' && (
+        <SocialAdsSection />
       )}
 
       {/* TAB 3: SUPPORT TICKETS & CHAT FORM */}

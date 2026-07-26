@@ -1,5 +1,5 @@
 -- TrafficSell Supabase Database Schema
--- Run this SQL in your Supabase SQL Editor (https://wpqttbdtsolbydffawzg.supabase.co)
+-- Run this SQL in your Supabase SQL Editor (https://supabase.com)
 
 -- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
@@ -149,7 +149,7 @@ CREATE TABLE IF NOT EXISTS public.testimonials (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- SOCIAL ADVERTISING TABLES
+-- 9. SOCIAL ADVERTISING TABLES
 CREATE TABLE IF NOT EXISTS public.social_services (
   id TEXT PRIMARY KEY,
   platform TEXT NOT NULL,
@@ -185,7 +185,7 @@ CREATE TABLE IF NOT EXISTS public.social_campaigns (
 CREATE OR REPLACE VIEW public.deposits AS SELECT * FROM public.payment_deposits;
 CREATE OR REPLACE VIEW public.tickets AS SELECT * FROM public.support_tickets;
 
--- DISABLE RLS FOR FREE ACCESS OR SET POLICIES
+-- DISABLE RLS FOR FREE ACCESS
 ALTER TABLE public.users DISABLE ROW LEVEL SECURITY;
 ALTER TABLE public.campaigns DISABLE ROW LEVEL SECURITY;
 ALTER TABLE public.payment_deposits DISABLE ROW LEVEL SECURITY;
@@ -197,22 +197,53 @@ ALTER TABLE public.testimonials DISABLE ROW LEVEL SECURITY;
 ALTER TABLE public.social_services DISABLE ROW LEVEL SECURITY;
 ALTER TABLE public.social_campaigns DISABLE ROW LEVEL SECURITY;
 
--- ENABLE REALTIME PUBLICATION ON ALL TABLES FOR LIVE MESSAGES, DEPOSITS, & BALANCE UPDATES
+-- SAFE REALTIME PUBLICATION SETUP (Ignores duplicate table publication errors)
 DO $$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_publication WHERE pubname = 'supabase_realtime') THEN
     CREATE PUBLICATION supabase_realtime;
   END IF;
-END $$;
 
-ALTER PUBLICATION supabase_realtime ADD TABLE public.users;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.payment_deposits;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.support_tickets;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.notifications;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.campaigns;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.transactions;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.social_services;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.social_campaigns;
+  BEGIN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.users;
+  EXCEPTION WHEN OTHERS THEN NULL;
+  END;
+
+  BEGIN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.payment_deposits;
+  EXCEPTION WHEN OTHERS THEN NULL;
+  END;
+
+  BEGIN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.support_tickets;
+  EXCEPTION WHEN OTHERS THEN NULL;
+  END;
+
+  BEGIN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.notifications;
+  EXCEPTION WHEN OTHERS THEN NULL;
+  END;
+
+  BEGIN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.campaigns;
+  EXCEPTION WHEN OTHERS THEN NULL;
+  END;
+
+  BEGIN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.transactions;
+  EXCEPTION WHEN OTHERS THEN NULL;
+  END;
+
+  BEGIN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.social_services;
+  EXCEPTION WHEN OTHERS THEN NULL;
+  END;
+
+  BEGIN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.social_campaigns;
+  EXCEPTION WHEN OTHERS THEN NULL;
+  END;
+END $$;
 
 -- SEED INITIAL MASTER ADMIN USER
 INSERT INTO public.users (id, email, password, full_name, telegram, whats_app, wallet_balance, role, created_at, avatar, country, is_verified)
