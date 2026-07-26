@@ -2,11 +2,13 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from './supabase';
 import {
   UserProfile, Campaign, PaymentDeposit, WalletTransaction,
-  SupportTicket, AppNotification, PlatformSettings, CampaignStatus, UserRole, Testimonial
+  SupportTicket, AppNotification, PlatformSettings, CampaignStatus, UserRole, Testimonial,
+  SocialService, SocialCampaign
 } from '../types';
 import {
   DEFAULT_SETTINGS, INITIAL_USERS, INITIAL_CAMPAIGNS,
-  INITIAL_PAYMENTS, INITIAL_TRANSACTIONS, INITIAL_TICKETS, INITIAL_NOTIFICATIONS, INITIAL_TESTIMONIALS
+  INITIAL_PAYMENTS, INITIAL_TRANSACTIONS, INITIAL_TICKETS, INITIAL_NOTIFICATIONS, INITIAL_TESTIMONIALS,
+  INITIAL_SOCIAL_SERVICES, INITIAL_SOCIAL_CAMPAIGNS
 } from './initialData';
 import { sendNativeNotification } from './notifications';
 
@@ -24,6 +26,16 @@ interface StoreContextType {
   addCampaign: (data: Omit<Campaign, 'id' | 'userId' | 'userName' | 'visitorsDelivered' | 'status' | 'createdAt'>) => Promise<{ success: boolean; message?: string }>;
   updateCampaignStatus: (id: string, status: CampaignStatus) => void;
   deleteCampaign: (id: string) => void;
+
+  // Social Advertising
+  socialServices: SocialService[];
+  socialCampaigns: SocialCampaign[];
+  addSocialService: (data: Omit<SocialService, 'id'>) => void;
+  updateSocialService: (id: string, data: Partial<SocialService>) => void;
+  deleteSocialService: (id: string) => void;
+  addSocialCampaign: (data: { serviceId: string; targetLink: string; quantity: number }) => Promise<{ success: boolean; message?: string }>;
+  updateSocialCampaignStatus: (id: string, status: SocialCampaign['status'], adminNote?: string) => void;
+  deleteSocialCampaign: (id: string) => Promise<{ success: boolean; message?: string }>;
 
   // Payments & Wallet
   walletDeposits: PaymentDeposit[];
@@ -189,9 +201,27 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return saved !== null ? JSON.parse(saved) : INITIAL_TESTIMONIALS;
   });
 
+  const [socialServices, setSocialServices] = useState<SocialService[]>(() => {
+    const saved = localStorage.getItem('trafficsell_social_services');
+    return saved ? JSON.parse(saved) : INITIAL_SOCIAL_SERVICES;
+  });
+
+  const [socialCampaigns, setSocialCampaigns] = useState<SocialCampaign[]>(() => {
+    const saved = localStorage.getItem('trafficsell_social_campaigns');
+    return saved ? JSON.parse(saved) : INITIAL_SOCIAL_CAMPAIGNS;
+  });
+
   useEffect(() => {
     localStorage.setItem('trafficsell_testimonials', JSON.stringify(testimonials));
   }, [testimonials]);
+
+  useEffect(() => {
+    localStorage.setItem('trafficsell_social_services', JSON.stringify(socialServices));
+  }, [socialServices]);
+
+  useEffect(() => {
+    localStorage.setItem('trafficsell_social_campaigns', JSON.stringify(socialCampaigns));
+  }, [socialCampaigns]);
 
   // Sync site title and favicon icon tab from platformSettings
   useEffect(() => {
@@ -403,6 +433,46 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         }));
         setTestimonials(mappedT);
       }
+
+      // 9. Social Services
+      const { data: dbSocServices } = await supabase.from('social_services').select('*');
+      if (dbSocServices && dbSocServices.length > 0) {
+        const mappedServices: SocialService[] = dbSocServices.map(s => ({
+          id: s.id,
+          platform: s.platform,
+          serviceName: s.service_name,
+          serviceType: s.service_type,
+          pricePer1000: Number(s.price_per_1000),
+          minQuantity: Number(s.min_quantity || 100),
+          maxQuantity: Number(s.max_quantity || 100000),
+          estimatedMinutes: Number(s.estimated_minutes || 30),
+          description: s.description || '',
+          active: Boolean(s.active)
+        }));
+        setSocialServices(mappedServices);
+      }
+
+      // 10. Social Campaigns
+      const { data: dbSocCampaigns } = await supabase.from('social_campaigns').select('*');
+      if (dbSocCampaigns && dbSocCampaigns.length > 0) {
+        const mappedSocCampaigns: SocialCampaign[] = dbSocCampaigns.map(c => ({
+          id: c.id,
+          userId: c.user_id,
+          userName: c.user_name || 'User',
+          serviceId: c.service_id,
+          platform: c.platform,
+          serviceName: c.service_name,
+          targetLink: c.target_link,
+          quantity: Number(c.quantity),
+          pricePer1000: Number(c.price_per_1000),
+          totalCost: Number(c.total_cost),
+          estimatedMinutes: Number(c.estimated_minutes || 30),
+          status: c.status || 'pending',
+          adminNote: c.admin_note,
+          createdAt: c.created_at || new Date().toISOString()
+        }));
+        setSocialCampaigns(mappedSocCampaigns);
+      }
     } catch (err) {
       console.warn('Supabase initial load notice:', err);
     }
@@ -410,6 +480,26 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   useEffect(() => {
     loadSupabaseData();
+
+    // Set up Supabase Realtime listener for live sync across all tabs and users
+    const realtimeChannel = supabase
+      .channel('trafficsell-realtime-sync')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public'
+        },
+        (payload) => {
+          console.log('⚡ Realtime update received from Supabase:', payload.table, payload.eventType);
+          loadSupabaseData();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(realtimeChannel);
+    };
   }, []);
 
   useEffect(() => {
@@ -1205,6 +1295,176 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     supabase.from('testimonials').delete().eq('id', id).then();
   };
 
+  // Social Ads Handlers
+  const addSocialService = (data: Omit<SocialService, 'id'>) => {
+    const newService: SocialService = {
+      ...data,
+      id: `soc_srv_${Date.now()}`
+    };
+    setSocialServices(prev => [newService, ...prev]);
+    supabase.from('social_services').insert([{
+      id: newService.id,
+      platform: newService.platform,
+      service_name: newService.serviceName,
+      service_type: newService.serviceType,
+      price_per_1000: newService.pricePer1000,
+      min_quantity: newService.minQuantity,
+      max_quantity: newService.maxQuantity,
+      estimated_minutes: newService.estimatedMinutes,
+      description: newService.description,
+      active: newService.active
+    }]).then();
+  };
+
+  const updateSocialService = (id: string, data: Partial<SocialService>) => {
+    setSocialServices(prev => prev.map(s => s.id === id ? { ...s, ...data } : s));
+    const payload: any = {};
+    if (data.serviceName) payload.service_name = data.serviceName;
+    if (data.pricePer1000 !== undefined) payload.price_per_1000 = data.pricePer1000;
+    if (data.minQuantity !== undefined) payload.min_quantity = data.minQuantity;
+    if (data.maxQuantity !== undefined) payload.max_quantity = data.maxQuantity;
+    if (data.estimatedMinutes !== undefined) payload.estimated_minutes = data.estimatedMinutes;
+    if (data.description !== undefined) payload.description = data.description;
+    if (data.active !== undefined) payload.active = data.active;
+
+    supabase.from('social_services').update(payload).eq('id', id).then();
+  };
+
+  const deleteSocialService = (id: string) => {
+    setSocialServices(prev => prev.filter(s => s.id !== id));
+    supabase.from('social_services').delete().eq('id', id).then();
+  };
+
+  const addSocialCampaign = async (data: { serviceId: string; targetLink: string; quantity: number }): Promise<{ success: boolean; message?: string }> => {
+    if (!user) return { success: false, message: 'User not logged in.' };
+
+    const service = socialServices.find(s => s.id === data.serviceId);
+    if (!service) return { success: false, message: 'Selected social service not found.' };
+
+    if (data.quantity < service.minQuantity || data.quantity > service.maxQuantity) {
+      return { success: false, message: `Quantity must be between ${service.minQuantity.toLocaleString()} and ${service.maxQuantity.toLocaleString()}.` };
+    }
+
+    const totalCost = (data.quantity / 1000) * service.pricePer1000;
+    if (user.walletBalance < totalCost) {
+      return { success: false, message: `Insufficient wallet balance ($${user.walletBalance.toFixed(2)} available). You need $${totalCost.toFixed(2)} to place this order.` };
+    }
+
+    // Deduct cost from wallet balance
+    const newBalance = user.walletBalance - totalCost;
+    const updatedUser = { ...user, walletBalance: newBalance };
+    setUser(updatedUser);
+    setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
+    supabase.from('users').update({ wallet_balance: newBalance }).eq('id', user.id).then();
+
+    // Create transaction record
+    const newTx: WalletTransaction = {
+      id: `tx_${Date.now()}`,
+      userId: user.id,
+      type: 'spend',
+      amount: totalCost,
+      description: `Social Ad Order: ${data.quantity.toLocaleString()} ${service.serviceType} for ${service.platform}`,
+      status: 'completed',
+      createdAt: new Date().toISOString()
+    };
+    setTransactions(prev => [newTx, ...prev]);
+    supabase.from('transactions').insert([{
+      id: newTx.id,
+      user_id: newTx.userId,
+      type: newTx.type,
+      amount: newTx.amount,
+      description: newTx.description,
+      status: newTx.status,
+      created_at: newTx.createdAt
+    }]).then();
+
+    // Create social campaign
+    const newCmp: SocialCampaign = {
+      id: `soc_cmp_${Date.now()}`,
+      userId: user.id,
+      userName: user.fullName || user.email,
+      serviceId: service.id,
+      platform: service.platform,
+      serviceName: service.serviceName,
+      targetLink: data.targetLink,
+      quantity: data.quantity,
+      pricePer1000: service.pricePer1000,
+      totalCost,
+      estimatedMinutes: service.estimatedMinutes,
+      status: 'pending',
+      createdAt: new Date().toISOString()
+    };
+    setSocialCampaigns(prev => [newCmp, ...prev]);
+    supabase.from('social_campaigns').insert([{
+      id: newCmp.id,
+      user_id: newCmp.userId,
+      user_name: newCmp.userName,
+      service_id: newCmp.serviceId,
+      platform: newCmp.platform,
+      service_name: newCmp.serviceName,
+      target_link: newCmp.targetLink,
+      quantity: newCmp.quantity,
+      price_per_1000: newCmp.pricePer1000,
+      total_cost: newCmp.totalCost,
+      estimated_minutes: newCmp.estimatedMinutes,
+      status: newCmp.status,
+      created_at: newCmp.createdAt
+    }]).then();
+
+    // Trigger Admin Native Notification
+    sendNativeNotification('📲 New Social Ad Campaign!', `${user.fullName} ordered ${data.quantity.toLocaleString()} ${service.serviceType} for ${service.platform}`);
+
+    return { success: true };
+  };
+
+  const updateSocialCampaignStatus = (id: string, status: SocialCampaign['status'], adminNote?: string) => {
+    setSocialCampaigns(prev => prev.map(c => c.id === id ? { ...c, status, adminNote } : c));
+    supabase.from('social_campaigns').update({ status, admin_note: adminNote }).eq('id', id).then();
+  };
+
+  const deleteSocialCampaign = async (id: string): Promise<{ success: boolean; message?: string }> => {
+    const cmp = socialCampaigns.find(c => c.id === id);
+    if (!cmp) return { success: false, message: 'Campaign not found' };
+
+    if (cmp.status !== 'pending' && cmp.status !== 'cancelled') {
+      return { success: false, message: 'You cannot delete or cancel an approved/active campaign. Please contact support.' };
+    }
+
+    // Refund user if pending
+    if (cmp.status === 'pending' && user) {
+      const newBalance = user.walletBalance + cmp.totalCost;
+      const updatedUser = { ...user, walletBalance: newBalance };
+      setUser(updatedUser);
+      setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
+      supabase.from('users').update({ wallet_balance: newBalance }).eq('id', user.id).then();
+
+      // Add refund transaction
+      const refundTx: WalletTransaction = {
+        id: `tx_${Date.now()}`,
+        userId: user.id,
+        type: 'refund',
+        amount: cmp.totalCost,
+        description: `Refund for deleted Social Ad Campaign #${cmp.id}`,
+        status: 'completed',
+        createdAt: new Date().toISOString()
+      };
+      setTransactions(prev => [refundTx, ...prev]);
+      supabase.from('transactions').insert([{
+        id: refundTx.id,
+        user_id: refundTx.userId,
+        type: refundTx.type,
+        amount: refundTx.amount,
+        description: refundTx.description,
+        status: refundTx.status,
+        created_at: refundTx.createdAt
+      }]).then();
+    }
+
+    setSocialCampaigns(prev => prev.filter(c => c.id !== id));
+    supabase.from('social_campaigns').delete().eq('id', id).then();
+    return { success: true };
+  };
+
   const getUserStats = (userId: string) => {
     const userCampaigns = campaigns.filter(c => c.userId === userId);
     const activeCampaignsCount = userCampaigns.filter(c => c.status === 'running').length;
@@ -1295,6 +1555,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     <StoreContext.Provider value={{
       user, theme, toggleTheme, login, register, logout, switchUserRole,
       campaigns, addCampaign, updateCampaignStatus, deleteCampaign,
+      socialServices, socialCampaigns, addSocialService, updateSocialService, deleteSocialService,
+      addSocialCampaign, updateSocialCampaignStatus, deleteSocialCampaign,
       walletDeposits, requestDeposit, approveDeposit, rejectDeposit, transactions,
       supportTickets, createTicket, createTicketForUser, addTicketMessage, updateTicketStatus,
       notifications, markNotificationRead, sendAdminNotification,

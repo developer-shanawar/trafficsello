@@ -167,3 +167,38 @@ export interface PlatformSettings {
   };
   pageContent: EditablePageContent;
 }
+
+export type SocialPlatform = 'Instagram' | 'TikTok' | 'YouTube' | 'Facebook' | 'Twitter / X' | 'Telegram' | 'LinkedIn' | 'Spotify';
+export type SocialServiceType = 'Followers' | 'Likes' | 'Views' | 'Comments' | 'Shares' | 'Subscribers' | 'Reactions';
+export type SocialCampaignStatus = 'pending' | 'in_progress' | 'completed' | 'cancelled';
+
+export interface SocialService {
+  id: string;
+  platform: SocialPlatform;
+  serviceName: string;
+  serviceType: SocialServiceType;
+  pricePer1000: number;
+  minQuantity: number;
+  maxQuantity: number;
+  estimatedMinutes: number;
+  description?: string;
+  active: boolean;
+}
+
+export interface SocialCampaign {
+  id: string;
+  userId: string;
+  userName: string;
+  serviceId: string;
+  platform: SocialPlatform;
+  serviceName: string;
+  targetLink: string;
+  quantity: number;
+  pricePer1000: number;
+  totalCost: number;
+  estimatedMinutes: number;
+  status: SocialCampaignStatus;
+  adminNote?: string;
+  createdAt: string;
+}
+

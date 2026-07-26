@@ -644,4 +644,137 @@ export const INITIAL_NOTIFICATIONS: AppNotification[] = [
   }
 ];
 
+export const INITIAL_SOCIAL_SERVICES = [
+  {
+    id: 'soc_srv_1',
+    platform: 'Instagram',
+    serviceName: 'Instagram Real Followers [HQ Fast]',
+    serviceType: 'Followers',
+    pricePer1000: 1.20,
+    minQuantity: 100,
+    maxQuantity: 100000,
+    estimatedMinutes: 30,
+    description: 'High quality active accounts. Non-drop 30-day auto refill.',
+    active: true
+  },
+  {
+    id: 'soc_srv_2',
+    platform: 'Instagram',
+    serviceName: 'Instagram Organic Likes & Impressions',
+    serviceType: 'Likes',
+    pricePer1000: 0.40,
+    minQuantity: 100,
+    maxQuantity: 50000,
+    estimatedMinutes: 15,
+    description: 'Instant start. Works on posts and reels.',
+    active: true
+  },
+  {
+    id: 'soc_srv_3',
+    platform: 'Instagram',
+    serviceName: 'Instagram Reel & Post Views [Viral Push]',
+    serviceType: 'Views',
+    pricePer1000: 0.15,
+    minQuantity: 500,
+    maxQuantity: 1000000,
+    estimatedMinutes: 10,
+    description: 'Super fast delivery for explore page ranking.',
+    active: true
+  },
+  {
+    id: 'soc_srv_4',
+    platform: 'YouTube',
+    serviceName: 'YouTube High Retention Video Views',
+    serviceType: 'Views',
+    pricePer1000: 1.50,
+    minQuantity: 1000,
+    maxQuantity: 500000,
+    estimatedMinutes: 60,
+    description: 'Real watch time retention (3-5 mins per view). Monetization safe.',
+    active: true
+  },
+  {
+    id: 'soc_srv_5',
+    platform: 'YouTube',
+    serviceName: 'YouTube Channel Subscribers [Real]',
+    serviceType: 'Subscribers',
+    pricePer1000: 4.50,
+    minQuantity: 100,
+    maxQuantity: 10000,
+    estimatedMinutes: 120,
+    description: 'Gradual organic drip feed to prevent drops.',
+    active: true
+  },
+  {
+    id: 'soc_srv_6',
+    platform: 'TikTok',
+    serviceName: 'TikTok Video Views [Instant Speed]',
+    serviceType: 'Views',
+    pricePer1000: 0.20,
+    minQuantity: 1000,
+    maxQuantity: 1000000,
+    estimatedMinutes: 10,
+    description: 'Boost your FYP algorithm exposure instantly.',
+    active: true
+  },
+  {
+    id: 'soc_srv_7',
+    platform: 'TikTok',
+    serviceName: 'TikTok Profile Followers',
+    serviceType: 'Followers',
+    pricePer1000: 1.80,
+    minQuantity: 100,
+    maxQuantity: 50000,
+    estimatedMinutes: 45,
+    description: 'Real active users. Drip feed enabled.',
+    active: true
+  },
+  {
+    id: 'soc_srv_8',
+    platform: 'Telegram',
+    serviceName: 'Telegram Channel Members [Global]',
+    serviceType: 'Followers',
+    pricePer1000: 0.80,
+    minQuantity: 500,
+    maxQuantity: 200000,
+    estimatedMinutes: 20,
+    description: 'Public & private channel support.',
+    active: true
+  }
+];
+
+export const INITIAL_SOCIAL_CAMPAIGNS = [
+  {
+    id: 'soc_cmp_101',
+    userId: 'usr_2',
+    userName: 'Alex Vance',
+    serviceId: 'soc_srv_1',
+    platform: 'Instagram',
+    serviceName: 'Instagram Real Followers [HQ Fast]',
+    targetLink: 'https://instagram.com/alexvance_official',
+    quantity: 5000,
+    pricePer1000: 1.20,
+    totalCost: 6.00,
+    estimatedMinutes: 30,
+    status: 'in_progress',
+    createdAt: '2026-07-24T14:00:00Z'
+  },
+  {
+    id: 'soc_cmp_102',
+    userId: 'usr_2',
+    userName: 'Alex Vance',
+    serviceId: 'soc_srv_4',
+    platform: 'YouTube',
+    serviceName: 'YouTube High Retention Video Views',
+    targetLink: 'https://youtube.com/watch?v=demo12345',
+    quantity: 10000,
+    pricePer1000: 1.50,
+    totalCost: 15.00,
+    estimatedMinutes: 60,
+    status: 'pending',
+    createdAt: '2026-07-25T08:30:00Z'
+  }
+];
+
+
 

@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import {
   LayoutDashboard, ShoppingCart, Layers, Wallet, BarChart3,
   Ticket, User, Settings, ShieldAlert, LogOut, Bell, Sun, Moon,
-  Activity, Plus, Check, ChevronRight, Menu, X, ArrowUpRight, Users
+  Activity, Plus, Check, ChevronRight, Menu, X, ArrowUpRight, Users, Share2
 } from 'lucide-react';
 import { useStore } from '../lib/store';
 
@@ -27,6 +27,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ currentTab, on
   const navItems = [
     { id: 'overview', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'campaigns', label: 'Campaigns & Traffic', icon: Layers, highlight: true },
+    { id: 'social_ads', label: 'Social Ads SMM', icon: Share2, highlight: false },
     { id: 'wallet', label: 'Wallet & Deposit', icon: Wallet },
     { id: 'analytics', label: 'Analytics', icon: BarChart3 },
     { id: 'support', label: 'Support Tickets', icon: Ticket },

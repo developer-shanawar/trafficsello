@@ -149,6 +149,38 @@ CREATE TABLE IF NOT EXISTS public.testimonials (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- SOCIAL ADVERTISING TABLES
+CREATE TABLE IF NOT EXISTS public.social_services (
+  id TEXT PRIMARY KEY,
+  platform TEXT NOT NULL,
+  service_name TEXT NOT NULL,
+  service_type TEXT NOT NULL,
+  price_per_1000 NUMERIC(10,2) NOT NULL,
+  min_quantity INT DEFAULT 100,
+  max_quantity INT DEFAULT 100000,
+  estimated_minutes INT DEFAULT 30,
+  description TEXT,
+  active BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS public.social_campaigns (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  user_name TEXT,
+  service_id TEXT NOT NULL,
+  platform TEXT NOT NULL,
+  service_name TEXT NOT NULL,
+  target_link TEXT NOT NULL,
+  quantity INT NOT NULL,
+  price_per_1000 NUMERIC(10,2) NOT NULL,
+  total_cost NUMERIC(10,2) NOT NULL,
+  estimated_minutes INT DEFAULT 30,
+  status TEXT DEFAULT 'pending',
+  admin_note TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- VIEWS FOR ALIASED COMPATIBILITY
 CREATE OR REPLACE VIEW public.deposits AS SELECT * FROM public.payment_deposits;
 CREATE OR REPLACE VIEW public.tickets AS SELECT * FROM public.support_tickets;
@@ -162,6 +194,25 @@ ALTER TABLE public.support_tickets DISABLE ROW LEVEL SECURITY;
 ALTER TABLE public.notifications DISABLE ROW LEVEL SECURITY;
 ALTER TABLE public.platform_settings DISABLE ROW LEVEL SECURITY;
 ALTER TABLE public.testimonials DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.social_services DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.social_campaigns DISABLE ROW LEVEL SECURITY;
+
+-- ENABLE REALTIME PUBLICATION ON ALL TABLES FOR LIVE MESSAGES, DEPOSITS, & BALANCE UPDATES
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_publication WHERE pubname = 'supabase_realtime') THEN
+    CREATE PUBLICATION supabase_realtime;
+  END IF;
+END $$;
+
+ALTER PUBLICATION supabase_realtime ADD TABLE public.users;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.payment_deposits;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.support_tickets;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.notifications;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.campaigns;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.transactions;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.social_services;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.social_campaigns;
 
 -- SEED INITIAL MASTER ADMIN USER
 INSERT INTO public.users (id, email, password, full_name, telegram, whats_app, wallet_balance, role, created_at, avatar, country, is_verified)

@@ -10,6 +10,7 @@ import { ReportModal } from './components/ReportModal';
 import { LegalPages } from './components/LegalPages';
 import { StandalonePage } from './components/StandalonePage';
 import { DashboardLayout } from './components/DashboardLayout';
+import { SocialAdsSection } from './components/SocialAdsSection';
 
 import { OverviewView } from './components/dashboard/OverviewView';
 import { BuyTrafficView } from './components/dashboard/BuyTrafficView';
@@ -52,99 +53,170 @@ function AppContent() {
     });
   }, [platformSettings?.siteName, platformSettings?.siteIconUrl]);
 
-  // Auto redirect on user signout
+  // Clean URL Path parser & route listener (No hash symbols)
   React.useEffect(() => {
-    if (!user && currentView === 'dashboard') {
-      setCurrentView('landing');
-      if (window.location.hash !== '#landing') {
-        window.history.replaceState(null, '', '#landing');
+    const parseUrlRoute = () => {
+      let path = window.location.pathname.toLowerCase();
+      // Handle legacy hash URLs if present
+      if (window.location.hash) {
+        const hashVal = window.location.hash.replace('#', '').toLowerCase();
+        if (hashVal) {
+          if (hashVal === 'about') path = '/about-us';
+          else path = '/' + hashVal;
+          window.history.replaceState(null, '', path);
+        }
       }
-    }
-  }, [user, currentView]);
 
-  // SEO Friendly URL slug/hash sync
-  React.useEffect(() => {
-    const handleHashChange = () => {
-      const hash = window.location.hash.replace('#', '').toLowerCase();
-      if (!hash || hash === 'landing' || hash === 'home') {
+      if (path === '/' || path === '/landing' || path === '/home') {
         setCurrentView('landing');
-      } else if (hash === 'login') {
+      } else if (path === '/login') {
         setCurrentView('login');
-      } else if (hash === 'register') {
+      } else if (path === '/register') {
         setCurrentView('register');
-      } else if (hash === 'about') {
+      } else if (path === '/about-us' || path === '/about') {
         setCurrentView('standalone-about');
-      } else if (hash === 'privacy') {
+      } else if (path === '/privacy') {
         setCurrentView('standalone-privacy');
-      } else if (hash === 'terms') {
+      } else if (path === '/terms') {
         setCurrentView('standalone-terms');
-      } else if (hash === 'refund') {
+      } else if (path === '/refund') {
         setCurrentView('standalone-refund');
-      } else if (hash === 'admin') {
+      } else if (path.startsWith('/advertiser') || path === '/dashboard' || path === '/overview') {
+        if (user) {
+          setCurrentView('dashboard');
+          setDashboardTab('overview');
+        } else {
+          setCurrentView('login');
+        }
+      } else if (path === '/campaigns' || path === '/buy-traffic') {
+        if (user) {
+          setCurrentView('dashboard');
+          setDashboardTab('campaigns');
+        } else {
+          setCurrentView('login');
+        }
+      } else if (path === '/social-ads' || path === '/social') {
+        if (user) {
+          setCurrentView('dashboard');
+          setDashboardTab('social_ads');
+        } else {
+          setCurrentView('login');
+        }
+      } else if (path === '/wallet') {
+        if (user) {
+          setCurrentView('dashboard');
+          setDashboardTab('wallet');
+        } else {
+          setCurrentView('login');
+        }
+      } else if (path === '/analytics') {
+        if (user) {
+          setCurrentView('dashboard');
+          setDashboardTab('analytics');
+        } else {
+          setCurrentView('login');
+        }
+      } else if (path === '/support') {
+        if (user) {
+          setCurrentView('dashboard');
+          setDashboardTab('support');
+        } else {
+          setCurrentView('login');
+        }
+      } else if (path === '/profile') {
+        if (user) {
+          setCurrentView('dashboard');
+          setDashboardTab('profile');
+        } else {
+          setCurrentView('login');
+        }
+      } else if (path === '/settings') {
+        if (user) {
+          setCurrentView('dashboard');
+          setDashboardTab('settings');
+        } else {
+          setCurrentView('login');
+        }
+      } else if (path === '/admin') {
         if (user) {
           setCurrentView('dashboard');
           setDashboardTab('admin');
         } else {
           setCurrentView('login');
         }
-      } else if (['overview', 'buy-traffic', 'campaigns', 'wallet', 'analytics', 'support', 'profile', 'settings'].includes(hash)) {
-        if (user) {
-          setCurrentView('dashboard');
-          setDashboardTab(hash);
-        } else {
-          setCurrentView('login');
-        }
       }
     };
 
-    handleHashChange();
-    window.addEventListener('hashchange', handleHashChange);
-    return () => window.removeEventListener('hashchange', handleHashChange);
+    parseUrlRoute();
+    window.addEventListener('popstate', parseUrlRoute);
+    return () => window.removeEventListener('popstate', parseUrlRoute);
   }, [user]);
 
-  // Update hash when view or tab changes
-  const changeViewWithHash = (view: string, tab?: string) => {
+  // Clean navigation helper with history.pushState
+  const navigateToRoute = (view: string, tab?: string) => {
     setCurrentView(view);
-    if (view.startsWith('standalone-')) {
-      const pageKey = view.replace('standalone-', '');
-      window.history.pushState(null, '', `#${pageKey}`);
-    } else if (view === 'landing' || view === 'login' || view === 'register' || view === 'about') {
-      window.history.pushState(null, '', `#${view}`);
+    let targetPath = '/';
+
+    if (view === 'landing') {
+      targetPath = '/';
+    } else if (view === 'login') {
+      targetPath = '/login';
+    } else if (view === 'register') {
+      targetPath = '/register';
+    } else if (view === 'standalone-about') {
+      targetPath = '/about-us';
+    } else if (view === 'standalone-privacy') {
+      targetPath = '/privacy';
+    } else if (view === 'standalone-terms') {
+      targetPath = '/terms';
+    } else if (view === 'standalone-refund') {
+      targetPath = '/refund';
     } else if (view === 'dashboard' && tab) {
       setDashboardTab(tab);
-      window.history.pushState(null, '', `#${tab}`);
+      if (tab === 'overview') {
+        const uname = user?.username || (user?.email ? user.email.split('@')[0] : 'user');
+        targetPath = `/advertiser/${uname}`;
+      } else if (tab === 'social_ads') {
+        targetPath = '/social-ads';
+      } else {
+        targetPath = `/${tab}`;
+      }
+    }
+
+    if (window.location.pathname !== targetPath) {
+      window.history.pushState(null, '', targetPath);
     }
   };
 
   const handleOpenAuth = (mode: 'login' | 'register') => {
-    changeViewWithHash(mode);
+    navigateToRoute(mode);
   };
 
   const handleNavigateView = (view: string) => {
     if (view === 'about') {
-      changeViewWithHash('standalone-about');
+      navigateToRoute('standalone-about');
     } else if (view === 'privacy') {
-      changeViewWithHash('standalone-privacy');
+      navigateToRoute('standalone-privacy');
     } else if (view === 'terms') {
-      changeViewWithHash('standalone-terms');
+      navigateToRoute('standalone-terms');
     } else if (view === 'refund') {
-      changeViewWithHash('standalone-refund');
+      navigateToRoute('standalone-refund');
     } else if (view === 'landing' || view === 'login' || view === 'register') {
-      changeViewWithHash(view);
+      navigateToRoute(view);
     } else {
       if (!user) {
-        changeViewWithHash('login');
+        navigateToRoute('login');
         return;
       }
-      changeViewWithHash('dashboard', view);
+      navigateToRoute('dashboard', view);
     }
   };
 
   const handleStartCalculatorCampaign = (details: any) => {
     if (!user) {
-      changeViewWithHash('register');
+      navigateToRoute('register');
     } else {
-      changeViewWithHash('dashboard', 'campaigns');
+      navigateToRoute('dashboard', 'campaigns');
     }
   };
 
@@ -194,7 +266,7 @@ function AppContent() {
           <main className="flex-1">
             <StandalonePage
               page={currentView.replace('standalone-', '') as 'about' | 'privacy' | 'terms' | 'refund'}
-              onNavigateHome={() => changeViewWithHash('landing')}
+              onNavigateHome={() => navigateToRoute('landing')}
             />
           </main>
           <Footer onOpenLegal={(type) => handleNavigateView(type)} />
@@ -261,6 +333,8 @@ function AppContent() {
               onOpenReport={(cmp) => setReportCampaign(cmp)}
             />
           )}
+
+          {dashboardTab === 'social_ads' && <SocialAdsSection />}
 
           {dashboardTab === 'wallet' && <WalletView />}
 
