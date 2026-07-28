@@ -58,6 +58,13 @@ function AppContent() {
   // Route parser & hash listener with robust Fallback strategy for unknown routes
   React.useEffect(() => {
     const parseUrlRoute = () => {
+      // Catch referral query parameter from URL
+      const urlParams = new URLSearchParams(window.location.search);
+      const refParam = urlParams.get('ref') || urlParams.get('referral') || urlParams.get('ref_id');
+      if (refParam) {
+        localStorage.setItem('trafficsell_ref', refParam.trim());
+      }
+
       let rawPath = window.location.pathname.toLowerCase();
       let rawHash = window.location.hash.replace('#', '').replace('/', '').toLowerCase();
 
@@ -66,6 +73,12 @@ function AppContent() {
 
       // Sanitize standard path prefixes
       if (routeKey.startsWith('advertiser')) routeKey = 'overview';
+
+      // If user comes via a referral link and is not logged in, take them to register page directly
+      if (refParam && !user) {
+        setCurrentView('register');
+        return;
+      }
 
       if (routeKey === '' || routeKey === 'landing' || routeKey === 'home') {
         setCurrentView('landing');

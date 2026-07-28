@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Mail, Lock, User, Phone, Send, Sparkles, ShieldCheck, ArrowRight, MailCheck, RefreshCw } from 'lucide-react';
+import { X, Mail, Lock, User, Phone, Send, Sparkles, ShieldCheck, ArrowRight, MailCheck, RefreshCw, Gift } from 'lucide-react';
 import { useStore } from '../lib/store';
 
 interface AuthModalProps {
@@ -20,8 +20,20 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, initialMode, onClo
   const [confirmPassword, setConfirmPassword] = useState('');
   const [telegram, setTelegram] = useState('');
   const [whatsApp, setWhatsApp] = useState('');
+  const [referralCode, setReferralCode] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlRef = urlParams.get('ref') || urlParams.get('referral') || urlParams.get('ref_id');
+    const storedRef = localStorage.getItem('trafficsell_ref');
+    const activeRef = urlRef || storedRef || '';
+
+    if (activeRef) {
+      setReferralCode(activeRef);
+    }
+  }, [isOpen]);
 
   // Email Confirmation State
   const [confirmationSent, setConfirmationSent] = useState(false);
@@ -43,7 +55,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, initialMode, onClo
           setLoading(false);
           return;
         }
-        const res = await register({ fullName, email, password, telegram, whatsApp });
+        const res = await register({ fullName, email, password, telegram, whatsApp, referralCode });
         setLoading(false);
 
         if (res.requiresEmailConfirmation) {
@@ -249,6 +261,20 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, initialMode, onClo
                             className="w-full pl-8 pr-2 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#DFFF2F]"
                           />
                         </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-300 mb-1">Referral Code (Optional)</label>
+                      <div className="relative">
+                        <Gift className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-3" />
+                        <input
+                          type="text"
+                          placeholder="e.g. REF_A1B2C3"
+                          value={referralCode}
+                          onChange={(e) => setReferralCode(e.target.value)}
+                          className="w-full pl-8 pr-2 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs font-mono uppercase text-white placeholder-slate-500 focus:outline-none focus:border-[#DFFF2F]"
+                        />
                       </div>
                     </div>
                   </>

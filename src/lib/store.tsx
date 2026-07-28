@@ -929,7 +929,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return true;
   };
 
-  const register = async (data: { fullName: string; email: string; password?: string; telegram?: string; whatsApp?: string }): Promise<{ success: boolean; requiresEmailConfirmation: boolean; email: string }> => {
+  const register = async (data: { fullName: string; email: string; password?: string; telegram?: string; whatsApp?: string; referralCode?: string }): Promise<{ success: boolean; requiresEmailConfirmation: boolean; email: string }> => {
     const isMasterAdmin = data.email.toLowerCase() === 'developershanawar@gmail.com';
     const cleanEmail = data.email.trim().toLowerCase();
 
@@ -977,18 +977,36 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       }
     }
 
-    // Generate unique referral code & check stored referrer
+    // Generate unique referral code & check provided or stored referrer
     const newRefCode = `REF_${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
-    const storedRefParam = localStorage.getItem('trafficsell_ref');
+    const targetRefCode = (data.referralCode || localStorage.getItem('trafficsell_ref') || '').trim();
     let referrerId = '';
-    if (storedRefParam) {
+
+    if (targetRefCode) {
+      // 1. Check local state
       const foundReferrer = allUsers.find(
-        u => u.id === storedRefParam ||
-             (u.referralCode && u.referralCode.toLowerCase() === storedRefParam.toLowerCase()) ||
-             u.email.toLowerCase() === storedRefParam.toLowerCase()
+        u => u.id === targetRefCode ||
+             (u.referralCode && u.referralCode.toLowerCase() === targetRefCode.toLowerCase()) ||
+             u.email.toLowerCase() === targetRefCode.toLowerCase()
       );
+
       if (foundReferrer && foundReferrer.email.toLowerCase() !== cleanEmail) {
         referrerId = foundReferrer.id;
+      } else {
+        // 2. Query Supabase directly
+        try {
+          const { data: dbRefUser } = await supabase
+            .from('users')
+            .select('id, email')
+            .or(`referral_code.ilike.${targetRefCode},id.eq.${targetRefCode},email.ilike.${targetRefCode}`)
+            .limit(1);
+
+          if (dbRefUser && dbRefUser.length > 0 && dbRefUser[0].email.toLowerCase() !== cleanEmail) {
+            referrerId = dbRefUser[0].id;
+          }
+        } catch (e) {
+          console.warn('Referrer lookup notice:', e);
+        }
       }
     }
 

@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
-  ArrowLeft, Mail, Lock, User, Phone, Send, Sparkles, CheckCircle2, ArrowRight, RefreshCw, MailCheck
+  ArrowLeft, Mail, Lock, User, Phone, Send, Sparkles, CheckCircle2, ArrowRight, RefreshCw, MailCheck, Gift
 } from 'lucide-react';
 import { useStore } from '../lib/store';
 
@@ -23,6 +23,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
   const [confirmPassword, setConfirmPassword] = useState('');
   const [telegram, setTelegram] = useState('');
   const [whatsApp, setWhatsApp] = useState('');
+  const [referralCode, setReferralCode] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -31,6 +32,21 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
   const [submittedEmail, setSubmittedEmail] = useState('');
   const [resending, setResending] = useState(false);
   const [resendStatus, setResendStatus] = useState('');
+
+  // Auto detect referral code from URL or localStorage
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlRef = urlParams.get('ref') || urlParams.get('referral') || urlParams.get('ref_id');
+    const storedRef = localStorage.getItem('trafficsell_ref');
+    const activeRef = urlRef || storedRef || '';
+
+    if (activeRef) {
+      setReferralCode(activeRef);
+      if (urlRef) {
+        localStorage.setItem('trafficsell_ref', urlRef);
+      }
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,7 +59,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
 
     setLoading(true);
     try {
-      const res = await register({ fullName, email, password, telegram, whatsApp });
+      const res = await register({ fullName, email, password, telegram, whatsApp, referralCode });
       setLoading(false);
 
       if (res.requiresEmailConfirmation) {
@@ -295,6 +311,30 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
                         className="w-full pl-9 pr-3 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-2xl text-xs font-medium text-[#111827] dark:text-white placeholder-slate-400 focus:outline-none focus:border-[#111827] dark:focus:border-[#DFFF2F] shadow-sm"
                       />
                     </div>
+                  </div>
+                </div>
+
+                {/* Referral Code Field */}
+                <div className="pt-1">
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs font-bold text-[#111827] dark:text-slate-300">
+                      Referral Code (Optional)
+                    </label>
+                    {referralCode && (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/50 px-2 py-0.5 rounded-full border border-amber-200 dark:border-amber-800">
+                        <Gift className="w-3 h-3" /> Partner Code Applied
+                      </span>
+                    )}
+                  </div>
+                  <div className="relative">
+                    <Gift className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+                    <input
+                      type="text"
+                      placeholder="e.g. REF_A1B2C3"
+                      value={referralCode}
+                      onChange={(e) => setReferralCode(e.target.value)}
+                      className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-2xl text-xs font-mono uppercase font-bold text-[#111827] dark:text-white placeholder-slate-400 focus:outline-none focus:border-[#111827] dark:focus:border-[#DFFF2F] shadow-sm"
+                    />
                   </div>
                 </div>
 
