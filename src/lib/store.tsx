@@ -95,6 +95,9 @@ interface StoreContextType {
 const StoreContext = createContext<StoreContextType | undefined>(undefined);
 
 export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  // Client IP state
+  const [clientIp, setClientIp] = useState<string>('182.185.120.44');
+
   // Currency state
   const [currency, setCurrencyState] = useState<CurrencyCode>(() => {
     const saved = localStorage.getItem('trafficsell_currency');
@@ -723,9 +726,6 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const toggleTheme = () => {
     setTheme(prev => (prev === 'dark' ? 'light' : 'dark'));
   };
-
-  // Client IP state
-  const [clientIp, setClientIp] = useState<string>('182.185.120.44');
 
   useEffect(() => {
     fetch('https://api.ipify.org?format=json')
