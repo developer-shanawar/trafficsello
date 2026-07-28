@@ -21,6 +21,7 @@ import { AnalyticsView } from './components/dashboard/AnalyticsView';
 import { SupportTicketsView } from './components/dashboard/SupportTicketsView';
 import { ProfileView } from './components/dashboard/ProfileView';
 import { SettingsView } from './components/dashboard/SettingsView';
+import { ReferralView } from './components/dashboard/ReferralView';
 import { AdminDashboard } from './components/admin/AdminDashboard';
 import { Campaign } from './types';
 
@@ -105,6 +106,13 @@ function AppContent() {
         if (user) {
           setCurrentView('dashboard');
           setDashboardTab('wallet');
+        } else {
+          setCurrentView('login');
+        }
+      } else if (routeKey === 'referral' || routeKey === 'referrals') {
+        if (user) {
+          setCurrentView('dashboard');
+          setDashboardTab('referrals');
         } else {
           setCurrentView('login');
         }
@@ -361,6 +369,8 @@ function AppContent() {
           {dashboardTab === 'social_ads' && <SocialAdsSection />}
 
           {dashboardTab === 'wallet' && <WalletView />}
+
+          {(dashboardTab === 'referrals' || dashboardTab === 'referral') && <ReferralView />}
 
           {dashboardTab === 'analytics' && <AnalyticsView />}
 

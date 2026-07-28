@@ -32,6 +32,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ currentTab, on
     { id: 'campaigns', label: 'Campaigns & Traffic', icon: Layers, highlight: true },
     { id: 'social_ads', label: 'Social Ads SMM', icon: Share2, highlight: false },
     { id: 'wallet', label: 'Wallet & Deposit', icon: Wallet },
+    { id: 'referrals', label: 'Referral Program (5%)', icon: Users, highlight: true },
     { id: 'analytics', label: 'Analytics', icon: BarChart3 },
     { id: 'support', label: 'Support Tickets', icon: Ticket },
     { id: 'profile', label: 'My Profile', icon: User },

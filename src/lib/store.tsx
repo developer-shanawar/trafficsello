@@ -3,7 +3,7 @@ import { supabase } from './supabase';
 import {
   UserProfile, Campaign, PaymentDeposit, WalletTransaction,
   SupportTicket, AppNotification, PlatformSettings, CampaignStatus, UserRole, Testimonial,
-  SocialService, SocialCampaign, CurrencyCode, CurrencyConfig
+  SocialService, SocialCampaign, CurrencyCode, CurrencyConfig, ReferralRecord
 } from '../types';
 import {
   DEFAULT_SETTINGS, INITIAL_USERS, INITIAL_CAMPAIGNS,
@@ -89,6 +89,11 @@ interface StoreContextType {
     totalSpent: number;
     currentBalance: number;
   };
+
+  // Referral System
+  referrals: ReferralRecord[];
+  getReferralLink: (user?: UserProfile | null) => string;
+
   resetToInitialData: () => void;
 }
 
@@ -245,6 +250,34 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return saved ? JSON.parse(saved) : INITIAL_SOCIAL_CAMPAIGNS;
   });
 
+  const [referrals, setReferrals] = useState<ReferralRecord[]>(() => {
+    const saved = localStorage.getItem('trafficsell_referrals');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  useEffect(() => {
+    localStorage.setItem('trafficsell_referrals', JSON.stringify(referrals));
+  }, [referrals]);
+
+  // Capture referral parameter from URL on load
+  useEffect(() => {
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      let refCode = urlParams.get('ref') || urlParams.get('ref_code') || urlParams.get('referrer');
+      if (!refCode && window.location.hash.includes('ref=')) {
+        const match = window.location.hash.match(/ref=([^&]+)/);
+        if (match) refCode = match[1];
+      }
+      if (refCode) {
+        const cleanRef = refCode.trim();
+        localStorage.setItem('trafficsell_ref', cleanRef);
+        console.log('📌 Captured referral parameter:', cleanRef);
+      }
+    } catch (e) {
+      // ignore
+    }
+  }, []);
+
   useEffect(() => {
     localStorage.setItem('trafficsell_testimonials', JSON.stringify(testimonials));
   }, [testimonials]);
@@ -315,7 +348,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           isSuspended: u.is_suspended ?? false,
           suspendedReason: u.suspended_reason || '',
           avatar: u.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=250',
-          createdAt: u.created_at || new Date().toISOString()
+          createdAt: u.created_at || new Date().toISOString(),
+          referralCode: u.referral_code || u.referral_id || `REF_${u.id.replace(/[^a-zA-Z0-9]/g, '').substring(0, 6).toUpperCase()}`,
+          referredBy: u.referred_by || '',
+          totalReferralEarnings: Number(u.total_referral_earnings || 0)
         }));
         setAllUsers(mappedUsers);
 
@@ -507,6 +543,22 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         }));
         setSocialCampaigns(mappedSocCampaigns);
       }
+
+      // 11. Referrals
+      const { data: dbRefs } = await supabase.from('referrals').select('*');
+      if (dbRefs && dbRefs.length > 0) {
+        const mappedRefs: ReferralRecord[] = dbRefs.map(r => ({
+          id: r.id,
+          referrerId: r.referrer_id,
+          referredUserId: r.referred_user_id,
+          referredUserName: r.referred_user_name || 'User',
+          referredUserEmail: r.referred_user_email || '',
+          depositAmount: Number(r.deposit_amount || 0),
+          commissionAmount: Number(r.commission_amount || 0),
+          createdAt: r.created_at || new Date().toISOString()
+        }));
+        setReferrals(mappedRefs);
+      }
     } catch (err) {
       console.warn('Supabase initial load notice:', err);
     }
@@ -540,11 +592,18 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         const cleanEmail = authUser.email?.trim().toLowerCase();
         if (!cleanEmail) return;
 
+        // Check if coming directly from confirmation link
+        const isConfirmationLinkClick = window.location.hash.includes('access_token') ||
+                                        window.location.search.includes('code=') ||
+                                        window.location.hash.includes('type=signup') ||
+                                        window.location.hash.includes('type=email_confirmation');
+
         // Query database table for user profile
         const { data: dbUsers } = await supabase.from('users').select('*').eq('email', cleanEmail);
         let userRecord = dbUsers && dbUsers.length > 0 ? dbUsers[0] : null;
 
         const isMasterAdmin = cleanEmail === 'developershanawar@gmail.com';
+        const wasUnverifiedBefore = userRecord ? userRecord.is_verified === false : false;
 
         if (!userRecord) {
           const meta = authUser.user_metadata || {};
@@ -594,7 +653,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             is_suspended: false,
             created_at: newProfile.createdAt
           };
-        } else {
+        } else if (userRecord.is_verified === false) {
           // Mark account verified in Supabase
           await supabase.from('users').update({ is_verified: true }).eq('email', cleanEmail);
           userRecord.is_verified = true;
@@ -619,12 +678,19 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           createdAt: userRecord.created_at || new Date().toISOString(),
           ipAddress: clientIp,
           lastLoginIp: clientIp,
+          referralCode: userRecord.referral_code || userRecord.referral_id || `REF_${userRecord.id.replace(/[^a-zA-Z0-9]/g, '').substring(0, 6).toUpperCase()}`,
+          referredBy: userRecord.referred_by || '',
+          totalReferralEarnings: Number(userRecord.total_referral_earnings || 0)
         };
 
         setUser(activeProfile);
         setAllUsers(prev => [...prev.filter(u => u.id !== activeProfile.id), activeProfile]);
 
-        triggerToast('🎉 Account Verified!', 'Your email has been confirmed successfully. Welcome to TrafficSell!', 'success');
+        // ONLY trigger account verified toast IF user actually clicked a confirmation link OR was unverified in DB, and hasn't been notified yet in this browser session
+        if ((isConfirmationLinkClick || wasUnverifiedBefore) && !sessionStorage.getItem('trafficsell_email_verified_notified')) {
+          triggerToast('🎉 Account Verified!', 'Your email has been confirmed successfully. Welcome to TrafficSell!', 'success');
+          sessionStorage.setItem('trafficsell_email_verified_notified', 'true');
+        }
 
         // Clean up verification hash/query params from URL
         if (window.location.hash.includes('access_token') || window.location.search.includes('code=')) {
@@ -911,6 +977,21 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       }
     }
 
+    // Generate unique referral code & check stored referrer
+    const newRefCode = `REF_${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+    const storedRefParam = localStorage.getItem('trafficsell_ref');
+    let referrerId = '';
+    if (storedRefParam) {
+      const foundReferrer = allUsers.find(
+        u => u.id === storedRefParam ||
+             (u.referralCode && u.referralCode.toLowerCase() === storedRefParam.toLowerCase()) ||
+             u.email.toLowerCase() === storedRefParam.toLowerCase()
+      );
+      if (foundReferrer && foundReferrer.email.toLowerCase() !== cleanEmail) {
+        referrerId = foundReferrer.id;
+      }
+    }
+
     const newUser: UserProfile = {
       id: `usr_${Date.now()}`,
       email: cleanEmail,
@@ -926,7 +1007,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       registrationIp: clientIp,
       lastLoginIp: clientIp,
       isVerified: !requiresConfirmation,
-      isSuspended: false
+      isSuspended: false,
+      referralCode: newRefCode,
+      referredBy: referrerId,
+      totalReferralEarnings: 0
     };
 
     const { error: dbErr } = await supabase.from('users').upsert([{
@@ -941,7 +1025,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       avatar: newUser.avatar,
       is_verified: !requiresConfirmation,
       is_suspended: false,
-      created_at: newUser.createdAt
+      created_at: newUser.createdAt,
+      referral_code: newUser.referralCode,
+      referred_by: newUser.referredBy || null,
+      total_referral_earnings: 0
     }], { onConflict: 'email' });
 
     if (dbErr) {
@@ -1222,6 +1309,107 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }]).then();
 
     sendNativeNotification('TrafficSell Deposit Approved! 🎉', `$${deposit.amount.toFixed(2)} deposit + ${bonusAmount.toFixed(2)} bonus credited to your TrafficSell wallet!`);
+
+    // --- 5% REFERRAL COMMISSION PROCESSING ---
+    if (targetUser && (targetUser.referredBy || (targetUser as any).referred_by)) {
+      const referrerId = targetUser.referredBy || (targetUser as any).referred_by;
+      const referrer = allUsers.find(u => u.id === referrerId || u.referralCode === referrerId);
+
+      if (referrer && referrer.id !== targetUser.id) {
+        const refCommission = deposit.amount * 0.05; // 5% commission
+        const referrerNewBal = referrer.walletBalance + refCommission;
+        const referrerNewEarnings = (referrer.totalReferralEarnings || 0) + refCommission;
+
+        // Update referrer in state
+        setAllUsers(prev => prev.map(u => u.id === referrer.id ? {
+          ...u,
+          walletBalance: referrerNewBal,
+          totalReferralEarnings: referrerNewEarnings
+        } : u));
+
+        if (user && user.id === referrer.id) {
+          setUser(prev => prev ? {
+            ...prev,
+            walletBalance: referrerNewBal,
+            totalReferralEarnings: referrerNewEarnings
+          } : null);
+        }
+
+        // Persist to Supabase users table
+        supabase.from('users').update({
+          wallet_balance: referrerNewBal,
+          total_referral_earnings: referrerNewEarnings
+        }).eq('id', referrer.id).then();
+
+        // Add commission transaction log
+        const refTx: WalletTransaction = {
+          id: `tx_ref_${Date.now()}`,
+          userId: referrer.id,
+          type: 'deposit',
+          amount: refCommission,
+          description: `🎁 5% Referral Commission from $${deposit.amount.toFixed(2)} deposit by ${deposit.userName}`,
+          status: 'completed',
+          createdAt: new Date().toISOString()
+        };
+        setTransactions(prev => [refTx, ...prev]);
+
+        supabase.from('transactions').insert([{
+          id: refTx.id,
+          user_id: refTx.userId,
+          type: refTx.type,
+          amount: refTx.amount,
+          description: refTx.description,
+          status: refTx.status,
+          created_at: refTx.createdAt
+        }]).then();
+
+        // Create Referral Record
+        const refRecord: ReferralRecord = {
+          id: `ref_${Date.now()}`,
+          referrerId: referrer.id,
+          referredUserId: targetUser.id,
+          referredUserName: targetUser.fullName || deposit.userName,
+          referredUserEmail: targetUser.email || deposit.userEmail,
+          depositAmount: deposit.amount,
+          commissionAmount: refCommission,
+          createdAt: new Date().toISOString()
+        };
+        setReferrals(prev => [refRecord, ...prev]);
+
+        supabase.from('referrals').insert([{
+          id: refRecord.id,
+          referrer_id: refRecord.referrerId,
+          referred_user_id: refRecord.referredUserId,
+          referred_user_name: refRecord.referredUserName,
+          referred_user_email: refRecord.referredUserEmail,
+          deposit_amount: refRecord.depositAmount,
+          commission_amount: refRecord.commissionAmount,
+          created_at: refRecord.createdAt
+        }]).then();
+
+        // Send App Notification to Referrer
+        const refNotif: AppNotification = {
+          id: `ntf_ref_${Date.now()}`,
+          userId: referrer.id,
+          title: '🎁 5% Referral Bonus Earned!',
+          message: `You earned a $${refCommission.toFixed(2)} referral bonus (5%) from ${deposit.userName}'s deposit of $${deposit.amount.toFixed(2)}.`,
+          type: 'payment',
+          read: false,
+          createdAt: new Date().toISOString()
+        };
+        setNotifications(prev => [refNotif, ...prev]);
+
+        supabase.from('notifications').insert([{
+          id: refNotif.id,
+          user_id: refNotif.userId,
+          title: refNotif.title,
+          message: refNotif.message,
+          type: refNotif.type,
+          read: false,
+          created_at: refNotif.createdAt
+        }]).then();
+      }
+    }
   };
 
   const rejectDeposit = (depositId: string, adminNote?: string) => {
@@ -1748,6 +1936,13 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     supabase.from('users').update({ is_suspended: isSuspended }).eq('id', userId).then();
   };
 
+  const getReferralLink = (targetUser?: UserProfile | null) => {
+    const u = targetUser || user;
+    if (!u) return `${window.location.origin}/?ref=join`;
+    const code = u.referralCode || u.id;
+    return `${window.location.origin}/?ref=${code}`;
+  };
+
   const resetToInitialData = () => {
     setAllUsers(INITIAL_USERS);
     setCampaigns(INITIAL_CAMPAIGNS);
@@ -1757,6 +1952,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setNotifications(INITIAL_NOTIFICATIONS);
     setTestimonials(INITIAL_TESTIMONIALS);
     setPlatformSettings(DEFAULT_SETTINGS);
+    setReferrals([]);
     localStorage.setItem('trafficsell_users', JSON.stringify(INITIAL_USERS));
     localStorage.setItem('trafficsell_campaigns', JSON.stringify(INITIAL_CAMPAIGNS));
     localStorage.setItem('trafficsell_payments', JSON.stringify(INITIAL_PAYMENTS));
@@ -1765,6 +1961,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     localStorage.setItem('trafficsell_notifications', JSON.stringify(INITIAL_NOTIFICATIONS));
     localStorage.setItem('trafficsell_testimonials', JSON.stringify(INITIAL_TESTIMONIALS));
     localStorage.setItem('trafficsell_settings', JSON.stringify(DEFAULT_SETTINGS));
+    localStorage.removeItem('trafficsell_referrals');
   };
 
   return (
@@ -1778,7 +1975,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       notifications, markNotificationRead, sendAdminNotification,
       platformSettings, updatePlatformSettings,
       testimonials, addTestimonial, updateTestimonial, deleteTestimonial,
-      updateProfile, allUsers, updateUserBalanceByAdmin, toggleUserSuspension, getUserStats, resetToInitialData
+      updateProfile, allUsers, updateUserBalanceByAdmin, toggleUserSuspension, getUserStats,
+      referrals, getReferralLink,
+      resetToInitialData
     }}>
       {children}
     </StoreContext.Provider>

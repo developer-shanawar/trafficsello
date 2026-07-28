@@ -31,6 +31,20 @@ export interface UserProfile {
   ipAddress?: string;
   registrationIp?: string;
   lastLoginIp?: string;
+  referralCode?: string;
+  referredBy?: string;
+  totalReferralEarnings?: number;
+}
+
+export interface ReferralRecord {
+  id: string;
+  referrerId: string;
+  referredUserId: string;
+  referredUserName: string;
+  referredUserEmail: string;
+  depositAmount: number;
+  commissionAmount: number;
+  createdAt: string;
 }
 
 export type TrafficCountry = 
