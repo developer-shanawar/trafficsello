@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import {
-  ArrowLeft, Mail, Lock, User, ShieldCheck, Sparkles, Activity, CheckCircle2, ArrowRight
+  ArrowLeft, Mail, Lock, User, ShieldCheck, Sparkles, Activity, CheckCircle2, ArrowRight, RefreshCw, MailCheck
 } from 'lucide-react';
 import { useStore } from '../lib/store';
 
@@ -16,15 +16,18 @@ export const LoginPage: React.FC<LoginPageProps> = ({
   onNavigateRegister,
   onLoginSuccess,
 }) => {
-  const { login } = useStore();
+  const { login, resendConfirmationEmail } = useStore();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [resendStatus, setResendStatus] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setResendStatus('');
     setLoading(true);
 
     try {
@@ -40,6 +43,18 @@ export const LoginPage: React.FC<LoginPageProps> = ({
       setError(err.message || 'Login failed. Please check credentials.');
       setLoading(false);
     }
+  };
+
+  const handleResend = async () => {
+    if (!email) {
+      setError('Please enter your email address above to resend the confirmation link.');
+      return;
+    }
+    setResending(true);
+    setResendStatus('');
+    const result = await resendConfirmationEmail(email);
+    setResending(false);
+    setResendStatus(result.message);
   };
 
   return (
@@ -132,8 +147,25 @@ export const LoginPage: React.FC<LoginPageProps> = ({
           </div>
 
           {error && (
-            <div className="mb-4 p-3 bg-rose-500/10 border border-rose-500/20 text-rose-700 dark:text-rose-400 text-xs font-semibold rounded-xl">
-              {error}
+            <div className="mb-4 p-3.5 bg-rose-500/10 border border-rose-500/20 text-rose-700 dark:text-rose-400 text-xs font-semibold rounded-2xl space-y-2">
+              <p>{error}</p>
+              {(error.toLowerCase().includes('not confirmed') || error.toLowerCase().includes('not verified')) && (
+                <button
+                  type="button"
+                  onClick={handleResend}
+                  disabled={resending}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-rose-500/20 hover:bg-rose-500/30 text-rose-800 dark:text-rose-200 text-xs font-bold rounded-xl transition-all cursor-pointer"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${resending ? 'animate-spin' : ''}`} />
+                  {resending ? 'Resending Link...' : 'Resend Confirmation Email Now'}
+                </button>
+              )}
+            </div>
+          )}
+
+          {resendStatus && (
+            <div className="mb-4 p-3 bg-blue-500/10 border border-blue-500/20 text-blue-700 dark:text-blue-300 text-xs font-semibold rounded-xl">
+              {resendStatus}
             </div>
           )}
 

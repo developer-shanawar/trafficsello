@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import {
-  ArrowLeft, Mail, Lock, User, Phone, Send, Sparkles, CheckCircle2, ArrowRight
+  ArrowLeft, Mail, Lock, User, Phone, Send, Sparkles, CheckCircle2, ArrowRight, RefreshCw, MailCheck
 } from 'lucide-react';
 import { useStore } from '../lib/store';
 
@@ -16,7 +16,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
   onNavigateLogin,
   onRegisterSuccess,
 }) => {
-  const { register } = useStore();
+  const { register, resendConfirmationEmail } = useStore();
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -25,6 +25,12 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
   const [whatsApp, setWhatsApp] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Email confirmation view state
+  const [confirmationSent, setConfirmationSent] = useState(false);
+  const [submittedEmail, setSubmittedEmail] = useState('');
+  const [resending, setResending] = useState(false);
+  const [resendStatus, setResendStatus] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,13 +43,28 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
 
     setLoading(true);
     try {
-      await register({ fullName, email, password, telegram, whatsApp });
+      const res = await register({ fullName, email, password, telegram, whatsApp });
       setLoading(false);
-      onRegisterSuccess();
+
+      if (res.requiresEmailConfirmation) {
+        setSubmittedEmail(res.email);
+        setConfirmationSent(true);
+      } else {
+        onRegisterSuccess();
+      }
     } catch (err: any) {
       setError(err.message || 'Registration failed');
       setLoading(false);
     }
+  };
+
+  const handleResend = async () => {
+    if (!submittedEmail) return;
+    setResending(true);
+    setResendStatus('');
+    const result = await resendConfirmationEmail(submittedEmail);
+    setResending(false);
+    setResendStatus(result.message);
   };
 
   return (
@@ -109,143 +130,197 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
           </div>
         </motion.div>
 
-        {/* Right Side: Register Form */}
+        {/* Right Side: Register Form or Confirmation Pending View */}
         <motion.div
           initial={{ opacity: 0, scale: 0.95, y: 10 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.1 }}
           className="lg:col-span-7 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border border-white dark:border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl relative text-[#111827] dark:text-white"
         >
-          <div className="mb-6">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-[#111827] text-[#DFFF2F] dark:bg-[#DFFF2F]/20 dark:text-[#DFFF2F] uppercase tracking-wider mb-2">
-              <Sparkles className="w-3.5 h-3.5" /> Instant Account Setup
-            </span>
-            <h2 className="text-2xl font-bold text-[#111827] dark:text-white">Register Account</h2>
-            <p className="text-xs text-[#111827]/70 dark:text-slate-400 mt-1">
-              Fill in your details below to create your TrafficSell account
-            </p>
-          </div>
+          {confirmationSent ? (
+            <div className="text-center py-4 space-y-5">
+              <div className="w-16 h-16 bg-[#DFFF2F]/20 text-[#111827] dark:text-[#DFFF2F] rounded-full flex items-center justify-center mx-auto border-2 border-[#DFFF2F] animate-pulse">
+                <MailCheck className="w-8 h-8" />
+              </div>
 
-          {error && (
-            <div className="mb-4 p-3 bg-rose-500/10 border border-rose-500/20 text-rose-700 dark:text-rose-400 text-xs font-semibold rounded-xl">
-              {error}
+              <div>
+                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-bold bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 uppercase tracking-wider mb-2">
+                  <Sparkles className="w-3.5 h-3.5" /> Action Required
+                </span>
+                <h2 className="text-2xl font-black text-[#111827] dark:text-white">Confirm Your Email Address</h2>
+                <p className="text-xs text-[#111827]/80 dark:text-slate-300 mt-2 max-w-md mx-auto leading-relaxed">
+                  A verification email has been sent to <strong className="text-emerald-600 dark:text-[#DFFF2F] font-bold">{submittedEmail}</strong>. Please check your inbox and click the confirmation link to activate your account.
+                </p>
+              </div>
+
+              <div className="p-4 bg-slate-100 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 rounded-2xl text-left space-y-2">
+                <p className="text-xs font-bold text-[#111827] dark:text-white flex items-center gap-1.5">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-500" /> What happens next?
+                </p>
+                <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                  Once you click the link inside your confirmation email, your account will be automatically verified and registered on the website, logging you straight into your advertiser dashboard.
+                </p>
+              </div>
+
+              {resendStatus && (
+                <div className="p-3 bg-blue-500/10 border border-blue-500/20 text-blue-700 dark:text-blue-300 text-xs font-semibold rounded-xl">
+                  {resendStatus}
+                </div>
+              )}
+
+              <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+                <button
+                  onClick={handleResend}
+                  disabled={resending}
+                  className="w-full sm:w-auto px-5 py-3 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 text-[#111827] dark:text-white text-xs font-bold rounded-2xl transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${resending ? 'animate-spin' : ''}`} />
+                  {resending ? 'Resending Link...' : 'Resend Confirmation Email'}
+                </button>
+
+                <button
+                  onClick={onNavigateLogin}
+                  className="w-full sm:w-auto px-6 py-3 bg-[#111827] dark:bg-[#DFFF2F] hover:bg-slate-800 dark:hover:bg-[#cbe820] text-white dark:text-[#111827] text-xs font-bold rounded-2xl transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  Sign In to Account
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
             </div>
+          ) : (
+            <>
+              <div className="mb-6">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-[#111827] text-[#DFFF2F] dark:bg-[#DFFF2F]/20 dark:text-[#DFFF2F] uppercase tracking-wider mb-2">
+                  <Sparkles className="w-3.5 h-3.5" /> Instant Account Setup
+                </span>
+                <h2 className="text-2xl font-bold text-[#111827] dark:text-white">Register Account</h2>
+                <p className="text-xs text-[#111827]/70 dark:text-slate-400 mt-1">
+                  Fill in your details below to create your TrafficSell account
+                </p>
+              </div>
+
+              {error && (
+                <div className="mb-4 p-3 bg-rose-500/10 border border-rose-500/20 text-rose-700 dark:text-rose-400 text-xs font-semibold rounded-xl">
+                  {error}
+                </div>
+              )}
+
+              <form onSubmit={handleSubmit} className="space-y-3.5">
+                <div>
+                  <label className="block text-xs font-bold text-[#111827] dark:text-slate-300 mb-1">Full Name</label>
+                  <div className="relative">
+                    <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+                    <input
+                      type="text"
+                      required
+                      placeholder="Alex Vance"
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-2xl text-xs font-medium text-[#111827] dark:text-white placeholder-slate-400 focus:outline-none focus:border-[#111827] dark:focus:border-[#DFFF2F] shadow-sm"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-[#111827] dark:text-slate-300 mb-1">Email Address</label>
+                  <div className="relative">
+                    <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+                    <input
+                      type="email"
+                      required
+                      placeholder="name@domain.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-2xl text-xs font-medium text-[#111827] dark:text-white placeholder-slate-400 focus:outline-none focus:border-[#111827] dark:focus:border-[#DFFF2F] shadow-sm"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-[#111827] dark:text-slate-300 mb-1">Password</label>
+                    <div className="relative">
+                      <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+                      <input
+                        type="password"
+                        required
+                        placeholder="••••••••"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-2xl text-xs font-medium text-[#111827] dark:text-white placeholder-slate-400 focus:outline-none focus:border-[#111827] dark:focus:border-[#DFFF2F] shadow-sm"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-[#111827] dark:text-slate-300 mb-1">Confirm Password</label>
+                    <div className="relative">
+                      <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+                      <input
+                        type="password"
+                        required
+                        placeholder="••••••••"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-2xl text-xs font-medium text-[#111827] dark:text-white placeholder-slate-400 focus:outline-none focus:border-[#111827] dark:focus:border-[#DFFF2F] shadow-sm"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                  <div>
+                    <label className="block text-xs font-bold text-[#111827] dark:text-slate-300 mb-1">Telegram Handle (Optional)</label>
+                    <div className="relative">
+                      <Send className="w-3.5 h-3.5 text-slate-400 absolute left-3.5 top-3" />
+                      <input
+                        type="text"
+                        placeholder="@username"
+                        value={telegram}
+                        onChange={(e) => setTelegram(e.target.value)}
+                        className="w-full pl-9 pr-3 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-2xl text-xs font-medium text-[#111827] dark:text-white placeholder-slate-400 focus:outline-none focus:border-[#111827] dark:focus:border-[#DFFF2F] shadow-sm"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-[#111827] dark:text-slate-300 mb-1">WhatsApp No (Optional)</label>
+                    <div className="relative">
+                      <Phone className="w-3.5 h-3.5 text-slate-400 absolute left-3.5 top-3" />
+                      <input
+                        type="text"
+                        placeholder="+92 300 1234567"
+                        value={whatsApp}
+                        onChange={(e) => setWhatsApp(e.target.value)}
+                        className="w-full pl-9 pr-3 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-2xl text-xs font-medium text-[#111827] dark:text-white placeholder-slate-400 focus:outline-none focus:border-[#111827] dark:focus:border-[#DFFF2F] shadow-sm"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full mt-3 py-3.5 bg-[#111827] dark:bg-[#DFFF2F] hover:bg-slate-800 dark:hover:bg-[#cbe820] text-white dark:text-[#111827] font-bold rounded-2xl text-sm transition-all shadow-lg hover:scale-[1.01] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  {loading ? 'Registering Account...' : 'Register Account'}
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              </form>
+
+              {/* Switch to Login */}
+              <div className="mt-5 pt-4 border-t border-slate-200 dark:border-slate-800 text-center text-xs text-[#111827]/80 dark:text-slate-400 font-medium">
+                Already have a TrafficSell account?{' '}
+                <button
+                  type="button"
+                  onClick={onNavigateLogin}
+                  className="text-[#111827] dark:text-[#DFFF2F] font-extrabold underline hover:opacity-80 cursor-pointer ml-1"
+                >
+                  Sign in here
+                </button>
+              </div>
+            </>
           )}
-
-          <form onSubmit={handleSubmit} className="space-y-3.5">
-            <div>
-              <label className="block text-xs font-bold text-[#111827] dark:text-slate-300 mb-1">Full Name</label>
-              <div className="relative">
-                <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
-                <input
-                  type="text"
-                  required
-                  placeholder="Alex Vance"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-2xl text-xs font-medium text-[#111827] dark:text-white placeholder-slate-400 focus:outline-none focus:border-[#111827] dark:focus:border-[#DFFF2F] shadow-sm"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-[#111827] dark:text-slate-300 mb-1">Email Address</label>
-              <div className="relative">
-                <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
-                <input
-                  type="email"
-                  required
-                  placeholder="name@domain.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-2xl text-xs font-medium text-[#111827] dark:text-white placeholder-slate-400 focus:outline-none focus:border-[#111827] dark:focus:border-[#DFFF2F] shadow-sm"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-bold text-[#111827] dark:text-slate-300 mb-1">Password</label>
-                <div className="relative">
-                  <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
-                  <input
-                    type="password"
-                    required
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-2xl text-xs font-medium text-[#111827] dark:text-white placeholder-slate-400 focus:outline-none focus:border-[#111827] dark:focus:border-[#DFFF2F] shadow-sm"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-[#111827] dark:text-slate-300 mb-1">Confirm Password</label>
-                <div className="relative">
-                  <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
-                  <input
-                    type="password"
-                    required
-                    placeholder="••••••••"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-2xl text-xs font-medium text-[#111827] dark:text-white placeholder-slate-400 focus:outline-none focus:border-[#111827] dark:focus:border-[#DFFF2F] shadow-sm"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-              <div>
-                <label className="block text-xs font-bold text-[#111827] dark:text-slate-300 mb-1">Telegram Handle (Optional)</label>
-                <div className="relative">
-                  <Send className="w-3.5 h-3.5 text-slate-400 absolute left-3.5 top-3" />
-                  <input
-                    type="text"
-                    placeholder="@username"
-                    value={telegram}
-                    onChange={(e) => setTelegram(e.target.value)}
-                    className="w-full pl-9 pr-3 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-2xl text-xs font-medium text-[#111827] dark:text-white placeholder-slate-400 focus:outline-none focus:border-[#111827] dark:focus:border-[#DFFF2F] shadow-sm"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-[#111827] dark:text-slate-300 mb-1">WhatsApp No (Optional)</label>
-                <div className="relative">
-                  <Phone className="w-3.5 h-3.5 text-slate-400 absolute left-3.5 top-3" />
-                  <input
-                    type="text"
-                    placeholder="+92 300 1234567"
-                    value={whatsApp}
-                    onChange={(e) => setWhatsApp(e.target.value)}
-                    className="w-full pl-9 pr-3 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-2xl text-xs font-medium text-[#111827] dark:text-white placeholder-slate-400 focus:outline-none focus:border-[#111827] dark:focus:border-[#DFFF2F] shadow-sm"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full mt-3 py-3.5 bg-[#111827] dark:bg-[#DFFF2F] hover:bg-slate-800 dark:hover:bg-[#cbe820] text-white dark:text-[#111827] font-bold rounded-2xl text-sm transition-all shadow-lg hover:scale-[1.01] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
-            >
-              {loading ? 'Registering Account...' : 'Register Account'}
-              <ArrowRight className="w-4 h-4" />
-            </button>
-          </form>
-
-          {/* Switch to Login */}
-          <div className="mt-5 pt-4 border-t border-slate-200 dark:border-slate-800 text-center text-xs text-[#111827]/80 dark:text-slate-400 font-medium">
-            Already have a TrafficSell account?{' '}
-            <button
-              type="button"
-              onClick={onNavigateLogin}
-              className="text-[#111827] dark:text-[#DFFF2F] font-extrabold underline hover:opacity-80 cursor-pointer ml-1"
-            >
-              Sign in here
-            </button>
-          </div>
         </motion.div>
       </div>
     </div>

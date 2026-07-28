@@ -10,7 +10,7 @@ import {
   INITIAL_PAYMENTS, INITIAL_TRANSACTIONS, INITIAL_TICKETS, INITIAL_NOTIFICATIONS, INITIAL_TESTIMONIALS,
   INITIAL_SOCIAL_SERVICES, INITIAL_SOCIAL_CAMPAIGNS
 } from './initialData';
-import { sendNativeNotification } from './notifications';
+import { sendNativeNotification, triggerToast } from './notifications';
 
 export const CURRENCIES: Record<CurrencyCode, CurrencyConfig> = {
   USD: { code: 'USD', symbol: '$', name: 'US Dollar ($)', rateVsUSD: 1 },
@@ -27,7 +27,8 @@ interface StoreContextType {
   theme: 'dark' | 'light';
   toggleTheme: () => void;
   login: (email: string, password?: string) => Promise<boolean>;
-  register: (data: { fullName: string; email: string; password?: string; telegram?: string; whatsApp?: string }) => Promise<boolean>;
+  register: (data: { fullName: string; email: string; password?: string; telegram?: string; whatsApp?: string }) => Promise<{ success: boolean; requiresEmailConfirmation: boolean; email: string }>;
+  resendConfirmationEmail: (email: string) => Promise<{ success: boolean; message: string }>;
   logout: () => void;
   switchUserRole: (role: UserRole) => void;
   
@@ -527,10 +528,117 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       )
       .subscribe();
 
+    // Set up Supabase Auth Listener to automatically verify user upon email confirmation link click
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('⚡ Supabase Auth Event:', event, session?.user?.email);
+
+      if ((event === 'SIGNED_IN' || event === 'USER_UPDATED' || event === 'TOKEN_REFRESHED') && session?.user) {
+        const authUser = session.user;
+        const cleanEmail = authUser.email?.trim().toLowerCase();
+        if (!cleanEmail) return;
+
+        // Query database table for user profile
+        const { data: dbUsers } = await supabase.from('users').select('*').eq('email', cleanEmail);
+        let userRecord = dbUsers && dbUsers.length > 0 ? dbUsers[0] : null;
+
+        const isMasterAdmin = cleanEmail === 'developershanawar@gmail.com';
+
+        if (!userRecord) {
+          const meta = authUser.user_metadata || {};
+          const newProfile: UserProfile = {
+            id: authUser.id || `usr_${Date.now()}`,
+            email: cleanEmail,
+            password: '',
+            fullName: meta.full_name || cleanEmail.split('@')[0],
+            telegram: meta.telegram || '',
+            whatsApp: meta.whats_app || meta.whatsApp || '',
+            walletBalance: 0.00,
+            role: isMasterAdmin ? 'admin' : (meta.role || 'user'),
+            createdAt: new Date().toISOString(),
+            avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=250',
+            ipAddress: clientIp,
+            registrationIp: clientIp,
+            lastLoginIp: clientIp,
+            isVerified: true,
+            isSuspended: false
+          };
+
+          await supabase.from('users').upsert([{
+            id: newProfile.id,
+            email: newProfile.email,
+            password: '',
+            full_name: newProfile.fullName,
+            telegram: newProfile.telegram,
+            whats_app: newProfile.whatsApp,
+            wallet_balance: 0,
+            role: newProfile.role,
+            avatar: newProfile.avatar,
+            is_verified: true,
+            is_suspended: false,
+            created_at: newProfile.createdAt
+          }], { onConflict: 'email' });
+
+          userRecord = {
+            id: newProfile.id,
+            email: newProfile.email,
+            full_name: newProfile.fullName,
+            telegram: newProfile.telegram,
+            whats_app: newProfile.whatsApp,
+            wallet_balance: 0,
+            role: newProfile.role,
+            avatar: newProfile.avatar,
+            is_verified: true,
+            is_suspended: false,
+            created_at: newProfile.createdAt
+          };
+        } else {
+          // Mark account verified in Supabase
+          await supabase.from('users').update({ is_verified: true }).eq('email', cleanEmail);
+          userRecord.is_verified = true;
+        }
+
+        const activeProfile: UserProfile = {
+          id: userRecord.id,
+          email: userRecord.email,
+          password: userRecord.password || '',
+          fullName: userRecord.full_name || userRecord.email,
+          telegram: userRecord.telegram || '',
+          whatsApp: userRecord.whats_app || userRecord.whatsapp || '',
+          walletBalance: Number(userRecord.wallet_balance || 0),
+          role: isMasterAdmin ? 'admin' : (userRecord.role || 'user'),
+          country: userRecord.country || '',
+          city: userRecord.city || '',
+          postalCode: userRecord.postal_code || '',
+          isVerified: true,
+          isSuspended: userRecord.is_suspended ?? false,
+          suspendedReason: userRecord.suspended_reason || '',
+          avatar: userRecord.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=250',
+          createdAt: userRecord.created_at || new Date().toISOString(),
+          ipAddress: clientIp,
+          lastLoginIp: clientIp,
+        };
+
+        setUser(activeProfile);
+        setAllUsers(prev => [...prev.filter(u => u.id !== activeProfile.id), activeProfile]);
+
+        triggerToast('🎉 Account Verified!', 'Your email has been confirmed successfully. Welcome to TrafficSell!', 'success');
+
+        // Clean up verification hash/query params from URL
+        if (window.location.hash.includes('access_token') || window.location.search.includes('code=')) {
+          try {
+            window.history.replaceState(null, '', window.location.pathname);
+          } catch (e) {
+            // ignore fallback
+          }
+        }
+      }
+    });
+
     return () => {
       supabase.removeChannel(realtimeChannel);
+      authListener.subscription.unsubscribe();
     };
-  }, []);
+  }, [clientIp]);
 
   useEffect(() => {
     localStorage.setItem('trafficsell_users', JSON.stringify(allUsers));
@@ -636,6 +744,31 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       });
   }, []);
 
+  const resendConfirmationEmail = async (email: string): Promise<{ success: boolean; message: string }> => {
+    const cleanEmail = email.trim().toLowerCase();
+    try {
+      const redirectUrl = window.location.origin;
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: cleanEmail,
+        options: {
+          emailRedirectTo: redirectUrl
+        }
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      triggerToast('Confirmation Email Resent 📩', `A fresh verification link has been sent to ${cleanEmail}. Check your inbox or spam folder.`, 'success');
+      return { success: true, message: `Verification link resent to ${cleanEmail}.` };
+    } catch (err: any) {
+      const msg = err.message || 'Failed to resend confirmation email';
+      triggerToast('Resend Notice', msg, 'warning');
+      return { success: false, message: msg };
+    }
+  };
+
   const login = async (email: string, password?: string): Promise<boolean> => {
     const isMasterAdmin = email.toLowerCase() === 'developershanawar@gmail.com';
     const cleanEmail = email.trim().toLowerCase();
@@ -643,11 +776,17 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     // 1. Try Supabase Auth signin if password provided
     if (password) {
       try {
-        await supabase.auth.signInWithPassword({
+        const { error: authErr } = await supabase.auth.signInWithPassword({
           email: cleanEmail,
           password
         });
-      } catch (authErr) {
+        if (authErr && authErr.message?.toLowerCase().includes('email not confirmed')) {
+          throw new Error(`Email address not confirmed yet. Please check your inbox for the confirmation link sent to ${cleanEmail}.`);
+        }
+      } catch (authErr: any) {
+        if (authErr.message?.toLowerCase().includes('not confirmed')) {
+          throw authErr;
+        }
         console.warn('Supabase Auth signin attempt:', authErr);
       }
     }
@@ -673,6 +812,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           wallet_balance: localFound.walletBalance,
           role: localFound.role,
           avatar: localFound.avatar,
+          is_verified: localFound.isVerified,
           created_at: localFound.createdAt
         };
       }
@@ -680,6 +820,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     if (!foundUser) {
       throw new Error(`No account found registered with email "${email}". Please register an account first.`);
+    }
+
+    if (foundUser.is_verified === false) {
+      throw new Error(`Your email address (${foundUser.email}) is not verified yet. Please check your inbox for the confirmation link.`);
     }
 
     if (foundUser.password && password && foundUser.password !== password) {
@@ -698,7 +842,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       country: foundUser.country || '',
       city: foundUser.city || '',
       postalCode: foundUser.postal_code || '',
-      isVerified: foundUser.is_verified ?? true,
+      isVerified: true,
       isSuspended: foundUser.is_suspended ?? false,
       suspendedReason: foundUser.suspended_reason || '',
       avatar: foundUser.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=250',
@@ -710,7 +854,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     // Sync role and password in Supabase
     supabase.from('users').update({
       role: updatedFound.role,
-      password: updatedFound.password
+      password: updatedFound.password,
+      is_verified: true
     }).eq('id', updatedFound.id).then();
 
     setAllUsers(prev => [...prev.filter(u => u.id !== updatedFound.id), updatedFound]);
@@ -718,30 +863,50 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return true;
   };
 
-  const register = async (data: { fullName: string; email: string; password?: string; telegram?: string; whatsApp?: string }): Promise<boolean> => {
+  const register = async (data: { fullName: string; email: string; password?: string; telegram?: string; whatsApp?: string }): Promise<{ success: boolean; requiresEmailConfirmation: boolean; email: string }> => {
     const isMasterAdmin = data.email.toLowerCase() === 'developershanawar@gmail.com';
     const cleanEmail = data.email.trim().toLowerCase();
 
     // Check existing user in Supabase
     const { data: dbUsers } = await supabase.from('users').select('*').eq('email', cleanEmail);
-    if (dbUsers && dbUsers.length > 0) {
+    if (dbUsers && dbUsers.length > 0 && dbUsers[0].is_verified !== false) {
       throw new Error(`An account with email "${data.email}" already exists. Please sign in instead.`);
     }
+
+    let requiresConfirmation = true;
 
     // Try Supabase Auth Sign Up
     if (data.password) {
       try {
-        await supabase.auth.signUp({
+        const redirectUrl = window.location.origin;
+        const { data: authData, error: authErr } = await supabase.auth.signUp({
           email: cleanEmail,
           password: data.password,
           options: {
+            emailRedirectTo: redirectUrl,
             data: {
               full_name: data.fullName,
+              telegram: data.telegram || '',
+              whats_app: data.whatsApp || '',
               role: isMasterAdmin ? 'admin' : 'user'
             }
           }
         });
-      } catch (authErr) {
+
+        if (authErr) {
+          if (authErr.message?.toLowerCase().includes('already registered')) {
+            throw new Error(`An account with email "${data.email}" is already registered. Please sign in.`);
+          }
+          console.warn('Supabase Auth signup notice:', authErr);
+        }
+
+        if (authData?.session || authData?.user?.email_confirmed_at) {
+          requiresConfirmation = false;
+        }
+      } catch (authErr: any) {
+        if (authErr.message?.toLowerCase().includes('already registered')) {
+          throw authErr;
+        }
         console.warn('Supabase Auth signup notice:', authErr);
       }
     }
@@ -760,11 +925,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       ipAddress: clientIp,
       registrationIp: clientIp,
       lastLoginIp: clientIp,
-      isVerified: true,
+      isVerified: !requiresConfirmation,
       isSuspended: false
     };
 
-    const { error: dbErr } = await supabase.from('users').insert([{
+    const { error: dbErr } = await supabase.from('users').upsert([{
       id: newUser.id,
       email: newUser.email,
       password: newUser.password,
@@ -774,18 +939,32 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       wallet_balance: newUser.walletBalance,
       role: newUser.role,
       avatar: newUser.avatar,
-      is_verified: true,
+      is_verified: !requiresConfirmation,
       is_suspended: false,
       created_at: newUser.createdAt
-    }]);
+    }], { onConflict: 'email' });
 
     if (dbErr) {
       console.error('Error creating user profile in Supabase:', dbErr);
     }
 
     setAllUsers(prev => [...prev.filter(u => u.email.toLowerCase() !== newUser.email.toLowerCase()), newUser]);
-    setUser(newUser);
-    return true;
+
+    if (!requiresConfirmation) {
+      setUser(newUser);
+    } else {
+      triggerToast(
+        'Confirmation Email Sent ✉️',
+        `Verification email sent to ${cleanEmail}. Please click the confirmation link to complete registration.`,
+        'info'
+      );
+    }
+
+    return {
+      success: true,
+      requiresEmailConfirmation: requiresConfirmation,
+      email: cleanEmail
+    };
   };
 
   const logout = () => {
@@ -1590,7 +1769,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   return (
     <StoreContext.Provider value={{
-      user, currency, setCurrency, formatMoney, theme, toggleTheme, login, register, logout, switchUserRole,
+      user, currency, setCurrency, formatMoney, theme, toggleTheme, login, register, resendConfirmationEmail, logout, switchUserRole,
       campaigns, addCampaign, updateCampaignStatus, deleteCampaign,
       socialServices, socialCampaigns, addSocialService, updateSocialService, deleteSocialService,
       addSocialCampaign, updateSocialCampaignStatus, deleteSocialCampaign,
