@@ -108,18 +108,6 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAuth, onNavigateView, curr
         {/* Right Action Controls */}
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           
-          {/* Currency Selector */}
-          <select
-            value={currency}
-            onChange={(e) => setCurrency(e.target.value as any)}
-            className="py-1.5 sm:py-2 px-2 sm:px-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-[#111827] dark:text-slate-200 focus:outline-none cursor-pointer shadow-sm"
-          >
-            <option value="USD">🇺🇸 USD</option>
-            <option value="PKR">🇵🇰 PKR</option>
-            <option value="INR">🇮🇳 INR</option>
-            <option value="BDT">🇧🇩 BDT</option>
-          </select>
-
           {/* Theme Switcher */}
           <button
             onClick={toggleTheme}
@@ -231,7 +219,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAuth, onNavigateView, curr
         </div>
       </div>
 
-      {/* Mobile Right Slide-Over Menu Drawer */}
+      {/* Mobile Top Drop-Down Menu Panel */}
       <AnimatePresence>
         {mobileMenuOpen && (
           <>
@@ -241,16 +229,16 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAuth, onNavigateView, curr
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setMobileMenuOpen(false)}
-              className="fixed inset-0 bg-slate-950/70 backdrop-blur-md z-[998]"
+              className="fixed inset-0 bg-slate-950/75 backdrop-blur-md z-[99998]"
             />
 
-            {/* Slide-Over Drawer Panel from Right */}
+            {/* Top Drop-Down Menu Panel */}
             <motion.div
-              initial={{ x: '100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '100%' }}
-              transition={{ type: 'spring', damping: 26, stiffness: 220 }}
-              className="fixed top-0 right-0 bottom-0 w-80 max-w-full bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 z-[999] shadow-2xl p-6 flex flex-col justify-between overflow-y-auto text-[#111827] dark:text-white"
+              initial={{ y: '-100%', opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: '-100%', opacity: 0 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 220 }}
+              className="fixed top-0 left-0 right-0 w-full max-h-[92vh] bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 z-[99999] shadow-2xl p-6 flex flex-col justify-between overflow-y-auto text-[#111827] dark:text-white rounded-b-3xl"
             >
               <div>
                 {/* Drawer Header */}
@@ -389,20 +377,6 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAuth, onNavigateView, curr
 
               {/* Bottom Actions */}
               <div className="pt-4 border-t border-slate-200 dark:border-slate-800 space-y-2">
-                <div className="flex justify-between items-center bg-slate-100 dark:bg-slate-800 p-3 rounded-xl text-xs font-bold">
-                  <span>Display Currency</span>
-                  <select
-                    value={currency}
-                    onChange={(e) => setCurrency(e.target.value as any)}
-                    className="bg-transparent text-xs font-extrabold text-[#111827] dark:text-[#DFFF2F] focus:outline-none cursor-pointer"
-                  >
-                    <option value="USD">USD ($)</option>
-                    <option value="PKR">PKR (Rs)</option>
-                    <option value="INR">INR (₹)</option>
-                    <option value="BDT">BDT (৳)</option>
-                  </select>
-                </div>
-
                 {user && (
                   <button
                     onClick={() => { logout(); setMobileMenuOpen(false); handleNavClick('landing'); }}

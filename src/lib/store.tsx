@@ -109,16 +109,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   };
 
-  const formatMoney = (amountInUSD: number, customCode?: CurrencyCode): string => {
-    const code = customCode || currency || user?.currency || 'USD';
-    const conf = CURRENCIES[code] || CURRENCIES.USD;
-    const val = amountInUSD * conf.rateVsUSD;
-
-    if (code === 'USD') return `$${val.toFixed(2)}`;
-    if (code === 'PKR') return `Rs. ${Math.round(val).toLocaleString()}`;
-    if (code === 'INR') return `₹${Math.round(val).toLocaleString()}`;
-    if (code === 'BDT') return `৳${Math.round(val).toLocaleString()}`;
-    return `${conf.symbol}${val.toFixed(2)}`;
+  const formatMoney = (amountInUSD: number, _customCode?: CurrencyCode): string => {
+    const val = Number(amountInUSD) || 0;
+    return `$${val.toFixed(2)}`;
   };
 
   // Theme state
@@ -826,9 +819,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     supabase.from('users').update({ wallet_balance: newBalance }).eq('id', user.id).then();
 
     // Create campaign - default status is pending admin approval (max 12 hours)
+    const uniqueCampaignId = `CMP-${Math.floor(100000 + Math.random() * 900000)}-${Date.now().toString(36).toUpperCase()}`;
     const newCampaign: Campaign = {
       ...data,
-      id: `cmp_${Date.now()}`,
+      id: uniqueCampaignId,
       userId: user.id,
       userName: user.fullName,
       visitorsDelivered: 0,
@@ -1285,6 +1279,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const updatePlatformSettings = (settings: PlatformSettings) => {
     setPlatformSettings(settings);
+    try {
+      localStorage.setItem('trafficsell_platform_settings', JSON.stringify(settings));
+    } catch (e) {}
+
     supabase.from('platform_settings').upsert([{
       id: 'main',
       site_name: settings.siteName,
@@ -1298,7 +1296,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       jazzcash_title: settings.paymentAccounts?.jazzCashTitle,
       usdt_trc20_address: settings.paymentAccounts?.usdtTrc20Address,
       page_content: settings.pageContent
-    }]).then();
+    }]).then(({ error }) => {
+      if (error) console.error('Error saving platform_settings to Supabase:', error);
+    });
   };
 
   const addTestimonial = (data: Omit<Testimonial, 'id' | 'createdAt'>) => {
@@ -1414,9 +1414,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       created_at: newTx.createdAt
     }]).then();
 
-    // Create social campaign
+    // Create social campaign with unique campaign ID
+    const uniqueSocialId = `SMM-${Math.floor(100000 + Math.random() * 900000)}-${Date.now().toString(36).toUpperCase()}`;
     const newCmp: SocialCampaign = {
-      id: `soc_cmp_${Date.now()}`,
+      id: uniqueSocialId,
       userId: user.id,
       userName: user.fullName || user.email,
       serviceId: service.id,

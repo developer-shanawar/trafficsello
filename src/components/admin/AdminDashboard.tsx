@@ -1441,69 +1441,204 @@ export const AdminDashboard: React.FC = () => {
               />
             </div>
 
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-slate-300 font-bold mb-1">Minimum Deposit Amount ($ USD)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="1"
+                  value={settingsForm.minDeposit || 5}
+                  onChange={(e) => setSettingsForm({ ...settingsForm, minDeposit: Number(e.target.value) })}
+                  className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white font-bold font-mono"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-300 font-bold mb-1">Default Minimum CPM Rate ($ USD)</label>
+                <input
+                  type="number"
+                  step="0.001"
+                  min="0.01"
+                  value={settingsForm.minCPM || 0.10}
+                  onChange={(e) => setSettingsForm({ ...settingsForm, minCPM: Number(e.target.value) })}
+                  className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white font-bold font-mono"
+                />
+              </div>
+            </div>
+
             <div>
               <label className="block text-slate-300 font-bold mb-1">Announcement Message</label>
               <input
                 type="text"
-                value={settingsForm.announcement}
+                value={settingsForm.announcement || ''}
                 onChange={(e) => setSettingsForm({ ...settingsForm, announcement: e.target.value })}
                 className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white"
               />
             </div>
 
-            <div className="border-t border-slate-800 pt-4 space-y-3">
-              <h4 className="font-extrabold text-[#DFFF2F]">Admin Deposit Receiving Accounts</h4>
+            <div className="border-t border-slate-800 pt-4 space-y-4">
+              <h4 className="font-extrabold text-[#DFFF2F] text-sm">Admin Deposit & Payout Payment Accounts</h4>
 
-              <div>
-                <label className="block text-slate-400 mb-1">JazzCash Account Number</label>
-                <input
-                  type="text"
-                  value={settingsForm.paymentAccounts.jazzCashNumber}
-                  onChange={(e) => setSettingsForm({
-                    ...settingsForm,
-                    paymentAccounts: { ...settingsForm.paymentAccounts, jazzCashNumber: e.target.value }
-                  })}
-                  className="w-full p-2 bg-slate-950 border border-slate-800 rounded-xl text-white font-mono"
-                />
+              {/* JazzCash */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 bg-slate-950/60 rounded-xl border border-slate-800/80">
+                <div>
+                  <label className="block text-slate-400 text-[11px] mb-1 font-bold">JazzCash Account Number</label>
+                  <input
+                    type="text"
+                    value={settingsForm.paymentAccounts?.jazzCashAccount || ''}
+                    onChange={(e) => setSettingsForm({
+                      ...settingsForm,
+                      paymentAccounts: { ...settingsForm.paymentAccounts, jazzCashAccount: e.target.value }
+                    })}
+                    placeholder="03001234567"
+                    className="w-full p-2 bg-slate-950 border border-slate-800 rounded-xl text-white font-mono text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-400 text-[11px] mb-1 font-bold">JazzCash Account Title</label>
+                  <input
+                    type="text"
+                    value={settingsForm.paymentAccounts?.jazzCashTitle || ''}
+                    onChange={(e) => setSettingsForm({
+                      ...settingsForm,
+                      paymentAccounts: { ...settingsForm.paymentAccounts, jazzCashTitle: e.target.value }
+                    })}
+                    placeholder="John Doe"
+                    className="w-full p-2 bg-slate-950 border border-slate-800 rounded-xl text-white text-xs font-bold"
+                  />
+                </div>
               </div>
 
-              <div>
-                <label className="block text-slate-400 mb-1">EasyPaisa Account Number</label>
-                <input
-                  type="text"
-                  value={settingsForm.paymentAccounts.easyPaisaNumber}
-                  onChange={(e) => setSettingsForm({
-                    ...settingsForm,
-                    paymentAccounts: { ...settingsForm.paymentAccounts, easyPaisaNumber: e.target.value }
-                  })}
-                  className="w-full p-2 bg-slate-950 border border-slate-800 rounded-xl text-white font-mono"
-                />
+              {/* EasyPaisa */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 bg-slate-950/60 rounded-xl border border-slate-800/80">
+                <div>
+                  <label className="block text-slate-400 text-[11px] mb-1 font-bold">EasyPaisa Account Number</label>
+                  <input
+                    type="text"
+                    value={settingsForm.paymentAccounts?.easyPaisaAccount || ''}
+                    onChange={(e) => setSettingsForm({
+                      ...settingsForm,
+                      paymentAccounts: { ...settingsForm.paymentAccounts, easyPaisaAccount: e.target.value }
+                    })}
+                    placeholder="03121234567"
+                    className="w-full p-2 bg-slate-950 border border-slate-800 rounded-xl text-white font-mono text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-400 text-[11px] mb-1 font-bold">EasyPaisa Account Title</label>
+                  <input
+                    type="text"
+                    value={settingsForm.paymentAccounts?.easyPaisaTitle || ''}
+                    onChange={(e) => setSettingsForm({
+                      ...settingsForm,
+                      paymentAccounts: { ...settingsForm.paymentAccounts, easyPaisaTitle: e.target.value }
+                    })}
+                    placeholder="John Doe"
+                    className="w-full p-2 bg-slate-950 border border-slate-800 rounded-xl text-white text-xs font-bold"
+                  />
+                </div>
               </div>
 
-              <div>
-                <label className="block text-slate-400 mb-1">PayPal Email</label>
+              {/* PayPal */}
+              <div className="p-3 bg-slate-950/60 rounded-xl border border-slate-800/80">
+                <label className="block text-slate-400 text-[11px] mb-1 font-bold">PayPal Receiving Email</label>
                 <input
-                  type="text"
-                  value={settingsForm.paymentAccounts.payPalEmail}
+                  type="email"
+                  value={settingsForm.paymentAccounts?.payPalEmail || ''}
                   onChange={(e) => setSettingsForm({
                     ...settingsForm,
                     paymentAccounts: { ...settingsForm.paymentAccounts, payPalEmail: e.target.value }
                   })}
-                  className="w-full p-2 bg-slate-950 border border-slate-800 rounded-xl text-white font-mono"
+                  placeholder="payments@example.com"
+                  className="w-full p-2 bg-slate-950 border border-slate-800 rounded-xl text-white font-mono text-xs"
                 />
               </div>
 
-              <div>
-                <label className="block text-slate-400 mb-1">USDT TRC20 Address</label>
-                <input
-                  type="text"
-                  value={settingsForm.paymentAccounts.usdtTrc20Address}
-                  onChange={(e) => setSettingsForm({
-                    ...settingsForm,
-                    paymentAccounts: { ...settingsForm.paymentAccounts, usdtTrc20Address: e.target.value }
-                  })}
-                  className="w-full p-2 bg-slate-950 border border-slate-800 rounded-xl text-white font-mono"
-                />
+              {/* USDT Addresses */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3 bg-slate-950/60 rounded-xl border border-slate-800/80">
+                <div>
+                  <label className="block text-slate-400 text-[11px] mb-1 font-bold">USDT TRC20 Address</label>
+                  <input
+                    type="text"
+                    value={settingsForm.paymentAccounts?.usdtTrc20Address || ''}
+                    onChange={(e) => setSettingsForm({
+                      ...settingsForm,
+                      paymentAccounts: { ...settingsForm.paymentAccounts, usdtTrc20Address: e.target.value }
+                    })}
+                    placeholder="T..."
+                    className="w-full p-2 bg-slate-950 border border-slate-800 rounded-xl text-white font-mono text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-400 text-[11px] mb-1 font-bold">USDT BEP20 Address</label>
+                  <input
+                    type="text"
+                    value={settingsForm.paymentAccounts?.usdtBep20Address || ''}
+                    onChange={(e) => setSettingsForm({
+                      ...settingsForm,
+                      paymentAccounts: { ...settingsForm.paymentAccounts, usdtBep20Address: e.target.value }
+                    })}
+                    placeholder="0x..."
+                    className="w-full p-2 bg-slate-950 border border-slate-800 rounded-xl text-white font-mono text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-400 text-[11px] mb-1 font-bold">USDT ERC20 Address</label>
+                  <input
+                    type="text"
+                    value={settingsForm.paymentAccounts?.usdtErc20Address || ''}
+                    onChange={(e) => setSettingsForm({
+                      ...settingsForm,
+                      paymentAccounts: { ...settingsForm.paymentAccounts, usdtErc20Address: e.target.value }
+                    })}
+                    placeholder="0x..."
+                    className="w-full p-2 bg-slate-950 border border-slate-800 rounded-xl text-white font-mono text-xs"
+                  />
+                </div>
+              </div>
+
+              {/* Bank Transfer */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3 bg-slate-950/60 rounded-xl border border-slate-800/80">
+                <div>
+                  <label className="block text-slate-400 text-[11px] mb-1 font-bold">Bank Name</label>
+                  <input
+                    type="text"
+                    value={settingsForm.paymentAccounts?.bankName || ''}
+                    onChange={(e) => setSettingsForm({
+                      ...settingsForm,
+                      paymentAccounts: { ...settingsForm.paymentAccounts, bankName: e.target.value }
+                    })}
+                    placeholder="Meezan Bank"
+                    className="w-full p-2 bg-slate-950 border border-slate-800 rounded-xl text-white text-xs font-bold"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-400 text-[11px] mb-1 font-bold">Account Title</label>
+                  <input
+                    type="text"
+                    value={settingsForm.paymentAccounts?.bankAccountName || ''}
+                    onChange={(e) => setSettingsForm({
+                      ...settingsForm,
+                      paymentAccounts: { ...settingsForm.paymentAccounts, bankAccountName: e.target.value }
+                    })}
+                    placeholder="John Doe"
+                    className="w-full p-2 bg-slate-950 border border-slate-800 rounded-xl text-white text-xs font-bold"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-400 text-[11px] mb-1 font-bold">IBAN / Account Number</label>
+                  <input
+                    type="text"
+                    value={settingsForm.paymentAccounts?.bankIban || ''}
+                    onChange={(e) => setSettingsForm({
+                      ...settingsForm,
+                      paymentAccounts: { ...settingsForm.paymentAccounts, bankIban: e.target.value }
+                    })}
+                    placeholder="PK00MEZN..."
+                    className="w-full p-2 bg-slate-950 border border-slate-800 rounded-xl text-white font-mono text-xs"
+                  />
+                </div>
               </div>
             </div>
           </div>

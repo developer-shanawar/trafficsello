@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import {
-  BarChart3, Globe, Activity, Calendar, Download, Wallet, Eye,
-  TrendingUp, Users, DollarSign, Target, MousePointer, Share2, Filter, ChevronDown
+  BarChart3, Globe, Activity, Download, Wallet, Eye,
+  TrendingUp, Users, DollarSign, Target, MousePointer, Share2, Plus, Sparkles, AlertCircle, ArrowUpRight
 } from 'lucide-react';
 import {
   Chart as ChartJS, CategoryScale, LinearScale, BarElement,
@@ -14,10 +14,25 @@ import { exportToCSV, exportToExcel, exportToJSON, exportToPDF } from '../../lib
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement, PointElement, LineElement, Filler);
 
-export const AnalyticsView: React.FC = () => {
-  const { user, campaigns, transactions, allUsers } = useStore();
+// Country Flag helper
+const getCountryFlag = (country: string): string => {
+  const c = country.toLowerCase();
+  if (c.includes('united states') || c.includes('usa') || c.includes('us')) return '🇺🇸';
+  if (c.includes('pakistan') || c.includes('pk')) return '🇵🇰';
+  if (c.includes('india') || c.includes('in')) return '🇮🇳';
+  if (c.includes('germany') || c.includes('de')) return '🇩🇪';
+  if (c.includes('united kingdom') || c.includes('uk')) return '🇬🇧';
+  if (c.includes('canada') || c.includes('ca')) return '🇨🇦';
+  if (c.includes('australia') || c.includes('au')) return '🇦🇺';
+  if (c.includes('france') || c.includes('fr')) return '🇫🇷';
+  if (c.includes('brazil') || c.includes('br')) return '🇧🇷';
+  if (c.includes('bangladesh') || c.includes('bd')) return '🇧🇩';
+  return '🌐';
+};
 
-  const [dateRange, setDateRange] = useState<'7d' | '30d' | 'this_month' | 'all'>('7d');
+export const AnalyticsView: React.FC<{ onNavigateToCampaigns?: () => void }> = ({ onNavigateToCampaigns }) => {
+  const { user, campaigns, socialCampaigns, transactions, allUsers, formatMoney } = useStore();
+
   const [selectedUserId, setSelectedUserId] = useState<string>('all');
 
   // Filter campaigns and transactions based on selection
@@ -30,120 +45,125 @@ export const AnalyticsView: React.FC = () => {
     return true;
   });
 
+  const filteredSocialCampaigns = socialCampaigns.filter(sc => {
+    if (activeUserFilterId !== 'all' && sc.userId !== activeUserFilterId) return false;
+    return true;
+  });
+
   const filteredSpends = transactions.filter(t => {
     if (t.type !== 'spend') return false;
     if (activeUserFilterId !== 'all' && t.userId !== activeUserFilterId) return false;
     return true;
   });
 
-  // Calculate Metrics
-  const totalDeliveredHits = filteredCampaigns.reduce((acc, c) => acc + c.visitorsDelivered, 0);
-  const totalSpending = filteredSpends.reduce((acc, t) => acc + t.amount, 0) || (totalDeliveredHits * 0.0001) || 12.50;
+  // Calculate Real Metrics
+  const totalDeliveredHits = filteredCampaigns.reduce((acc, c) => acc + (c.visitorsDelivered || 0), 0);
+  const totalTargetHits = filteredCampaigns.reduce((acc, c) => acc + (c.visitorsTarget || 0), 0);
+  
+  const campaignSpentTotal = filteredCampaigns.reduce((acc, c) => acc + (c.spentAmount || c.budget || 0), 0);
+  const socialSpentTotal = filteredSocialCampaigns.reduce((acc, sc) => acc + (sc.totalCost || 0), 0);
+  const totalRealSpending = campaignSpentTotal + socialSpentTotal;
 
-  // Wallet balance calculation
+  // Real Wallet balance calculation
   const displayedWalletBalance = activeUserFilterId === 'all'
     ? allUsers.reduce((acc, u) => acc + u.walletBalance, 0)
     : (allUsers.find(u => u.id === activeUserFilterId)?.walletBalance || user?.walletBalance || 0);
 
-  // Derived metrics
-  const totalHitsCount = totalDeliveredHits > 0 ? totalDeliveredHits : 148500;
-  const cpc = totalHitsCount > 0 ? (totalSpending / totalHitsCount) : 0.0008;
-  const conversions = Math.round(totalHitsCount * 0.032); // 3.2% acquisition conversion
-  const cpl = conversions > 0 ? (totalSpending / conversions) : 0.25;
+  // Effective CPM ($ per 1,000 visitors)
+  const averageRealCPM = totalDeliveredHits > 0 
+    ? (totalRealSpending / (totalDeliveredHits / 1000))
+    : (filteredCampaigns.length > 0 ? (filteredCampaigns.reduce((acc, c) => acc + c.cpm, 0) / filteredCampaigns.length) : 0);
 
-  // Dates timeline generator based on range
-  const dateLabels = dateRange === '7d'
-    ? ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-    : dateRange === '30d'
-    ? ['Week 1', 'Week 2', 'Week 3', 'Week 4']
-    : ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'];
+  // Effective CPC ($ per visitor hit)
+  const averageRealCPC = totalDeliveredHits > 0 ? (totalRealSpending / totalDeliveredHits) : 0;
 
-  // Traffic Trend Line
-  const trafficTrendData = {
-    labels: dateLabels,
+  // Group Real Data by Country
+  const countryMap: Record<string, { country: string; deliveredHits: number; targetHits: number; spent: number; campaignCount: number }> = {};
+
+  filteredCampaigns.forEach(c => {
+    const countryName = c.country || 'Global / Tier 3';
+    if (!countryMap[countryName]) {
+      countryMap[countryName] = { country: countryName, deliveredHits: 0, targetHits: 0, spent: 0, campaignCount: 0 };
+    }
+    countryMap[countryName].deliveredHits += (c.visitorsDelivered || 0);
+    countryMap[countryName].targetHits += (c.visitorsTarget || 0);
+    countryMap[countryName].spent += (c.spentAmount || c.budget || 0);
+    countryMap[countryName].campaignCount += 1;
+  });
+
+  const realCountryList = Object.values(countryMap).map(c => {
+    const share = totalDeliveredHits > 0 ? ((c.deliveredHits / totalDeliveredHits) * 100).toFixed(1) + '%' : '0%';
+    const cpm = c.deliveredHits > 0 ? (c.spent / (c.deliveredHits / 1000)) : 0;
+    return {
+      ...c,
+      flag: getCountryFlag(c.country),
+      share,
+      cpm
+    };
+  });
+
+  // Group Real Data by Traffic Type / Method (Popunder, Direct/SmartLink, Native, Search Organic, Social SMM)
+  const trafficTypeMap: Record<string, number> = {};
+  filteredCampaigns.forEach(c => {
+    const type = c.trafficType || 'Popunder Traffic';
+    trafficTypeMap[type] = (trafficTypeMap[type] || 0) + (c.visitorsDelivered || c.visitorsTarget || 0);
+  });
+
+  if (filteredSocialCampaigns.length > 0) {
+    const socialHits = filteredSocialCampaigns.reduce((acc, sc) => acc + (sc.deliveredQuantity || sc.quantity || 0), 0);
+    trafficTypeMap['Social Ads SMM'] = (trafficTypeMap['Social Ads SMM'] || 0) + socialHits;
+  }
+
+  const trafficTypeLabels = Object.keys(trafficTypeMap);
+  const trafficTypeValues = Object.values(trafficTypeMap);
+
+  const trafficSourcesChartData = {
+    labels: trafficTypeLabels.length > 0 ? trafficTypeLabels : ['No Active Campaigns'],
     datasets: [
       {
-        label: 'Visitors / Hits Received',
-        data: dateRange === '7d'
-          ? [12400, 18900, 24500, 31000, 28400, 38900, 42000]
-          : [85000, 142000, 198000, 245000],
-        borderColor: '#38BDF8',
-        backgroundColor: 'rgba(56, 189, 248, 0.12)',
-        tension: 0.4,
-        fill: true,
-      },
-      {
-        label: 'Ad Spend ($ USD)',
-        data: dateRange === '7d'
-          ? [9.9, 15.1, 19.6, 24.8, 22.7, 31.1, 33.6]
-          : [68, 113, 158, 196],
-        borderColor: '#10B981',
-        backgroundColor: 'rgba(16, 185, 129, 0.08)',
-        tension: 0.4,
-        fill: true,
-      }
-    ],
-  };
-
-  // Traffic Sources Chart (Organic, Social, Direct, Referral)
-  const trafficSourcesData = {
-    labels: ['Organic Search', 'Social Networks', 'Direct Traffic', 'Referral & Partner'],
-    datasets: [
-      {
-        data: [42, 28, 18, 12],
+        data: trafficTypeValues.length > 0 ? trafficTypeValues : [1],
         backgroundColor: [
-          '#10B981', // Emerald
-          '#6366F1', // Indigo
-          '#F59E0B', // Amber
-          '#EC4899', // Pink
+          '#10B981', '#38BDF8', '#6366F1', '#F59E0B', '#EC4899', '#8B5CF6'
         ],
         borderWidth: 0,
-      },
-    ],
+      }
+    ]
   };
-
-  // Country Breakdown Data
-  const countryBreakdown = [
-    { country: 'United States', flag: '🇺🇸', hits: Math.round(totalHitsCount * 0.42), share: '42%', spend: totalSpending * 0.42, cpc: '$0.0008', cpl: '$0.22' },
-    { country: 'Germany', flag: '🇩🇪', hits: Math.round(totalHitsCount * 0.18), share: '18%', spend: totalSpending * 0.18, cpc: '$0.0009', cpl: '$0.24' },
-    { country: 'United Kingdom', flag: '🇬🇧', hits: Math.round(totalHitsCount * 0.15), share: '15%', spend: totalSpending * 0.15, cpc: '$0.0008', cpl: '$0.21' },
-    { country: 'Canada', flag: '🇨🇦', hits: Math.round(totalHitsCount * 0.12), share: '12%', spend: totalSpending * 0.12, cpc: '$0.0008', cpl: '$0.23' },
-    { country: 'Australia', flag: '🇦🇺', hits: Math.round(totalHitsCount * 0.08), share: '8%', spend: totalSpending * 0.08, cpc: '$0.0009', cpl: '$0.26' },
-    { country: 'Pakistan', flag: '🇵🇰', hits: Math.round(totalHitsCount * 0.05), share: '5%', spend: totalSpending * 0.05, cpc: '$0.0005', cpl: '$0.15' },
-  ];
 
   const handleExportData = (type: 'pdf' | 'excel' | 'csv' | 'json') => {
-    const title = 'TrafficSell Analytics Telemetry Report';
-    const headers = ['Country', 'Hits Received', 'Share %', 'Estimated Spend ($)', 'Avg CPC', 'Avg CPL'];
-    const rows = countryBreakdown.map(c => [
+    const title = 'TrafficSell Real Analytics Telemetry Report';
+    const headers = ['Country', 'Delivered Hits', 'Target Hits', 'Global Share', 'Real Spend ($)', 'Effective CPM'];
+    const rows = realCountryList.map(c => [
       c.country,
-      c.hits.toLocaleString(),
+      c.deliveredHits.toLocaleString(),
+      c.targetHits.toLocaleString(),
       c.share,
-      `$${c.spend.toFixed(2)}`,
-      c.cpc,
-      c.cpl
+      `$${c.spent.toFixed(2)}`,
+      `$${c.cpm.toFixed(3)}`
     ]);
 
-    if (type === 'csv') exportToCSV('TrafficSell_Analytics_Report', headers, rows);
-    if (type === 'excel') exportToExcel('TrafficSell_Analytics_Report', headers, rows);
-    if (type === 'json') exportToJSON('TrafficSell_Analytics_Report', { summary: { totalHits: totalHitsCount, totalSpending, walletBalance: displayedWalletBalance }, countries: countryBreakdown });
+    if (type === 'csv') exportToCSV('TrafficSell_Real_Analytics_Report', headers, rows);
+    if (type === 'excel') exportToExcel('TrafficSell_Real_Analytics_Report', headers, rows);
+    if (type === 'json') exportToJSON('TrafficSell_Real_Analytics_Report', { summary: { totalDeliveredHits, totalRealSpending, displayedWalletBalance }, countries: realCountryList, campaigns: filteredCampaigns });
     if (type === 'pdf') exportToPDF(title, headers, rows);
   };
+
+  const hasData = filteredCampaigns.length > 0 || filteredSocialCampaigns.length > 0;
 
   return (
     <div className="space-y-8">
       
-      {/* Analytics Control Header & Date Range Picker */}
+      {/* Analytics Control Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span className="px-2.5 py-0.5 rounded-full text-xs font-black uppercase tracking-wider bg-[#DFFF2F] text-slate-950 border border-slate-900 shadow-sm">
-              <Activity className="w-3.5 h-3.5 inline mr-1" /> Telemetry Intelligence
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-black uppercase tracking-wider bg-[#DFFF2F] text-slate-950 border border-slate-900 shadow-sm flex items-center gap-1">
+              <Activity className="w-3.5 h-3.5" /> Real-Time Telemetry
             </span>
           </div>
-          <h2 className="text-2xl font-black text-slate-900 dark:text-white">Custom Analytics & Performance Dashboard</h2>
+          <h2 className="text-2xl font-black text-slate-900 dark:text-white">Live Campaign Analytics & Traffic Reports</h2>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            Real-time visitor counts, wallet funds, traffic origins, CPC/CPL economics, and acquisition stats.
+            100% Real data from your active ad campaigns: targeted countries, CPM rates, SmartLinks, Organic Search, and hit delivery.
           </p>
         </div>
 
@@ -169,269 +189,245 @@ export const AnalyticsView: React.FC = () => {
             </div>
           )}
 
-          {/* Date range filter */}
-          <div className="flex items-center bg-slate-100 dark:bg-slate-950 p-1 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-bold">
-            <button
-              onClick={() => setDateRange('7d')}
-              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
-                dateRange === '7d' ? 'bg-[#DFFF2F] text-slate-950 shadow-sm' : 'text-slate-500 dark:text-slate-400'
-              }`}
-            >
-              7 Days
-            </button>
-            <button
-              onClick={() => setDateRange('30d')}
-              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
-                dateRange === '30d' ? 'bg-[#DFFF2F] text-slate-950 shadow-sm' : 'text-slate-500 dark:text-slate-400'
-              }`}
-            >
-              30 Days
-            </button>
-            <button
-              onClick={() => setDateRange('this_month')}
-              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
-                dateRange === 'this_month' ? 'bg-[#DFFF2F] text-slate-950 shadow-sm' : 'text-slate-500 dark:text-slate-400'
-              }`}
-            >
-              This Month
-            </button>
-          </div>
-
-          {/* Export button menu */}
-          <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs">
-            <span className="text-[10px] text-slate-400 uppercase font-mono px-2 font-bold flex items-center gap-1">
-              <Download className="w-3.5 h-3.5 text-[#DFFF2F]" /> Export:
-            </span>
-            <button
-              onClick={() => handleExportData('pdf')}
-              className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded text-[10px] font-bold cursor-pointer"
-            >
-              PDF
-            </button>
-            <button
-              onClick={() => handleExportData('excel')}
-              className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-emerald-400 rounded text-[10px] font-bold cursor-pointer"
-            >
-              Excel
-            </button>
-            <button
-              onClick={() => handleExportData('csv')}
-              className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-amber-400 rounded text-[10px] font-bold cursor-pointer"
-            >
-              CSV
-            </button>
-            <button
-              onClick={() => handleExportData('json')}
-              className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-[#DFFF2F] rounded text-[10px] font-bold cursor-pointer"
-            >
-              JSON
-            </button>
-          </div>
+          {/* Export menu button */}
+          {hasData && (
+            <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs">
+              <span className="text-[10px] text-slate-400 uppercase font-mono px-2 font-bold flex items-center gap-1">
+                <Download className="w-3.5 h-3.5 text-[#DFFF2F]" /> Export:
+              </span>
+              <button
+                onClick={() => handleExportData('csv')}
+                className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-amber-400 rounded text-[10px] font-bold cursor-pointer"
+              >
+                CSV
+              </button>
+              <button
+                onClick={() => handleExportData('excel')}
+                className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-emerald-400 rounded text-[10px] font-bold cursor-pointer"
+              >
+                Excel
+              </button>
+              <button
+                onClick={() => handleExportData('pdf')}
+                className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded text-[10px] font-bold cursor-pointer"
+              >
+                PDF
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Core Key Metric Display Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+      {/* Core Key Real Metric Display Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4">
         
         {/* Total Wallet Balance */}
         <div className="p-5 rounded-3xl bg-gradient-to-br from-slate-900 to-slate-950 text-white border border-slate-800 shadow-md space-y-1">
           <span className="text-[11px] font-bold text-[#DFFF2F] uppercase tracking-wider flex items-center gap-1">
-            <Wallet className="w-3.5 h-3.5" /> Total Wallet
+            <Wallet className="w-3.5 h-3.5" /> Wallet Balance
           </span>
-          <p className="text-2xl font-black text-white">${displayedWalletBalance.toFixed(2)}</p>
-          <span className="text-[10px] text-slate-400 block">Available Campaign Funds</span>
+          <p className="text-2xl font-black text-white">{formatMoney(displayedWalletBalance)}</p>
+          <span className="text-[10px] text-slate-400 block">Available Funds</span>
         </div>
 
-        {/* Total Hits Received */}
+        {/* Real Delivered Hits */}
         <div className="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-1">
           <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1">
-            <Eye className="w-3.5 h-3.5 text-sky-500" /> Hits Received
+            <Eye className="w-3.5 h-3.5 text-sky-500" /> Hits Delivered
           </span>
-          <p className="text-2xl font-black text-slate-900 dark:text-white">{totalHitsCount.toLocaleString()}</p>
-          <span className="text-[10px] text-emerald-500 font-bold block">✓ 100% Real Visitors</span>
+          <p className="text-2xl font-black text-slate-900 dark:text-white">{totalDeliveredHits.toLocaleString()}</p>
+          <span className="text-[10px] text-slate-400 block">Out of {totalTargetHits.toLocaleString()} Target</span>
         </div>
 
-        {/* Total Spending */}
+        {/* Real Campaign Spend */}
         <div className="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-1">
           <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1">
-            <DollarSign className="w-3.5 h-3.5 text-amber-500" /> Total Spend
+            <DollarSign className="w-3.5 h-3.5 text-amber-500" /> Real Spend
           </span>
-          <p className="text-2xl font-black text-amber-600 dark:text-amber-400">${totalSpending.toFixed(2)}</p>
-          <span className="text-[10px] text-slate-400 block">Delivered Traffic Cost</span>
+          <p className="text-2xl font-black text-amber-600 dark:text-amber-400">{formatMoney(totalRealSpending)}</p>
+          <span className="text-[10px] text-slate-400 block">Campaign Budget Used</span>
         </div>
 
-        {/* Cost Per Click / Hit (CPC) */}
+        {/* Real Effective CPM */}
         <div className="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-1">
           <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1">
-            <MousePointer className="w-3.5 h-3.5 text-indigo-500" /> Effective CPC
+            <Target className="w-3.5 h-3.5 text-indigo-500" /> Average CPM
           </span>
-          <p className="text-2xl font-black text-slate-900 dark:text-white">${cpc.toFixed(4)}</p>
-          <span className="text-[10px] text-slate-400 block">Cost Per Visitor Hit</span>
+          <p className="text-2xl font-black text-slate-900 dark:text-white">{formatMoney(averageRealCPM)}</p>
+          <span className="text-[10px] text-slate-400 block">Per 1,000 Visitors</span>
         </div>
 
-        {/* Cost Per Lead (CPL) */}
+        {/* Real Active Campaigns */}
         <div className="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-1">
           <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1">
-            <Target className="w-3.5 h-3.5 text-rose-500" /> Average CPL
+            <BarChart3 className="w-3.5 h-3.5 text-emerald-500" /> Campaigns
           </span>
-          <p className="text-2xl font-black text-slate-900 dark:text-white">${cpl.toFixed(2)}</p>
-          <span className="text-[10px] text-slate-400 block">Cost Per Action / Lead</span>
-        </div>
-
-        {/* User Acquisition Details */}
-        <div className="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-1">
-          <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1">
-            <TrendingUp className="w-3.5 h-3.5 text-emerald-500" /> Conversions
-          </span>
-          <p className="text-2xl font-black text-emerald-600 dark:text-emerald-400">{conversions.toLocaleString()}</p>
-          <span className="text-[10px] text-slate-400 block">User Acquisitions</span>
+          <p className="text-2xl font-black text-emerald-600 dark:text-emerald-400">{filteredCampaigns.length + filteredSocialCampaigns.length}</p>
+          <span className="text-[10px] text-slate-400 block">Total Active & Past</span>
         </div>
       </div>
 
-      {/* Main Charts Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        
-        {/* Delivery & Spend Timeline */}
-        <div className="lg:col-span-8 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-            <div>
-              <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                <BarChart3 className="w-4 h-4 text-sky-500" /> Visitor Delivery & Spending Performance
-              </h3>
-              <p className="text-xs text-slate-400">Hits delivery volume overlaid with actual campaign budget consumption.</p>
-            </div>
-            <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
-              Live Sync
-            </span>
+      {/* NO DATA EMPTY STATE */}
+      {!hasData ? (
+        <div className="p-10 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl text-center space-y-4 shadow-sm">
+          <div className="w-16 h-16 rounded-2xl bg-[#DFFF2F]/20 text-slate-900 dark:text-[#DFFF2F] flex items-center justify-center mx-auto">
+            <BarChart3 className="w-8 h-8" />
           </div>
-
-          <div className="h-72 w-full">
-            <Line
-              data={trafficTrendData}
-              options={{
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                  legend: {
-                    position: 'top',
-                    labels: { boxWidth: 12, font: { size: 11, weight: 'bold' } }
-                  }
-                }
-              }}
-            />
+          <div className="max-w-md mx-auto space-y-1">
+            <h3 className="text-xl font-black text-slate-900 dark:text-white">No Campaign Analytics Data Yet</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Launch your first traffic campaign or SMM order to view live visitor counts, country breakdowns, CPM rates, and delivery reports.
+            </p>
           </div>
+          {onNavigateToCampaigns && (
+            <button
+              onClick={onNavigateToCampaigns}
+              className="py-3 px-6 bg-[#DFFF2F] text-slate-950 font-black rounded-xl text-xs inline-flex items-center gap-2 hover:scale-105 transition-all shadow cursor-pointer"
+            >
+              <Plus className="w-4 h-4" /> Launch First Campaign Now
+            </button>
+          )}
         </div>
+      ) : (
+        <>
+          {/* Main Traffic Charts Row */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            
+            {/* Traffic Types Breakdown */}
+            <div className="lg:col-span-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm space-y-4">
+              <div className="border-b border-slate-100 dark:border-slate-800 pb-3">
+                <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <Share2 className="w-4 h-4 text-indigo-500" /> Real Traffic Methods & Types
+                </h3>
+                <p className="text-xs text-slate-400">Distribution by traffic category chosen in your campaigns.</p>
+              </div>
 
-        {/* Traffic Sources Breakdown */}
-        <div className="lg:col-span-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm flex flex-col justify-between space-y-4">
-          <div>
-            <div className="border-b border-slate-100 dark:border-slate-800 pb-3 mb-4">
-              <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                <Share2 className="w-4 h-4 text-indigo-500" /> Traffic Sources
-              </h3>
-              <p className="text-xs text-slate-400">Distribution by traffic channel origin</p>
+              <div className="h-56 w-full flex items-center justify-center">
+                <Doughnut
+                  data={trafficSourcesChartData}
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom', labels: { font: { size: 10, weight: 'bold' } } } }
+                  }}
+                />
+              </div>
+
+              <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800 text-xs">
+                {Object.entries(trafficTypeMap).map(([type, hits], i) => (
+                  <div key={type} className="flex justify-between items-center text-slate-600 dark:text-slate-300">
+                    <span className="font-semibold text-slate-800 dark:text-slate-200">{type}</span>
+                    <strong className="text-slate-900 dark:text-white font-mono">{hits.toLocaleString()} hits</strong>
+                  </div>
+                ))}
+              </div>
             </div>
 
-            <div className="h-52 w-full flex items-center justify-center">
-              <Doughnut
-                data={trafficSourcesData}
-                options={{
-                  responsive: true,
-                  maintainAspectRatio: false,
-                  plugins: { legend: { position: 'bottom', labels: { font: { size: 10, weight: 'bold' } } } }
-                }}
-              />
+            {/* Country Telemetry Breakdown */}
+            <div className="lg:col-span-7 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm space-y-4">
+              <div className="border-b border-slate-100 dark:border-slate-800 pb-3">
+                <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <Globe className="w-4 h-4 text-emerald-500" /> Targeted Countries Breakdown
+                </h3>
+                <p className="text-xs text-slate-400">Real delivered traffic volume and budget spend by geographic region.</p>
+              </div>
+
+              <div className="space-y-3">
+                {realCountryList.length === 0 ? (
+                  <p className="text-xs text-slate-500 italic">No country data recorded yet.</p>
+                ) : (
+                  realCountryList.map((c, i) => (
+                    <div key={i} className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-800/80 flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-3">
+                        <span className="text-2xl">{c.flag}</span>
+                        <div>
+                          <h4 className="font-black text-slate-900 dark:text-white text-sm">{c.country}</h4>
+                          <p className="text-[10px] text-slate-400">{c.campaignCount} active campaign(s)</p>
+                        </div>
+                      </div>
+
+                      <div className="text-right">
+                        <p className="font-mono font-bold text-slate-900 dark:text-white text-sm">
+                          {c.deliveredHits.toLocaleString()} <span className="text-[10px] text-slate-400 font-sans">/ {c.targetHits.toLocaleString()}</span>
+                        </p>
+                        <p className="text-[11px] text-amber-500 font-extrabold font-mono">
+                          Spent: {formatMoney(c.spent)}
+                        </p>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
           </div>
 
-          <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800 text-xs">
-            <div className="flex justify-between items-center text-slate-600 dark:text-slate-300">
-              <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500" /> Organic Search</span>
-              <strong className="text-slate-900 dark:text-white font-mono">42%</strong>
+          {/* Real Campaign Performance Table */}
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-4">
+              <div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <BarChart3 className="w-4 h-4 text-[#DFFF2F]" /> Campaign Telemetry Log
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">Real-time status, targeted countries, CPM rates, and hits delivery progress.</p>
+              </div>
             </div>
-            <div className="flex justify-between items-center text-slate-600 dark:text-slate-300">
-              <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-indigo-500" /> Social Networks</span>
-              <strong className="text-slate-900 dark:text-white font-mono">28%</strong>
-            </div>
-            <div className="flex justify-between items-center text-slate-600 dark:text-slate-300">
-              <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-amber-500" /> Direct Visitors</span>
-              <strong className="text-slate-900 dark:text-white font-mono">18%</strong>
-            </div>
-            <div className="flex justify-between items-center text-slate-600 dark:text-slate-300">
-              <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-pink-500" /> Referral & Partner</span>
-              <strong className="text-slate-900 dark:text-white font-mono">12%</strong>
-            </div>
-          </div>
-        </div>
-      </div>
 
-      {/* Country of Origin Detailed Table & Data */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-4">
-          <div>
-            <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <Globe className="w-4 h-4 text-emerald-500" /> Country of Origin & Geographic Economics
-            </h3>
-            <p className="text-xs text-slate-400 mt-0.5">Hits breakdown, market share %, budget spend, CPC, and CPL metrics by country.</p>
-          </div>
-
-          <button
-            onClick={() => handleExportData('csv')}
-            className="px-3.5 py-1.5 bg-[#DFFF2F] text-slate-950 font-black rounded-xl text-xs flex items-center gap-1.5 shadow cursor-pointer self-start sm:self-auto"
-          >
-            <Download className="w-3.5 h-3.5" /> Export Country Table
-          </button>
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="border-b border-slate-200 dark:border-slate-800 text-slate-400 uppercase font-mono text-[10px]">
-              <tr>
-                <th className="pb-3">Country of Origin</th>
-                <th className="pb-3">Hits Received</th>
-                <th className="pb-3">Global Share %</th>
-                <th className="pb-3">Estimated Spending ($)</th>
-                <th className="pb-3">Avg CPC ($)</th>
-                <th className="pb-3">Avg CPL ($)</th>
-                <th className="pb-3">Acquisitions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-              {countryBreakdown.map((item, idx) => {
-                const cConversions = Math.round(item.hits * 0.032);
-                return (
-                  <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
-                    <td className="py-3.5 font-bold text-slate-900 dark:text-white flex items-center gap-2.5 text-sm">
-                      <span className="text-base">{item.flag}</span>
-                      <span>{item.country}</span>
-                    </td>
-                    <td className="py-3.5 font-mono text-slate-900 dark:text-white font-bold">
-                      {item.hits.toLocaleString()}
-                    </td>
-                    <td className="py-3.5 font-bold">
-                      <span className="px-2 py-0.5 rounded-md bg-slate-950 text-white dark:bg-[#DFFF2F] dark:text-slate-950 text-[10px] font-black">
-                        {item.share}
-                      </span>
-                    </td>
-                    <td className="py-3.5 font-mono font-bold text-amber-600 dark:text-amber-400">
-                      ${item.spend.toFixed(2)}
-                    </td>
-                    <td className="py-3.5 font-mono text-slate-600 dark:text-slate-300">
-                      {item.cpc}
-                    </td>
-                    <td className="py-3.5 font-mono text-slate-600 dark:text-slate-300">
-                      {item.cpl}
-                    </td>
-                    <td className="py-3.5 font-bold text-emerald-600 dark:text-emerald-400">
-                      {cConversions.toLocaleString()} users
-                    </td>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="border-b border-slate-200 dark:border-slate-800 text-slate-400 uppercase font-mono text-[10px]">
+                  <tr>
+                    <th className="pb-3">Campaign / URL</th>
+                    <th className="pb-3">Target Country</th>
+                    <th className="pb-3">Traffic Type</th>
+                    <th className="pb-3">CPM Rate</th>
+                    <th className="pb-3">Delivered / Target</th>
+                    <th className="pb-3">Spent</th>
+                    <th className="pb-3">Status</th>
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                  {filteredCampaigns.map((c) => (
+                    <tr key={c.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
+                      <td className="py-3.5">
+                        <p className="font-extrabold text-slate-900 dark:text-white text-sm">{c.name}</p>
+                        <p className="text-[10px] font-mono text-slate-400 truncate max-w-xs">{c.targetUrl}</p>
+                      </td>
+                      <td className="py-3.5 font-bold text-slate-900 dark:text-white flex items-center gap-1.5 pt-4">
+                        <span>{getCountryFlag(c.country)}</span>
+                        <span>{c.country}</span>
+                      </td>
+                      <td className="py-3.5">
+                        <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-[10px]">
+                          {c.trafficType || 'Popunder'}
+                        </span>
+                      </td>
+                      <td className="py-3.5 font-mono font-bold text-slate-900 dark:text-white">
+                        {formatMoney(c.cpm)}
+                      </td>
+                      <td className="py-3.5 font-mono">
+                        <span className="font-bold text-emerald-500">{c.visitorsDelivered.toLocaleString()}</span> / {c.visitorsTarget.toLocaleString()}
+                      </td>
+                      <td className="py-3.5 font-mono font-bold text-amber-500">
+                        {formatMoney(c.spentAmount || c.budget)}
+                      </td>
+                      <td className="py-3.5">
+                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase ${
+                          c.status === 'running' ? 'bg-emerald-500/20 text-emerald-500' :
+                          c.status === 'pending' ? 'bg-amber-500/20 text-amber-500' :
+                          c.status === 'completed' ? 'bg-blue-500/20 text-blue-500' :
+                          'bg-slate-500/20 text-slate-400'
+                        }`}>
+                          {c.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 };
