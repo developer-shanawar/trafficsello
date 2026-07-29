@@ -1351,7 +1351,7 @@ export const AdminDashboard: React.FC = () => {
                         </span>
                       </td>
                       <td className="py-3.5">
-                        {w.status === 'in review' && (
+                        {(w.status === 'in review' || w.status === 'pending') && (
                           <div className="flex items-center gap-1.5">
                             <button
                               onClick={() => {
@@ -1453,7 +1453,7 @@ export const AdminDashboard: React.FC = () => {
                         </span>
                       </td>
                       <td className="py-3.5">
-                        {c.status === 'in review' && (
+                        {(c.status === 'in review' || c.status === 'pending') && (
                           <div className="flex items-center gap-1.5">
                             <button
                               onClick={() => approveCommissionIncrease(c.id, c.requestedRate)}

@@ -448,70 +448,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         </div>
       </section>
 
-      {/* 5% Lifetime Referral Program Highlight Banner */}
-      <section id="referral-program" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 border border-indigo-500/30 rounded-3xl p-8 sm:p-12 text-white shadow-2xl relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-80 h-80 bg-[#DFFF2F]/10 blur-[100px] rounded-full pointer-events-none" />
-          
-          <div className="relative z-10 flex flex-col lg:flex-row items-center justify-between gap-8">
-            <div className="max-w-2xl space-y-4 text-center lg:text-left">
-              <span className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full text-xs font-black uppercase tracking-widest bg-[#DFFF2F] text-slate-950">
-                <Gift className="w-4 h-4" /> 5% Lifetime Cash Commission
-              </span>
-              <h2 className="text-3xl sm:text-4xl font-black text-white leading-tight">
-                Earn 5% Cash Bonus on Every Referral Deposit
-              </h2>
-              <p className="text-xs sm:text-sm text-slate-300 font-medium leading-relaxed">
-                Join TrafficSell’s high-paying referral partner program. Share your unique referral link with advertisers, bloggers, or ad agency owners. Whenever your referred users fund their wallet, you earn <strong className="text-[#DFFF2F]">5% instant cash bonus</strong> credited directly to your account balance with zero caps.
-              </p>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 text-left">
-                <div className="p-3 bg-slate-800/60 border border-slate-700/60 rounded-xl">
-                  <div className="text-xs font-bold text-[#DFFF2F] mb-1">1. Share Your Link</div>
-                  <div className="text-[11px] text-slate-300">Copy link from dashboard</div>
-                </div>
-                <div className="p-3 bg-slate-800/60 border border-slate-700/60 rounded-xl">
-                  <div className="text-xs font-bold text-[#DFFF2F] mb-1">2. Friends Deposit</div>
-                  <div className="text-[11px] text-slate-300">Fast JazzCash/USDT top-up</div>
-                </div>
-                <div className="p-3 bg-slate-800/60 border border-slate-700/60 rounded-xl">
-                  <div className="text-xs font-bold text-[#DFFF2F] mb-1">3. Get 5% Cash</div>
-                  <div className="text-[11px] text-slate-300">Instant automated payout</div>
-                </div>
-              </div>
-
-              <div className="pt-4 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
-                <button
-                  onClick={onGetStarted}
-                  className="w-full sm:w-auto py-3.5 px-8 bg-[#DFFF2F] hover:bg-[#cbe820] text-slate-950 font-black rounded-2xl text-xs sm:text-sm transition-all shadow-xl hover:scale-105 cursor-pointer flex items-center justify-center gap-2"
-                >
-                  Get Your Referral Link <ArrowRight className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-
-            <div className="w-full lg:w-80 bg-slate-950/90 border border-slate-800 p-6 rounded-2xl text-center space-y-4 shrink-0 shadow-2xl">
-              <div className="w-14 h-14 bg-[#DFFF2F]/10 text-[#DFFF2F] rounded-2xl flex items-center justify-center mx-auto">
-                <Users className="w-7 h-7" />
-              </div>
-              <div>
-                <div className="text-3xl font-black text-[#DFFF2F]">5% Payout</div>
-                <div className="text-xs font-semibold text-slate-400 mt-0.5">Lifetime Recurring Commission</div>
-              </div>
-              <div className="pt-2 border-t border-slate-800 text-left space-y-2 text-xs">
-                <div className="flex justify-between text-slate-300">
-                  <span>Sample Deposit:</span>
-                  <span className="font-bold text-white">$100.00</span>
-                </div>
-                <div className="flex justify-between text-emerald-400 font-bold">
-                  <span>Your 5% Bonus:</span>
-                  <span>+$5.00 Instant</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
 
       {/* Testimonials & Advertiser Reviews Carousel */}
       <section id="testimonials" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -618,85 +555,90 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         </div>
       </section>
 
-      {/* 5% Referral Affiliate Program Highlight Section */}
+      {/* Single Unified Referral System & Partner Program Section */}
       <section id="referral-program" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="relative rounded-3xl overflow-hidden bg-gradient-to-r from-indigo-900 via-slate-900 to-purple-950 border-2 border-indigo-500/30 p-8 sm:p-12 text-white shadow-2xl">
-          <div className="absolute right-0 top-0 -mr-16 -mt-16 w-80 h-80 rounded-full bg-indigo-500/20 blur-3xl pointer-events-none" />
-          <div className="absolute left-0 bottom-0 -ml-16 -mb-16 w-80 h-80 rounded-full bg-amber-500/10 blur-3xl pointer-events-none" />
+        <div className="relative rounded-3xl overflow-hidden bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 border border-slate-800 p-8 sm:p-12 text-white shadow-2xl space-y-8">
+          <div className="absolute right-0 top-0 -mr-16 -mt-16 w-80 h-80 rounded-full bg-[#DFFF2F]/10 blur-3xl pointer-events-none" />
 
-          <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-            <div className="lg:col-span-7 space-y-5">
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-400/20 border border-amber-400/40 text-amber-300 text-xs font-bold uppercase tracking-wider">
-                <Gift className="w-4 h-4 text-amber-400 animate-bounce" />
-                <span>Earn 5% Passive Income</span>
+          <div className="text-center max-w-3xl mx-auto space-y-3">
+            <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#DFFF2F]/10 border border-[#DFFF2F]/20 text-[#DFFF2F] text-xs font-bold uppercase tracking-wider">
+              <Gift className="w-4 h-4" /> Partner Referral Guide
+            </span>
+            <h2 className="text-3xl sm:text-4xl font-black text-white tracking-tight">
+              How the <span className="text-[#DFFF2F]">TrafficSell Referral System</span> Works
+            </h2>
+            <p className="text-slate-300 text-xs sm:text-sm font-medium leading-relaxed">
+              Earn lifetime commissions up to 15% on all advertiser deposits. Here is how to share your link, top up your wallet, request custom rates, and withdraw your cash earnings.
+            </p>
+          </div>
+
+          {/* 4 Step Cards Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Step 1 */}
+            <div className="p-5 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-3 shadow-lg relative">
+              <div className="w-10 h-10 rounded-xl bg-[#DFFF2F]/10 text-[#DFFF2F] font-black flex items-center justify-center text-sm border border-[#DFFF2F]/20">
+                01
               </div>
-
-              <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight leading-tight">
-                TrafficSell <span className="text-amber-400">5% Referral</span> Partner Program
-              </h2>
-
-              <p className="text-slate-300 text-sm sm:text-base leading-relaxed">
-                Invite fellow webmasters, media buyers, agency owners, and digital marketers to TrafficSell.
-                Every time your referred user makes a wallet deposit, <strong className="text-amber-300">5% of the deposited amount is automatically credited</strong> to your account balance instantly!
+              <h3 className="font-extrabold text-base text-white">1. Share Your Link</h3>
+              <p className="text-slate-300 text-xs leading-relaxed">
+                Copy your unique referral link or 4-6 char custom partner code from the dashboard and share via WhatsApp, Telegram, or social media.
               </p>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
-                <div className="p-4 rounded-2xl bg-white/5 border border-white/10 text-center">
-                  <p className="text-2xl font-black text-amber-400">5.0%</p>
-                  <p className="text-xs text-slate-300 font-medium mt-1">Lifetime Commission</p>
-                </div>
-                <div className="p-4 rounded-2xl bg-white/5 border border-white/10 text-center">
-                  <p className="text-2xl font-black text-emerald-400">Instant</p>
-                  <p className="text-xs text-slate-300 font-medium mt-1">Wallet Auto-Credit</p>
-                </div>
-                <div className="p-4 rounded-2xl bg-white/5 border border-white/10 text-center">
-                  <p className="text-2xl font-black text-indigo-300">Unlimited</p>
-                  <p className="text-xs text-slate-300 font-medium mt-1">Earning Potential</p>
-                </div>
-              </div>
-
-              <div className="pt-2">
-                <button
-                  onClick={onGetStarted}
-                  className="px-8 py-4 rounded-2xl bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-300 hover:to-yellow-400 text-slate-950 font-extrabold text-sm shadow-xl shadow-amber-500/20 transition-all hover:scale-105 active:scale-95 inline-flex items-center gap-2 cursor-pointer"
-                >
-                  <span>Get Your Referral Link Now</span>
-                  <ArrowRight className="w-4 h-4" />
-                </button>
+              <div className="text-[11px] text-[#DFFF2F] font-bold">
+                ✓ Quick share buttons supported
               </div>
             </div>
 
-            <div className="lg:col-span-5 flex justify-center">
-              <div className="w-full max-w-md rounded-2xl bg-slate-900/90 border border-indigo-500/30 p-6 space-y-4 shadow-xl">
-                <h3 className="font-extrabold text-base text-white border-b border-slate-800 pb-3 flex items-center gap-2">
-                  <Sparkles className="w-5 h-5 text-amber-400" />
-                  <span>Referral Payout Example</span>
-                </h3>
-
-                <div className="space-y-3 text-xs text-slate-300">
-                  <div className="p-3 rounded-xl bg-slate-800/60 border border-slate-700/50 flex justify-between items-center">
-                    <span>Your Friend Deposits:</span>
-                    <span className="font-bold text-white text-sm">$100.00</span>
-                  </div>
-                  <div className="p-3 rounded-xl bg-slate-800/60 border border-slate-700/50 flex justify-between items-center">
-                    <span>Your 5% Commission:</span>
-                    <span className="font-bold text-emerald-400 text-sm">+$5.00</span>
-                  </div>
-                  <div className="p-3 rounded-xl bg-slate-800/60 border border-slate-700/50 flex justify-between items-center">
-                    <span>Your Friend Deposits:</span>
-                    <span className="font-bold text-white text-sm">$1,000.00</span>
-                  </div>
-                  <div className="p-3 rounded-xl bg-emerald-950/60 border border-emerald-500/40 flex justify-between items-center">
-                    <span className="font-semibold text-emerald-200">Your 5% Commission:</span>
-                    <span className="font-bold text-emerald-400 text-base">+$50.00</span>
-                  </div>
-                </div>
-
-                <p className="text-[11px] text-slate-400 text-center italic">
-                  Commissions are calculated automatically upon deposit approval.
-                </p>
+            {/* Step 2 */}
+            <div className="p-5 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-3 shadow-lg relative">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-400 font-black flex items-center justify-center text-sm border border-emerald-500/20">
+                02
+              </div>
+              <h3 className="font-extrabold text-base text-white">2. Friends Top Up Wallet</h3>
+              <p className="text-slate-300 text-xs leading-relaxed">
+                Referred users fund their advertising wallet using JazzCash, EasyPaisa, PayPal, or USDT TRC20/BEP20 with instant verification & 20% bonus.
+              </p>
+              <div className="text-[11px] text-emerald-400 font-bold">
+                ✓ Instant deposit processing
               </div>
             </div>
+
+            {/* Step 3 */}
+            <div className="p-5 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-3 shadow-lg relative">
+              <div className="w-10 h-10 rounded-xl bg-sky-500/10 text-sky-400 font-black flex items-center justify-center text-sm border border-sky-500/20">
+                03
+              </div>
+              <h3 className="font-extrabold text-base text-white">3. Earn Cash Bonus</h3>
+              <p className="text-slate-300 text-xs leading-relaxed">
+                You receive 5% base commission automatically credited to your referral wallet balance immediately upon deposit approval.
+              </p>
+              <div className="text-[11px] text-sky-400 font-bold">
+                ✓ 5% - 15% Lifetime cash earnings
+              </div>
+            </div>
+
+            {/* Step 4 */}
+            <div className="p-5 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-3 shadow-lg relative">
+              <div className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-400 font-black flex items-center justify-center text-sm border border-purple-500/20">
+                04
+              </div>
+              <h3 className="font-extrabold text-base text-white">4. Payouts & Upgrades</h3>
+              <p className="text-slate-300 text-xs leading-relaxed">
+                Withdraw earnings to your local bank/mobile wallet or transfer to advertising deposit balance. High volume channels can request 8%, 10%, or 15% VIP rates!
+              </p>
+              <div className="text-[11px] text-purple-400 font-bold">
+                ✓ Fast Payouts & VIP Rate Increase
+              </div>
+            </div>
+          </div>
+
+          <div className="pt-2 flex justify-center">
+            <button
+              onClick={onGetStarted}
+              className="px-8 py-4 rounded-2xl bg-[#DFFF2F] hover:bg-[#cbe820] text-slate-950 font-black text-xs sm:text-sm shadow-xl transition-all hover:scale-105 active:scale-95 inline-flex items-center gap-2 cursor-pointer"
+            >
+              <span>Get Started & Copy Your Referral Link</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
           </div>
         </div>
       </section>

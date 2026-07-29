@@ -267,7 +267,7 @@ export const WalletView: React.FC = () => {
             <form onSubmit={handleSubmitDeposit} className="space-y-4">
               <div>
                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
-                  Deposit Amount ($ USD)
+                  Deposit ($ USD)
                 </label>
                 <div className="relative">
                   <DollarSign className="w-4 h-4 text-slate-500 absolute left-3 top-3.5" />

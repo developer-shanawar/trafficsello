@@ -134,11 +134,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return `$${val.toFixed(2)}`;
   };
 
-  // Theme state
-  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
-    const saved = localStorage.getItem('trafficsell_theme');
-    return (saved as 'dark' | 'light') || 'light';
-  });
+  // Theme state - Enforce Dark Theme
+  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
 
   // Load state from localStorage or initial fallback
   const [allUsers, setAllUsers] = useState<UserProfile[]>(() => {
@@ -1528,8 +1525,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         const refNotif: AppNotification = {
           id: `ntf_ref_${Date.now()}`,
           userId: referrer.id,
-          title: '🎁 5% Referral Bonus Earned!',
-          message: `You earned a $${refCommission.toFixed(2)} referral bonus (5%) from ${deposit.userName}'s deposit of $${deposit.amount.toFixed(2)}.`,
+          title: `🎁 ${(refRate * 100).toFixed(0)}% Referral Bonus Earned!`,
+          message: `You earned a $${refCommission.toFixed(2)} referral bonus (${(refRate * 100).toFixed(0)}%) from ${deposit.userName}'s deposit of $${deposit.amount.toFixed(2)}.`,
           type: 'payment',
           read: false,
           createdAt: new Date().toISOString()
@@ -2368,6 +2365,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setNotifications(prev => [notif, ...prev]);
 
     supabase.from('users').update({ custom_referral_rate: rateMultiplier }).eq('id', req.userId).then();
+    supabase.from('commission_requests').update({ status: 'approved', admin_note: adminNote }).eq('id', id).then();
+    supabase.from('referral_requests').update({ status: 'approved', admin_note: adminNote }).eq('id', id).then();
     triggerToast('Commission Approved! 🎉', `Updated ${req.userName}'s commission rate to ${customRate}%.`, 'success');
   };
 
@@ -2388,6 +2387,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
     setNotifications(prev => [notif, ...prev]);
 
+    supabase.from('commission_requests').update({ status: 'rejected', admin_note: adminNote }).eq('id', id).then();
+    supabase.from('referral_requests').update({ status: 'rejected', admin_note: adminNote }).eq('id', id).then();
     triggerToast('Request Rejected', `Commission increase request for ${req.userName} rejected.`, 'info');
   };
 
