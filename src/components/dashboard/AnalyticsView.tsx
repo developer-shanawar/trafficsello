@@ -59,7 +59,42 @@ export const AnalyticsView: React.FC<{ onNavigateToCampaigns?: () => void }> = (
   // Calculate Real Metrics
   const totalDeliveredHits = filteredCampaigns.reduce((acc, c) => acc + (c.visitorsDelivered || 0), 0);
   const totalTargetHits = filteredCampaigns.reduce((acc, c) => acc + (c.visitorsTarget || 0), 0);
-  
+
+  // User Count Metrics
+  const todayStr = new Date().toISOString().split('T')[0];
+  const yesterdayObj = new Date();
+  yesterdayObj.setDate(yesterdayObj.getDate() - 1);
+  const yesterdayStr = yesterdayObj.toISOString().split('T')[0];
+
+  const todayUsersCount = allUsers.filter(u => u.createdAt && u.createdAt.startsWith(todayStr)).length;
+  const yesterdayUsersCount = allUsers.filter(u => u.createdAt && u.createdAt.startsWith(yesterdayStr)).length;
+  const totalUsersCount = allUsers.length;
+
+  // Categorized Traffic Breakdown
+  let paidTrafficHits = 0;
+  let organicTrafficHits = 0;
+  let directTrafficHits = 0;
+  let socialTrafficHits = 0;
+
+  filteredCampaigns.forEach(c => {
+    const hits = c.visitorsDelivered || c.visitorsTarget || 0;
+    const type = (c.trafficType || c.format || '').toLowerCase();
+    if (type.includes('organic') || type.includes('search')) {
+      organicTrafficHits += hits;
+    } else if (type.includes('social')) {
+      socialTrafficHits += hits;
+    } else if (type.includes('direct')) {
+      directTrafficHits += hits;
+    } else {
+      paidTrafficHits += hits;
+    }
+  });
+
+  filteredSocialCampaigns.forEach(sc => {
+    const hits = sc.deliveredQuantity || sc.quantity || 0;
+    socialTrafficHits += hits;
+  });
+
   const campaignSpentTotal = filteredCampaigns.reduce((acc, c) => acc + (c.spentAmount || c.budget || 0), 0);
   const socialSpentTotal = filteredSocialCampaigns.reduce((acc, sc) => acc + (sc.totalCost || 0), 0);
   const totalRealSpending = campaignSpentTotal + socialSpentTotal;
@@ -218,52 +253,78 @@ export const AnalyticsView: React.FC<{ onNavigateToCampaigns?: () => void }> = (
         </div>
       </div>
 
-      {/* Core Key Real Metric Display Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-        
-        {/* Total Wallet Balance */}
-        <div className="p-5 rounded-3xl bg-gradient-to-br from-slate-900 to-slate-950 text-white border border-slate-800 shadow-md space-y-1">
+      {/* User Registration Analytics Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="p-5 rounded-3xl bg-slate-900 text-white border border-slate-800 shadow-sm space-y-1">
           <span className="text-[11px] font-bold text-[#DFFF2F] uppercase tracking-wider flex items-center gap-1">
-            <Wallet className="w-3.5 h-3.5" /> Wallet Balance
+            <Users className="w-3.5 h-3.5" /> Today's New Users
           </span>
-          <p className="text-2xl font-black text-white">{formatMoney(displayedWalletBalance)}</p>
-          <span className="text-[10px] text-slate-400 block">Available Funds</span>
+          <p className="text-3xl font-black text-white">{todayUsersCount.toLocaleString()}</p>
+          <span className="text-[10px] text-slate-400 block">Registered Today ({todayStr})</span>
         </div>
 
-        {/* Real Delivered Hits */}
         <div className="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-1">
           <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1">
-            <Eye className="w-3.5 h-3.5 text-sky-500" /> Hits Delivered
+            <Users className="w-3.5 h-3.5 text-sky-500" /> Yesterday's New Users
+          </span>
+          <p className="text-3xl font-black text-slate-900 dark:text-white">{yesterdayUsersCount.toLocaleString()}</p>
+          <span className="text-[10px] text-slate-400 block">Registered Yesterday ({yesterdayStr})</span>
+        </div>
+
+        <div className="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-1">
+          <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1">
+            <Users className="w-3.5 h-3.5 text-emerald-500" /> Total Accounts Count
+          </span>
+          <p className="text-3xl font-black text-emerald-600 dark:text-emerald-400">{totalUsersCount.toLocaleString()}</p>
+          <span className="text-[10px] text-slate-400 block">Total Registered Users</span>
+        </div>
+      </div>
+
+      {/* Core Traffic Metrics Row */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        {/* Total Traffic */}
+        <div className="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-1">
+          <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1">
+            <Eye className="w-3.5 h-3.5 text-sky-500" /> Total Traffic Hits
           </span>
           <p className="text-2xl font-black text-slate-900 dark:text-white">{totalDeliveredHits.toLocaleString()}</p>
-          <span className="text-[10px] text-slate-400 block">Out of {totalTargetHits.toLocaleString()} Target</span>
+          <span className="text-[10px] text-slate-400 block">Target: {totalTargetHits.toLocaleString()}</span>
         </div>
 
-        {/* Real Campaign Spend */}
+        {/* Paid Traffic */}
         <div className="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-1">
           <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1">
-            <DollarSign className="w-3.5 h-3.5 text-amber-500" /> Real Spend
+            <Target className="w-3.5 h-3.5 text-indigo-500" /> Paid Traffic
           </span>
-          <p className="text-2xl font-black text-amber-600 dark:text-amber-400">{formatMoney(totalRealSpending)}</p>
-          <span className="text-[10px] text-slate-400 block">Campaign Budget Used</span>
+          <p className="text-2xl font-black text-indigo-600 dark:text-indigo-400">{paidTrafficHits.toLocaleString()}</p>
+          <span className="text-[10px] text-slate-400 block">Popunder, Push, SmartLink</span>
         </div>
 
-        {/* Real Effective CPM */}
+        {/* Organic Traffic */}
         <div className="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-1">
           <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1">
-            <Target className="w-3.5 h-3.5 text-indigo-500" /> Average CPM
+            <Globe className="w-3.5 h-3.5 text-emerald-500" /> Organic Search
           </span>
-          <p className="text-2xl font-black text-slate-900 dark:text-white">{formatMoney(averageRealCPM)}</p>
-          <span className="text-[10px] text-slate-400 block">Per 1,000 Visitors</span>
+          <p className="text-2xl font-black text-emerald-600 dark:text-emerald-400">{organicTrafficHits.toLocaleString()}</p>
+          <span className="text-[10px] text-slate-400 block">Google / Bing Organic</span>
         </div>
 
-        {/* Real Active Campaigns */}
+        {/* Direct Traffic */}
         <div className="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-1">
           <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1">
-            <BarChart3 className="w-3.5 h-3.5 text-emerald-500" /> Campaigns
+            <MousePointer className="w-3.5 h-3.5 text-amber-500" /> Direct Traffic
           </span>
-          <p className="text-2xl font-black text-emerald-600 dark:text-emerald-400">{filteredCampaigns.length + filteredSocialCampaigns.length}</p>
-          <span className="text-[10px] text-slate-400 block">Total Active & Past</span>
+          <p className="text-2xl font-black text-amber-600 dark:text-amber-400">{directTrafficHits.toLocaleString()}</p>
+          <span className="text-[10px] text-slate-400 block">Direct URL Visitors</span>
+        </div>
+
+        {/* Social Traffic */}
+        <div className="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm space-y-1">
+          <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1">
+            <Share2 className="w-3.5 h-3.5 text-purple-500" /> Social Traffic
+          </span>
+          <p className="text-2xl font-black text-purple-600 dark:text-purple-400">{socialTrafficHits.toLocaleString()}</p>
+          <span className="text-[10px] text-slate-400 block">Facebook, IG, TikTok, X</span>
         </div>
       </div>
 

@@ -382,10 +382,17 @@ function AppContent() {
             />
           )}
 
-          {(dashboardTab === 'campaigns' || dashboardTab === 'buy-traffic') && (
+          {dashboardTab === 'campaigns' && (
             <CampaignsView
               onNavigate={(tab) => setDashboardTab(tab)}
               onOpenReport={(cmp) => setReportCampaign(cmp)}
+            />
+          )}
+
+          {dashboardTab === 'buy-traffic' && (
+            <BuyTrafficView
+              onSuccess={() => setDashboardTab('campaigns')}
+              onGoDeposit={() => setDashboardTab('wallet')}
             />
           )}
 

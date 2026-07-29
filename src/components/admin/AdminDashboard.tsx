@@ -5,13 +5,14 @@ import {
   Users, Layers, Settings, Megaphone, Edit, Save, AlertTriangle, Image as ImageIcon,
   Bell, Plus, Trash2, Star, MessageSquare, Clock, ExternalLink, FileText, Send, Phone, Mail,
   Check, Sliders, Download, Search, Ticket, UserX, UserCheck, ChevronDown, ChevronUp,
-  Sparkles, CornerDownRight, Filter, RefreshCw, Share2, ArrowUpRight, Percent
+  Sparkles, CornerDownRight, Filter, RefreshCw, Share2, ArrowUpRight, Percent, BarChart3
 } from 'lucide-react';
 import { useStore } from '../../lib/store';
 import { PaymentDeposit, PlatformSettings, Testimonial, EditablePageContent, SupportTicket, UserProfile } from '../../types';
 import { exportToCSV, exportToExcel, exportToJSON, exportToPDF } from '../../lib/exportUtils';
 import { requestNativeNotificationPermission } from '../../lib/notifications';
 import { SocialAdsSection } from '../SocialAdsSection';
+import { AnalyticsView } from '../dashboard/AnalyticsView';
 
 export const AdminDashboard: React.FC = () => {
   const {
@@ -24,7 +25,7 @@ export const AdminDashboard: React.FC = () => {
     commissionRequests, approveCommissionIncrease, rejectCommissionIncrease
   } = useStore();
 
-  const [activeTab, setActiveTab] = useState<'users' | 'campaigns' | 'social_ads' | 'tickets' | 'notifications' | 'deposits' | 'withdrawals' | 'commission_requests' | 'pages' | 'testimonials' | 'settings'>('users');
+  const [activeTab, setActiveTab] = useState<'analytics' | 'users' | 'campaigns' | 'social_ads' | 'tickets' | 'notifications' | 'deposits' | 'withdrawals' | 'commission_requests' | 'pages' | 'testimonials' | 'settings'>('analytics');
   const [notifGranted, setNotifGranted] = useState<boolean>(
     typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted'
   );
@@ -294,6 +295,17 @@ export const AdminDashboard: React.FC = () => {
       {/* Admin Tabs Navigation Bar */}
       <div className="bg-slate-900/80 p-2 rounded-2xl border border-slate-800 flex flex-wrap items-center gap-1.5 text-xs font-bold">
         <button
+          onClick={() => setActiveTab('analytics')}
+          className={`px-4 py-2 rounded-xl transition-all flex items-center gap-2 cursor-pointer ${
+            activeTab === 'analytics'
+              ? 'bg-[#DFFF2F] text-slate-950 font-black shadow'
+              : 'text-slate-400 hover:text-white hover:bg-slate-800'
+          }`}
+        >
+          <BarChart3 className="w-4 h-4" /> Live Analytics
+        </button>
+
+        <button
           onClick={() => setActiveTab('users')}
           className={`px-4 py-2 rounded-xl transition-all flex items-center gap-2 cursor-pointer ${
             activeTab === 'users'
@@ -419,6 +431,11 @@ export const AdminDashboard: React.FC = () => {
           <Settings className="w-4 h-4" /> Site Branding
         </button>
       </div>
+
+      {/* TAB 0: LIVE ANALYTICS */}
+      {activeTab === 'analytics' && (
+        <AnalyticsView />
+      )}
 
       {/* TAB 1: USERS & ACCOUNTS */}
       {activeTab === 'users' && (
