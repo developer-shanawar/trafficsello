@@ -1096,6 +1096,31 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       console.error('Error creating user profile in Supabase:', dbErr);
     }
 
+    // Record referral relationship if user was referred
+    if (referrerId) {
+      const newRefRecord: ReferralRecord = {
+        id: `ref_rec_${Date.now()}`,
+        referrerId: referrerId,
+        referredUserId: newUser.id,
+        referredUserName: newUser.fullName,
+        referredUserEmail: newUser.email,
+        depositAmount: 0,
+        commissionAmount: 0,
+        createdAt: new Date().toISOString()
+      };
+      setReferrals(prev => [newRefRecord, ...prev]);
+      supabase.from('referrals').insert([{
+        id: newRefRecord.id,
+        referrer_id: newRefRecord.referrerId,
+        referred_user_id: newRefRecord.referredUserId,
+        referred_user_name: newRefRecord.referredUserName,
+        referred_user_email: newRefRecord.referredUserEmail,
+        deposit_amount: 0,
+        commission_amount: 0,
+        created_at: newRefRecord.createdAt
+      }]).then();
+    }
+
     setAllUsers(prev => [...prev.filter(u => u.email.toLowerCase() !== newUser.email.toLowerCase()), newUser]);
 
     if (!requiresConfirmation) {
@@ -2005,8 +2030,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const updateCustomReferralCode = async (newCode: string): Promise<{ success: boolean; message: string }> => {
     if (!user) return { success: false, message: 'Please log in first.' };
     const cleanCode = newCode.trim().toUpperCase().replace(/[^A-Z0-9_-]/g, '');
-    if (cleanCode.length < 4 || cleanCode.length > 12) {
-      return { success: false, message: 'Referral code must be between 4 and 12 alphanumeric characters.' };
+    if (cleanCode.length < 4 || cleanCode.length > 6) {
+      return { success: false, message: 'Referral code must be between 4 and 6 alphanumeric characters.' };
     }
 
     const existing = allUsers.find(u => u.id !== user.id && u.referralCode && u.referralCode.toUpperCase() === cleanCode);

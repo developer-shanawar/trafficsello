@@ -1429,7 +1429,16 @@ export const AdminDashboard: React.FC = () => {
                       </td>
                       <td className="py-3.5 font-bold text-slate-300">{Math.round(c.currentRate * 100)}%</td>
                       <td className="py-3.5 font-black text-[#DFFF2F] text-sm">{c.requestedRate}%</td>
-                      <td className="py-3.5 text-slate-300 max-w-xs leading-tight">{c.message}</td>
+                      <td className="py-3.5 text-slate-300 max-w-xs leading-tight">
+                        <div className="font-bold text-white text-xs">{c.socialPlatform || 'Promotional Channel'}</div>
+                        <p className="text-[11px] text-slate-300 line-clamp-2 mt-0.5">{c.message}</p>
+                        {c.proofUrl && (
+                          <a href={c.proofUrl} target="_blank" rel="noopener noreferrer" className="text-sky-400 hover:underline text-[10px] flex items-center gap-1 font-mono mt-1">
+                            <span>Proof URL</span>
+                            <ExternalLink className="w-3 h-3" />
+                          </a>
+                        )}
+                      </td>
                       <td className="py-3.5 font-bold text-emerald-400">{c.referralsCount} users/mo</td>
                       <td className="py-3.5 text-slate-400 font-mono text-[10px]">
                         {new Date(c.createdAt).toLocaleDateString()}
