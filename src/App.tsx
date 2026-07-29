@@ -83,9 +83,19 @@ function AppContent() {
       if (routeKey === '' || routeKey === 'landing' || routeKey === 'home') {
         setCurrentView('landing');
       } else if (routeKey === 'login') {
-        setCurrentView('login');
+        if (user) {
+          setCurrentView('dashboard');
+          setDashboardTab('overview');
+        } else {
+          setCurrentView('login');
+        }
       } else if (routeKey === 'register') {
-        setCurrentView('register');
+        if (user) {
+          setCurrentView('dashboard');
+          setDashboardTab('overview');
+        } else {
+          setCurrentView('register');
+        }
       } else if (routeKey === 'about-us' || routeKey === 'about') {
         setCurrentView('standalone-about');
       } else if (routeKey === 'privacy') {

@@ -29,10 +29,16 @@ export const ReferralView: React.FC = () => {
   const referralLink = getReferralLink(user);
 
   // Filter users referred by current user
-  const myReferredUsers = allUsers.filter(u => u.referredBy === user?.id || (u as any).referred_by === user?.id);
+  const myReferredUsers = allUsers.filter(u => 
+    (user?.id && (u.referredBy === user.id || (u as any).referred_by === user.id)) ||
+    (user?.referralCode && (u.referredBy === user.referralCode || (u as any).referred_by === user.referralCode))
+  );
 
   // Filter commission records for current user
-  const myCommissions = referrals.filter(r => r.referrerId === user?.id);
+  const myCommissions = referrals.filter(r => 
+    (user?.id && r.referrerId === user.id) ||
+    (user?.referralCode && r.referrerId === user.referralCode)
+  );
 
   // Filter withdrawal requests for current user
   const myWithdrawals = withdrawalRequests.filter(w => w.userId === user?.id);

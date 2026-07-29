@@ -38,6 +38,11 @@ export const LoginPage: React.FC<LoginPageProps> = ({
       }
       await login(email, password);
       setLoading(false);
+      try {
+        window.history.pushState(null, '', '#/dashboard');
+      } catch (e) {
+        window.location.hash = '#/dashboard';
+      }
       onLoginSuccess();
     } catch (err: any) {
       setError(err.message || 'Login failed. Please check credentials.');

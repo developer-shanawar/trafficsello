@@ -137,7 +137,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // Theme state
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
     const saved = localStorage.getItem('trafficsell_theme');
-    return (saved as 'dark' | 'light') || 'dark';
+    return (saved as 'dark' | 'light') || 'light';
   });
 
   // Load state from localStorage or initial fallback
@@ -383,6 +383,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           telegram: u.telegram || '',
           whatsApp: u.whats_app || u.whatsapp || '',
           walletBalance: Number(u.wallet_balance || 0),
+          referralBalance: Number(u.referral_balance || 0),
+          customReferralRate: Number(u.custom_referral_rate || 0.05),
           role: u.role || 'user',
           country: u.country || '',
           city: u.city || '',
@@ -601,6 +603,50 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           createdAt: r.created_at || new Date().toISOString()
         }));
         setReferrals(mappedRefs);
+      }
+
+      // 12. Withdrawal Requests
+      const { data: dbWithdrawals } = await supabase.from('withdrawal_requests').select('*');
+      if (dbWithdrawals && dbWithdrawals.length > 0) {
+        const mappedWth: WithdrawalRequest[] = dbWithdrawals.map(w => ({
+          id: w.id,
+          userId: w.user_id,
+          userName: w.user_name || 'User',
+          userEmail: w.user_email || '',
+          amount: Number(w.amount || 0),
+          method: w.method as WithdrawalMethod,
+          accountTitle: w.account_title || '',
+          accountNumber: w.account_number || '',
+          cryptoAddress: w.crypto_address || '',
+          status: w.status || 'pending',
+          createdAt: w.created_at || new Date().toISOString(),
+          adminNote: w.admin_note
+        }));
+        setWithdrawalRequests(mappedWth);
+      }
+
+      // 13. Commission Rate Increase Requests
+      let { data: dbComms } = await supabase.from('commission_requests').select('*');
+      if (!dbComms || dbComms.length === 0) {
+        const res = await supabase.from('referral_requests').select('*');
+        if (res.data) dbComms = res.data;
+      }
+      if (dbComms && dbComms.length > 0) {
+        const mappedComms: CommissionIncreaseRequest[] = dbComms.map(c => ({
+          id: c.id,
+          userId: c.user_id,
+          userName: c.user_name || 'User',
+          userEmail: c.user_email || '',
+          referralsCount: Number(c.referrals_count || c.monthly_volume || 0),
+          requestedRate: Number(c.requested_rate || 8),
+          socialPlatform: c.social_platform || c.promo_channel || '',
+          proofUrl: c.proof_url || '',
+          message: c.message || '',
+          status: c.status || 'in review',
+          createdAt: c.created_at || new Date().toISOString(),
+          adminNote: c.admin_note
+        }));
+        setCommissionRequests(mappedComms);
       }
     } catch (err) {
       console.warn('Supabase initial load notice:', err);

@@ -1427,7 +1427,7 @@ export const AdminDashboard: React.FC = () => {
                         <p className="font-extrabold text-white">{c.userName}</p>
                         <p className="text-[10px] text-slate-400 font-mono">{c.userEmail}</p>
                       </td>
-                      <td className="py-3.5 font-bold text-slate-300">{Math.round(c.currentRate * 100)}%</td>
+                      <td className="py-3.5 font-bold text-slate-300">{Math.round(((allUsers.find(u => u.id === c.userId)?.customReferralRate) || 0.05) * 100)}%</td>
                       <td className="py-3.5 font-black text-[#DFFF2F] text-sm">{c.requestedRate}%</td>
                       <td className="py-3.5 text-slate-300 max-w-xs leading-tight">
                         <div className="font-bold text-white text-xs">{c.socialPlatform || 'Promotional Channel'}</div>
