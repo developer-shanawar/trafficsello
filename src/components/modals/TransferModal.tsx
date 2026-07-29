@@ -9,7 +9,7 @@ interface TransferModalProps {
 }
 
 export const TransferModal: React.FC<TransferModalProps> = ({ isOpen, onClose }) => {
-  const { user, transferReferralToDeposit, formatMoney } = useStore();
+  const { user, transferReferralToDeposit, formatMoney, referrals, withdrawalRequests } = useStore();
 
   const [amount, setAmount] = useState<number>(10);
   const [loading, setLoading] = useState(false);
@@ -17,7 +17,17 @@ export const TransferModal: React.FC<TransferModalProps> = ({ isOpen, onClose })
 
   if (!isOpen) return null;
 
-  const currentRefBal = user?.referralBalance || 0;
+  const myComms = (referrals || []).filter(r => 
+    (user?.id && r.referrerId === user.id) || 
+    (user?.referralCode && (r.referrerId === user.referralCode || r.referrerId.toUpperCase() === user.referralCode.toUpperCase()))
+  );
+  const totalEarnedComms = myComms.reduce((acc, r) => acc + (r.commissionAmount || 0), 0);
+  const maxTotalEarned = Math.max(user?.totalReferralEarnings || 0, totalEarnedComms);
+  const myWithdrawals = (withdrawalRequests || []).filter(w => w.userId === user?.id && w.status !== 'rejected');
+  const totalWithdrawnAmount = myWithdrawals.reduce((acc, w) => acc + (w.amount || 0), 0);
+
+  const rawBal = user?.referralBalance || 0;
+  const currentRefBal = rawBal > 0 ? rawBal : Math.max(0, maxTotalEarned - totalWithdrawnAmount);
   const currentWalletBal = user?.walletBalance || 0;
 
   const handleTransfer = async (e: React.FormEvent) => {

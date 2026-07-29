@@ -368,6 +368,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   // Load initial data from Supabase
   const loadSupabaseData = async () => {
+    const sortByDateDesc = <T extends { createdAt: string }>(arr: T[]): T[] => 
+      [...arr].sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+
     try {
       // 1. Users
       const { data: dbUsers } = await supabase.from('users').select('*');
@@ -395,7 +398,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           referredBy: u.referred_by || '',
           totalReferralEarnings: Number(u.total_referral_earnings || 0)
         }));
-        setAllUsers(mappedUsers);
+
+        setAllUsers(sortByDateDesc(mappedUsers));
 
         if (user) {
           const refreshedUser = mappedUsers.find(u => u.id === user.id || u.email.toLowerCase() === user.email.toLowerCase());
@@ -426,7 +430,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           estimatedDeliveryHours: c.estimated_delivery_hours || 24,
           createdAt: c.created_at || new Date().toISOString()
         }));
-        setCampaigns(mappedCamps);
+        setCampaigns(sortByDateDesc(mappedCamps));
       }
 
       // 3. Payment Deposits
@@ -449,7 +453,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           adminNote: d.admin_note,
           createdAt: d.created_at || new Date().toISOString()
         }));
-        setWalletDeposits(mappedDeposits);
+        setWalletDeposits(sortByDateDesc(mappedDeposits));
       }
 
       // 4. Transactions
@@ -464,7 +468,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           status: t.status || 'completed',
           createdAt: t.created_at || new Date().toISOString()
         }));
-        setTransactions(mappedTxs);
+        setTransactions(sortByDateDesc(mappedTxs));
       }
 
       // 5. Support Tickets
@@ -583,7 +587,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           adminNote: c.admin_note,
           createdAt: c.created_at || new Date().toISOString()
         }));
-        setSocialCampaigns(mappedSocCampaigns);
+        setSocialCampaigns(sortByDateDesc(mappedSocCampaigns));
       }
 
       // 11. Referrals
@@ -599,7 +603,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           commissionAmount: Number(r.commission_amount || 0),
           createdAt: r.created_at || new Date().toISOString()
         }));
-        setReferrals(mappedRefs);
+        setReferrals(sortByDateDesc(mappedRefs));
       }
 
       // 12. Withdrawal Requests
@@ -619,7 +623,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           createdAt: w.created_at || new Date().toISOString(),
           adminNote: w.admin_note
         }));
-        setWithdrawalRequests(mappedWth);
+        setWithdrawalRequests(sortByDateDesc(mappedWth));
       }
 
       // 13. Commission Rate Increase Requests
@@ -643,7 +647,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           createdAt: c.created_at || new Date().toISOString(),
           adminNote: c.admin_note
         }));
-        setCommissionRequests(mappedComms);
+        setCommissionRequests(sortByDateDesc(mappedComms));
       }
     } catch (err) {
       console.warn('Supabase initial load notice:', err);
@@ -2093,12 +2097,19 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const transferReferralToDeposit = async (amount: number): Promise<{ success: boolean; message: string }> => {
     if (!user) return { success: false, message: 'Please log in first.' };
-    const currentRefBal = user.referralBalance || 0;
+    const myComms = (referrals || []).filter(r => (user.id && r.referrerId === user.id) || (user.referralCode && (r.referrerId === user.referralCode || r.referrerId.toUpperCase() === user.referralCode.toUpperCase())));
+    const totalEarnedComms = myComms.reduce((acc, r) => acc + (r.commissionAmount || 0), 0);
+    const maxTotalEarned = Math.max(user.totalReferralEarnings || 0, totalEarnedComms);
+    const myWithdrawals = (withdrawalRequests || []).filter(w => w.userId === user.id && w.status !== 'rejected');
+    const totalWithdrawnAmount = myWithdrawals.reduce((acc, w) => acc + (w.amount || 0), 0);
+    const rawBal = user.referralBalance || 0;
+    const currentRefBal = rawBal > 0 ? rawBal : Math.max(0, maxTotalEarned - totalWithdrawnAmount);
+
     if (amount <= 0 || amount > currentRefBal) {
       return { success: false, message: `Insufficient referral balance. Available: $${currentRefBal.toFixed(2)}` };
     }
 
-    const newRefBal = currentRefBal - amount;
+    const newRefBal = Math.max(0, currentRefBal - amount);
     const newWalletBal = (user.walletBalance || 0) + amount;
 
     const updatedUser = {
@@ -2144,13 +2155,20 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       return { success: false, message: 'Minimum withdrawal amount is $1.00 USD.' };
     }
 
-    const currentRefBal = user.referralBalance || 0;
+    const myComms = (referrals || []).filter(r => (user.id && r.referrerId === user.id) || (user.referralCode && (r.referrerId === user.referralCode || r.referrerId.toUpperCase() === user.referralCode.toUpperCase())));
+    const totalEarnedComms = myComms.reduce((acc, r) => acc + (r.commissionAmount || 0), 0);
+    const maxTotalEarned = Math.max(user.totalReferralEarnings || 0, totalEarnedComms);
+    const myWithdrawals = (withdrawalRequests || []).filter(w => w.userId === user.id && w.status !== 'rejected');
+    const totalWithdrawnAmount = myWithdrawals.reduce((acc, w) => acc + (w.amount || 0), 0);
+    const rawBal = user.referralBalance || 0;
+    const currentRefBal = rawBal > 0 ? rawBal : Math.max(0, maxTotalEarned - totalWithdrawnAmount);
+
     if (data.amount > currentRefBal) {
       return { success: false, message: `Insufficient referral balance. Available: $${currentRefBal.toFixed(2)}` };
     }
 
     // Deduct from referral balance during pending request
-    const newRefBal = currentRefBal - data.amount;
+    const newRefBal = Math.max(0, currentRefBal - data.amount);
     const updatedUser = { ...user, referralBalance: newRefBal };
     setUser(updatedUser);
     setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));

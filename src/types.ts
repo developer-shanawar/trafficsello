@@ -116,12 +116,15 @@ export interface Campaign {
   url: string;
   keywords?: string;
   format: CampaignFormat;
-  country: TrafficCountry;
+  trafficType?: string;
+  country: string;
   deviceType: DeviceType;
   visitorsTarget: number;
   visitorsDelivered: number;
   cpm: number;
   budget: number;
+  durationDays?: number;
+  spentAmount?: number;
   status: CampaignStatus;
   estimatedDeliveryHours: number;
   createdAt: string;
