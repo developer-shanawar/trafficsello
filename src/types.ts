@@ -20,7 +20,9 @@ export interface UserProfile {
   country?: string;
   city?: string;
   postalCode?: string;
-  walletBalance: number;
+  walletBalance: number; // Deposit Balance
+  referralBalance?: number; // Referral Earnings Balance
+  customReferralRate?: number; // Custom Referral Commission Rate (e.g. 0.05, 0.08, 0.10)
   currency?: CurrencyCode;
   role: UserRole;
   createdAt: string;
@@ -44,6 +46,38 @@ export interface ReferralRecord {
   referredUserEmail: string;
   depositAmount: number;
   commissionAmount: number;
+  createdAt: string;
+}
+
+export type WithdrawalMethod = 'JazzCash' | 'EasyPaisa' | 'USDT TRC20' | 'USDT BEP20' | 'BNB' | 'PayPal';
+
+export type WithdrawalStatus = 'in review' | 'approved' | 'rejected';
+
+export interface WithdrawalRequest {
+  id: string;
+  userId: string;
+  userName: string;
+  userEmail: string;
+  amount: number;
+  method: WithdrawalMethod;
+  accountTitle?: string;
+  accountNumber?: string;
+  cryptoAddress?: string;
+  status: WithdrawalStatus;
+  adminNote?: string;
+  createdAt: string;
+}
+
+export interface CommissionIncreaseRequest {
+  id: string;
+  userId: string;
+  userName: string;
+  userEmail: string;
+  referralsCount: number;
+  requestedRate: number; // e.g. 8 for 8%, 10 for 10%
+  message: string;
+  status: 'in review' | 'approved' | 'rejected';
+  adminNote?: string;
   createdAt: string;
 }
 
@@ -112,10 +146,10 @@ export interface PaymentDeposit {
 export interface WalletTransaction {
   id: string;
   userId: string;
-  type: 'deposit' | 'spend' | 'refund';
+  type: 'deposit' | 'spend' | 'refund' | 'withdrawal' | 'referral_transfer' | 'referral_commission';
   amount: number;
   description: string;
-  status: 'completed' | 'pending' | 'failed';
+  status: 'completed' | 'pending' | 'processing' | 'in review' | 'approved' | 'rejected' | 'failed';
   createdAt: string;
 }
 

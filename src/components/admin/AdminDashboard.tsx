@@ -5,7 +5,7 @@ import {
   Users, Layers, Settings, Megaphone, Edit, Save, AlertTriangle, Image as ImageIcon,
   Bell, Plus, Trash2, Star, MessageSquare, Clock, ExternalLink, FileText, Send, Phone, Mail,
   Check, Sliders, Download, Search, Ticket, UserX, UserCheck, ChevronDown, ChevronUp,
-  Sparkles, CornerDownRight, Filter, RefreshCw, Share2
+  Sparkles, CornerDownRight, Filter, RefreshCw, Share2, ArrowUpRight, Percent
 } from 'lucide-react';
 import { useStore } from '../../lib/store';
 import { PaymentDeposit, PlatformSettings, Testimonial, EditablePageContent, SupportTicket, UserProfile } from '../../types';
@@ -19,10 +19,12 @@ export const AdminDashboard: React.FC = () => {
     allUsers, updateUserBalanceByAdmin, toggleUserSuspension, platformSettings, updatePlatformSettings,
     testimonials, addTestimonial, updateTestimonial, deleteTestimonial, getUserStats, user,
     supportTickets, createTicketForUser, addTicketMessage, updateTicketStatus, sendAdminNotification,
-    socialCampaigns
+    socialCampaigns,
+    withdrawalRequests, approveWithdrawal, rejectWithdrawal,
+    commissionRequests, approveCommissionIncrease, rejectCommissionIncrease
   } = useStore();
 
-  const [activeTab, setActiveTab] = useState<'users' | 'campaigns' | 'social_ads' | 'tickets' | 'notifications' | 'deposits' | 'pages' | 'testimonials' | 'settings'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'campaigns' | 'social_ads' | 'tickets' | 'notifications' | 'deposits' | 'withdrawals' | 'commission_requests' | 'pages' | 'testimonials' | 'settings'>('users');
   const [notifGranted, setNotifGranted] = useState<boolean>(
     typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted'
   );
@@ -360,6 +362,28 @@ export const AdminDashboard: React.FC = () => {
           }`}
         >
           <Wallet className="w-4 h-4" /> Wallet Deposits ({pendingDeposits.length})
+        </button>
+
+        <button
+          onClick={() => setActiveTab('withdrawals')}
+          className={`px-4 py-2 rounded-xl transition-all flex items-center gap-2 cursor-pointer ${
+            activeTab === 'withdrawals'
+              ? 'bg-[#DFFF2F] text-slate-950 font-black shadow'
+              : 'text-slate-400 hover:text-white hover:bg-slate-800'
+          }`}
+        >
+          <ArrowUpRight className="w-4 h-4" /> Withdrawals ({withdrawalRequests.filter(w => w.status === 'in review').length})
+        </button>
+
+        <button
+          onClick={() => setActiveTab('commission_requests')}
+          className={`px-4 py-2 rounded-xl transition-all flex items-center gap-2 cursor-pointer ${
+            activeTab === 'commission_requests'
+              ? 'bg-[#DFFF2F] text-slate-950 font-black shadow'
+              : 'text-slate-400 hover:text-white hover:bg-slate-800'
+          }`}
+        >
+          <Percent className="w-4 h-4" /> Rate Increase Requests ({commissionRequests.filter(c => c.status === 'in review').length})
         </button>
 
         <button
@@ -1247,6 +1271,192 @@ export const AdminDashboard: React.FC = () => {
                             </button>
                             <button
                               onClick={() => handleRejectDeposit(d.id)}
+                              className="py-1 px-2.5 bg-rose-500/20 hover:bg-rose-500/30 text-rose-400 font-bold rounded-lg text-[11px] cursor-pointer border border-rose-500/30"
+                            >
+                              Reject
+                            </button>
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* TAB: REFERRAL WITHDRAWALS */}
+      {activeTab === 'withdrawals' && (
+        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+            <div>
+              <h3 className="text-base font-extrabold text-white flex items-center gap-2">
+                <ArrowUpRight className="w-5 h-5 text-emerald-400" />
+                Referral Payout & Withdrawal Requests ({withdrawalRequests.length})
+              </h3>
+              <p className="text-xs text-slate-400">
+                Review, approve, or decline payout requests submitted by affiliates.
+              </p>
+            </div>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="border-b border-slate-800 text-slate-400 uppercase font-mono text-[10px]">
+                <tr>
+                  <th className="pb-3">ID</th>
+                  <th className="pb-3">Affiliate User</th>
+                  <th className="pb-3">Method</th>
+                  <th className="pb-3">Account Title / Number / Address</th>
+                  <th className="pb-3">Amount</th>
+                  <th className="pb-3">Requested On</th>
+                  <th className="pb-3">Status</th>
+                  <th className="pb-3">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-800/80">
+                {withdrawalRequests.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} className="py-8 text-center text-slate-400">
+                      No withdrawal requests found.
+                    </td>
+                  </tr>
+                ) : (
+                  withdrawalRequests.map((w) => (
+                    <tr key={w.id} className="hover:bg-slate-800/40">
+                      <td className="py-3.5 font-mono text-[11px] font-bold text-[#DFFF2F]">{w.id}</td>
+                      <td className="py-3.5">
+                        <p className="font-extrabold text-white">{w.userName}</p>
+                        <p className="text-[10px] text-slate-400 font-mono">{w.userEmail}</p>
+                      </td>
+                      <td className="py-3.5 font-bold text-amber-400">{w.method}</td>
+                      <td className="py-3.5 font-mono text-slate-300">
+                        {w.accountTitle && <div className="text-white font-bold">{w.accountTitle}</div>}
+                        {w.accountNumber && <div className="text-slate-300">{w.accountNumber}</div>}
+                        {w.cryptoAddress && <div className="text-[#DFFF2F] font-mono break-all max-w-xs">{w.cryptoAddress}</div>}
+                      </td>
+                      <td className="py-3.5 font-black text-emerald-400 font-mono text-sm">${w.amount.toFixed(2)}</td>
+                      <td className="py-3.5 text-slate-400 font-mono text-[10px]">
+                        {new Date(w.createdAt).toLocaleString()}
+                      </td>
+                      <td className="py-3.5">
+                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase ${
+                          w.status === 'approved' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' :
+                          w.status === 'in review' ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30 animate-pulse' :
+                          'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+                        }`}>
+                          {w.status}
+                        </span>
+                      </td>
+                      <td className="py-3.5">
+                        {w.status === 'in review' && (
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              onClick={() => {
+                                const note = prompt('Enter admin note / TRX proof for approval:', `Payout sent via ${w.method}`);
+                                if (note !== null) approveWithdrawal(w.id, note);
+                              }}
+                              className="py-1 px-2.5 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-extrabold rounded-lg text-[11px] flex items-center gap-1 cursor-pointer"
+                            >
+                              <CheckCircle2 className="w-3 h-3" /> Approve Payout
+                            </button>
+                            <button
+                              onClick={() => {
+                                const note = prompt('Enter rejection reason (Funds will be refunded to user referral balance):', 'Incorrect account details');
+                                if (note !== null) rejectWithdrawal(w.id, note);
+                              }}
+                              className="py-1 px-2.5 bg-rose-500/20 hover:bg-rose-500/30 text-rose-400 font-bold rounded-lg text-[11px] cursor-pointer border border-rose-500/30"
+                            >
+                              Reject & Refund
+                            </button>
+                          </div>
+                        )}
+                        {w.adminNote && <p className="text-[10px] text-slate-400 italic mt-1">{w.adminNote}</p>}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* TAB: COMMISSION INCREASE REQUESTS */}
+      {activeTab === 'commission_requests' && (
+        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+            <div>
+              <h3 className="text-base font-extrabold text-white flex items-center gap-2">
+                <Percent className="w-5 h-5 text-[#DFFF2F]" />
+                Affiliate Commission Rate Increase Requests ({commissionRequests.length})
+              </h3>
+              <p className="text-xs text-slate-400">
+                Review high-volume promotional channel applications and assign custom commission rates (8%, 10%, 15%).
+              </p>
+            </div>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="border-b border-slate-800 text-slate-400 uppercase font-mono text-[10px]">
+                <tr>
+                  <th className="pb-3">User</th>
+                  <th className="pb-3">Current Rate</th>
+                  <th className="pb-3">Requested Rate</th>
+                  <th className="pb-3">Promotional Channels / Reason</th>
+                  <th className="pb-3">Est. Monthly Referrals</th>
+                  <th className="pb-3">Requested Date</th>
+                  <th className="pb-3">Status</th>
+                  <th className="pb-3">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-800/80">
+                {commissionRequests.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} className="py-8 text-center text-slate-400">
+                      No rate increase requests found.
+                    </td>
+                  </tr>
+                ) : (
+                  commissionRequests.map((c) => (
+                    <tr key={c.id} className="hover:bg-slate-800/40">
+                      <td className="py-3.5">
+                        <p className="font-extrabold text-white">{c.userName}</p>
+                        <p className="text-[10px] text-slate-400 font-mono">{c.userEmail}</p>
+                      </td>
+                      <td className="py-3.5 font-bold text-slate-300">{Math.round(c.currentRate * 100)}%</td>
+                      <td className="py-3.5 font-black text-[#DFFF2F] text-sm">{c.requestedRate}%</td>
+                      <td className="py-3.5 text-slate-300 max-w-xs leading-tight">{c.message}</td>
+                      <td className="py-3.5 font-bold text-emerald-400">{c.referralsCount} users/mo</td>
+                      <td className="py-3.5 text-slate-400 font-mono text-[10px]">
+                        {new Date(c.createdAt).toLocaleDateString()}
+                      </td>
+                      <td className="py-3.5">
+                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase ${
+                          c.status === 'approved' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' :
+                          c.status === 'in review' ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30 animate-pulse' :
+                          'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+                        }`}>
+                          {c.status}
+                        </span>
+                      </td>
+                      <td className="py-3.5">
+                        {c.status === 'in review' && (
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              onClick={() => approveCommissionIncrease(c.id, c.requestedRate)}
+                              className="py-1 px-2.5 bg-[#DFFF2F] hover:bg-[#cbe820] text-slate-950 font-black rounded-lg text-[11px] flex items-center gap-1 cursor-pointer"
+                            >
+                              <CheckCircle2 className="w-3 h-3" /> Approve {c.requestedRate}%
+                            </button>
+                            <button
+                              onClick={() => {
+                                const note = prompt('Rejection note:', 'Minimum active referral threshold not met');
+                                if (note !== null) rejectCommissionIncrease(c.id, note);
+                              }}
                               className="py-1 px-2.5 bg-rose-500/20 hover:bg-rose-500/30 text-rose-400 font-bold rounded-lg text-[11px] cursor-pointer border border-rose-500/30"
                             >
                               Reject

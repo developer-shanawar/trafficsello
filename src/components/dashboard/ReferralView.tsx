@@ -1,16 +1,25 @@
 import React, { useState } from 'react';
 import {
   Users, DollarSign, Share2, Copy, CheckCircle, Percent, ArrowUpRight,
-  Gift, Wallet, Sparkles, ExternalLink, ShieldCheck, HelpCircle, Search, Info
+  Gift, Wallet, Sparkles, ExternalLink, ShieldCheck, HelpCircle, Search, Info,
+  RefreshCw, TrendingUp, Send, Clock
 } from 'lucide-react';
 import { useStore } from '../../lib/store';
 import { triggerToast } from '../../lib/notifications';
+import { WithdrawalModal } from '../modals/WithdrawalModal';
+import { TransferModal } from '../modals/TransferModal';
+import { CommissionRequestModal } from '../modals/CommissionRequestModal';
 
 export const ReferralView: React.FC = () => {
-  const { user, allUsers, referrals, getReferralLink, formatMoney } = useStore();
+  const { user, allUsers, referrals, withdrawalRequests, getReferralLink, formatMoney } = useStore();
   const [copied, setCopied] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [activeTab, setActiveTab] = useState<'referred_users' | 'commissions'>('referred_users');
+  const [activeTab, setActiveTab] = useState<'referred_users' | 'commissions' | 'withdrawals'>('referred_users');
+
+  // Modals state
+  const [isWithdrawOpen, setIsWithdrawOpen] = useState(false);
+  const [isTransferOpen, setIsTransferOpen] = useState(false);
+  const [isCommissionReqOpen, setIsCommissionReqOpen] = useState(false);
 
   const referralLink = getReferralLink(user);
 
@@ -20,14 +29,18 @@ export const ReferralView: React.FC = () => {
   // Filter commission records for current user
   const myCommissions = referrals.filter(r => r.referrerId === user?.id);
 
+  // Filter withdrawal requests for current user
+  const myWithdrawals = withdrawalRequests.filter(w => w.userId === user?.id);
+
   // Calculate total earnings
   const totalEarningsFromRecords = myCommissions.reduce((acc, r) => acc + r.commissionAmount, 0);
   const displayTotalEarnings = Math.max(user?.totalReferralEarnings || 0, totalEarningsFromRecords);
+  const currentRatePercent = Math.round(((user?.customReferralRate || 0.05) * 100));
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(referralLink);
     setCopied(true);
-    triggerToast('Referral Link Copied! 📋', 'Share it with advertisers & webmasters to earn 5% cash commissions.', 'success');
+    triggerToast('Referral Link Copied! 📋', `Share it with advertisers & webmasters to earn ${currentRatePercent}% cash commissions.`, 'success');
     setTimeout(() => setCopied(false), 3000);
   };
 
@@ -52,31 +65,31 @@ export const ReferralView: React.FC = () => {
   );
 
   return (
-    <div className="space-y-8 animate-fadeIn pb-12">
-      {/* Top Banner / Hero */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-900 via-slate-900 to-purple-950 p-6 md:p-8 text-white shadow-2xl border border-indigo-500/20">
-        <div className="absolute -right-12 -top-12 h-64 w-64 rounded-full bg-indigo-500/10 blur-3xl pointer-events-none" />
-        <div className="absolute -left-12 -bottom-12 h-64 w-64 rounded-full bg-purple-500/10 blur-3xl pointer-events-none" />
+    <div className="space-y-8 animate-fadeIn pb-12 max-w-7xl mx-auto">
+      
+      {/* Top Hero Banner - Synced with Platform Primary Colors */}
+      <div className="relative overflow-hidden rounded-3xl bg-slate-950 p-6 md:p-8 text-white shadow-2xl border border-slate-800 space-y-6">
+        <div className="absolute -right-12 -top-12 h-80 w-80 rounded-full bg-[#DFFF2F]/10 blur-3xl pointer-events-none" />
 
         <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
           <div className="lg:col-span-7 space-y-4">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-indigo-500/20 border border-indigo-400/30 text-indigo-300 text-xs font-semibold uppercase tracking-wider">
-              <Gift className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
-              <span>Lifetime 5% Cash Commission</span>
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#DFFF2F]/10 border border-[#DFFF2F]/20 text-[#DFFF2F] text-xs font-bold uppercase tracking-wider">
+              <Gift className="w-4 h-4 text-[#DFFF2F] animate-pulse" />
+              <span>Lifetime {currentRatePercent}% Cash Commission</span>
             </div>
 
-            <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold tracking-tight text-white">
-              Earn <span className="bg-gradient-to-r from-amber-400 via-amber-300 to-yellow-500 bg-clip-text text-transparent">5% Passive Income</span> on Every Deposit
+            <h1 className="text-2xl md:text-3xl lg:text-4xl font-black tracking-tight text-white">
+              Earn <span className="text-[#DFFF2F]">{currentRatePercent}% Passive Income</span> on Every Deposit
             </h1>
 
-            <p className="text-slate-300 text-sm md:text-base leading-relaxed max-w-xl">
+            <p className="text-slate-300 text-sm leading-relaxed max-w-xl">
               Invite webmasters, media buyers, agency owners, and affiliate marketers to TrafficSell.
-              Whenever they make a deposit into their wallet, <strong className="text-amber-300">5% of the deposited amount is automatically credited</strong> to your account!
+              Whenever they make a deposit into their wallet, <strong className="text-[#DFFF2F]">{currentRatePercent}% of the deposited amount</strong> is automatically credited to your referral balance!
             </p>
 
             {/* Referral Link Box */}
             <div className="pt-2">
-              <label className="block text-xs font-medium text-slate-300 mb-1.5">
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">
                 Your Unique Referral Link
               </label>
               <div className="flex flex-col sm:flex-row gap-2 max-w-xl">
@@ -85,19 +98,19 @@ export const ReferralView: React.FC = () => {
                     type="text"
                     readOnly
                     value={referralLink}
-                    className="w-full bg-slate-950/80 border border-indigo-500/30 rounded-xl px-4 py-3 text-sm text-indigo-200 font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500 pr-10 selection:bg-indigo-500/40"
+                    className="w-full bg-slate-900 border border-slate-800 rounded-2xl px-4 py-3 text-xs text-[#DFFF2F] font-mono focus:outline-none focus:border-[#DFFF2F] pr-10"
                   />
-                  <div className="absolute right-3 top-1/2 -translate-y-1/2 text-indigo-400">
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">
                     <Share2 className="w-4 h-4" />
                   </div>
                 </div>
 
                 <button
                   onClick={handleCopyLink}
-                  className={`px-5 py-3 rounded-xl font-semibold text-sm transition-all flex items-center justify-center gap-2 shrink-0 shadow-lg ${
+                  className={`px-5 py-3 rounded-2xl font-black text-xs transition-all flex items-center justify-center gap-2 shrink-0 shadow-lg cursor-pointer ${
                     copied
-                      ? 'bg-emerald-600 text-white shadow-emerald-900/30'
-                      : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-900/40 active:scale-95'
+                      ? 'bg-emerald-500 text-slate-950 shadow-emerald-950/30'
+                      : 'bg-[#DFFF2F] hover:bg-[#cbe620] text-slate-950 shadow-slate-950/40 active:scale-95'
                   }`}
                 >
                   {copied ? (
@@ -117,17 +130,17 @@ export const ReferralView: React.FC = () => {
 
             {/* Quick Social Sharing */}
             <div className="flex items-center gap-3 pt-1 text-xs text-slate-400">
-              <span>Quick Share:</span>
+              <span className="font-bold">Quick Share:</span>
               <button
                 onClick={handleShareTelegram}
-                className="px-3 py-1.5 rounded-lg bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 border border-sky-500/20 transition-colors flex items-center gap-1.5 font-medium"
+                className="px-3 py-1.5 rounded-xl bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 border border-sky-500/20 transition-colors flex items-center gap-1.5 font-bold cursor-pointer"
               >
                 <span>Telegram</span>
                 <ExternalLink className="w-3 h-3" />
               </button>
               <button
                 onClick={handleShareWhatsApp}
-                className="px-3 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 transition-colors flex items-center gap-1.5 font-medium"
+                className="px-3 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 transition-colors flex items-center gap-1.5 font-bold cursor-pointer"
               >
                 <span>WhatsApp</span>
                 <ExternalLink className="w-3 h-3" />
@@ -135,178 +148,184 @@ export const ReferralView: React.FC = () => {
             </div>
           </div>
 
-          {/* Banner Graphic Card */}
+          {/* Quick Actions Panel */}
           <div className="lg:col-span-5 flex justify-center">
-            <div className="w-full max-w-sm rounded-xl bg-slate-900/80 border border-indigo-500/30 p-5 backdrop-blur-md shadow-xl space-y-4">
+            <div className="w-full max-w-md rounded-2xl bg-slate-900 border border-slate-800 p-5 shadow-2xl space-y-4">
               <div className="flex items-center justify-between pb-3 border-b border-slate-800">
                 <div className="flex items-center gap-2">
-                  <div className="p-2 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                  <div className="p-2 rounded-xl bg-[#DFFF2F]/10 text-[#DFFF2F]">
                     <Sparkles className="w-5 h-5" />
                   </div>
                   <div>
-                    <p className="text-xs text-slate-400">Commission Program</p>
-                    <p className="text-sm font-bold text-white">5% Automated Cash Back</p>
+                    <p className="text-xs text-slate-400">Referral Wallet Balance</p>
+                    <p className="text-xl font-black text-white">{formatMoney(user?.referralBalance || 0)}</p>
                   </div>
                 </div>
-                <span className="px-2.5 py-1 rounded-md bg-emerald-500/20 text-emerald-400 text-xs font-semibold border border-emerald-500/30">
-                  Active
+                <span className="px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-400 text-xs font-black border border-emerald-500/20">
+                  {currentRatePercent}% Rate
                 </span>
               </div>
 
-              <div className="space-y-2.5 text-xs">
-                <div className="flex justify-between text-slate-300">
-                  <span>Referral Level:</span>
-                  <span className="font-semibold text-white">Tier 1 Direct</span>
-                </div>
-                <div className="flex justify-between text-slate-300">
-                  <span>Payout Rate:</span>
-                  <span className="font-semibold text-emerald-400">5.0% on ALL deposits</span>
-                </div>
-                <div className="flex justify-between text-slate-300">
-                  <span>Payout Frequency:</span>
-                  <span className="font-semibold text-indigo-300">Instant Wallet Auto-Credit</span>
-                </div>
-                <div className="flex justify-between text-slate-300">
-                  <span>Minimum Deposit:</span>
-                  <span className="font-semibold text-white">No minimum</span>
-                </div>
+              {/* Action Buttons */}
+              <div className="space-y-2 pt-1">
+                <button
+                  onClick={() => setIsWithdrawOpen(true)}
+                  className="w-full py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-black text-xs rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <ArrowUpRight className="w-4 h-4" />
+                  <span>Withdraw Referral Earnings ($1 Min)</span>
+                </button>
+
+                <button
+                  onClick={() => setIsTransferOpen(true)}
+                  className="w-full py-3 bg-slate-800 hover:bg-slate-700 text-white font-extrabold text-xs rounded-xl border border-slate-700 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <RefreshCw className="w-4 h-4 text-[#DFFF2F]" />
+                  <span>Transfer to Deposit Wallet (0% Fee)</span>
+                </button>
+
+                <button
+                  onClick={() => setIsCommissionReqOpen(true)}
+                  className="w-full py-2.5 bg-slate-950 hover:bg-slate-900 text-[#DFFF2F] font-bold text-xs rounded-xl border border-slate-800 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <TrendingUp className="w-3.5 h-3.5" />
+                  <span>Request Commission Rate Increase</span>
+                </button>
               </div>
 
-              <div className="p-3 rounded-lg bg-indigo-950/50 border border-indigo-800/40 text-xs text-indigo-200">
-                💡 Example: If your referral deposits <strong>$1,000</strong>, you instantly receive <strong>$50.00</strong> added to your wallet!
+              <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 text-[11px] text-slate-400">
+                💡 Payouts supported via <strong>JazzCash, EasyPaisa, USDT (TRC20/BEP20/ERC20) & PayPal</strong>.
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* 4-Grid Overview Stat Cards */}
+      {/* 4-Grid Stat Metrics */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Stat 1: Total Referrals */}
-        <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm space-y-2">
+        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm space-y-2">
           <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
-            <span className="text-xs font-medium uppercase tracking-wider">Total Referrals</span>
-            <div className="p-2 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400">
-              <Users className="w-5 h-5" />
+            <span className="text-xs font-bold uppercase tracking-wider">Total Referrals</span>
+            <div className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-[#DFFF2F]">
+              <Users className="w-5 h-5 text-slate-900 dark:text-[#DFFF2F]" />
             </div>
           </div>
-          <p className="text-2xl font-bold text-slate-900 dark:text-white">
+          <p className="text-3xl font-black text-slate-900 dark:text-white">
             {myReferredUsers.length}
           </p>
           <p className="text-xs text-slate-500 dark:text-slate-400">
-            Users registered with your link
+            Users registered via your link
           </p>
         </div>
 
         {/* Stat 2: Total Commission Earnings */}
-        <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm space-y-2">
+        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm space-y-2">
           <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
-            <span className="text-xs font-medium uppercase tracking-wider">Total Earnings</span>
-            <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400">
+            <span className="text-xs font-bold uppercase tracking-wider">Lifetime Earnings</span>
+            <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400">
               <DollarSign className="w-5 h-5" />
             </div>
           </div>
-          <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+          <p className="text-3xl font-black text-emerald-500">
             {formatMoney(displayTotalEarnings)}
           </p>
           <p className="text-xs text-slate-500 dark:text-slate-400">
-            5% commission payouts earned
+            Total lifetime commissions earned
           </p>
         </div>
 
         {/* Stat 3: Commission Rate */}
-        <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm space-y-2">
+        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm space-y-2">
           <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
-            <span className="text-xs font-medium uppercase tracking-wider">Commission Rate</span>
-            <div className="p-2 rounded-lg bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400">
+            <span className="text-xs font-bold uppercase tracking-wider">Commission Rate</span>
+            <div className="p-2 rounded-xl bg-amber-500/10 text-amber-400">
               <Percent className="w-5 h-5" />
             </div>
           </div>
-          <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">
-            5.0%
+          <p className="text-3xl font-black text-amber-400">
+            {currentRatePercent}%
           </p>
-          <p className="text-xs text-slate-500 dark:text-slate-400">
-            Lifetime automated rate
+          <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center justify-between">
+            <span>Automated rate</span>
+            <button onClick={() => setIsCommissionReqOpen(true)} className="text-[#DFFF2F] hover:underline font-bold">Request More</button>
           </p>
         </div>
 
-        {/* Stat 4: Available Wallet Balance */}
-        <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm space-y-2">
+        {/* Stat 4: Referral Balance */}
+        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm space-y-2">
           <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
-            <span className="text-xs font-medium uppercase tracking-wider">Available Balance</span>
-            <div className="p-2 rounded-lg bg-purple-50 dark:bg-purple-950/50 text-purple-600 dark:text-purple-400">
+            <span className="text-xs font-bold uppercase tracking-wider">Referral Balance</span>
+            <div className="p-2 rounded-xl bg-slate-900 text-[#DFFF2F]">
               <Wallet className="w-5 h-5" />
             </div>
           </div>
-          <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-            {formatMoney(user?.walletBalance || 0)}
+          <p className="text-3xl font-black text-slate-900 dark:text-[#DFFF2F]">
+            {formatMoney(user?.referralBalance || 0)}
           </p>
-          <p className="text-xs text-slate-500 dark:text-slate-400">
-            Ready to spend on traffic ads
+          <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center justify-between">
+            <span>Ready for withdrawal</span>
+            <button onClick={() => setIsWithdrawOpen(true)} className="text-emerald-400 hover:underline font-extrabold">Withdraw</button>
           </p>
         </div>
       </div>
 
-      {/* How It Works - 3 Step Section */}
-      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <ShieldCheck className="w-5 h-5 text-indigo-500" />
-              <span>How the Referral Program Works</span>
-            </h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              Three simple steps to build passive income from your referral network
-            </p>
-          </div>
+      {/* How It Works */}
+      <div className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm space-y-6">
+        <div>
+          <h2 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
+            <ShieldCheck className="w-5 h-5 text-[#DFFF2F]" />
+            <span>How TrafficSell Referral Commissions Work</span>
+          </h2>
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            Earn high lifetime commissions with transparent tracking and instant payout options
+          </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Step 1 */}
-          <div className="relative rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/50 p-5 space-y-3">
-            <div className="w-8 h-8 rounded-full bg-indigo-600 text-white font-bold text-sm flex items-center justify-center">
+          <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 p-5 space-y-3">
+            <div className="w-8 h-8 rounded-xl bg-slate-900 text-[#DFFF2F] font-black text-sm flex items-center justify-center">
               1
             </div>
-            <h3 className="font-semibold text-slate-900 dark:text-white text-base">Share Your Link</h3>
+            <h3 className="font-extrabold text-slate-900 dark:text-white text-base">Share Your Link</h3>
             <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
               Copy your unique referral link and share it on Telegram, forums, YouTube, blogs, or directly with fellow digital marketers.
             </p>
           </div>
 
-          {/* Step 2 */}
-          <div className="relative rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/50 p-5 space-y-3">
-            <div className="w-8 h-8 rounded-full bg-indigo-600 text-white font-bold text-sm flex items-center justify-center">
+          <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 p-5 space-y-3">
+            <div className="w-8 h-8 rounded-xl bg-slate-900 text-[#DFFF2F] font-black text-sm flex items-center justify-center">
               2
             </div>
-            <h3 className="font-semibold text-slate-900 dark:text-white text-base">Friend Creates Account</h3>
+            <h3 className="font-extrabold text-slate-900 dark:text-white text-base">User Registers</h3>
             <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-              When someone clicks your link and signs up for a TrafficSell account, our system links them as your direct referral.
+              When someone registers via your link, your referral code is automatically assigned to their account forever.
             </p>
           </div>
 
-          {/* Step 3 */}
-          <div className="relative rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/50 p-5 space-y-3">
-            <div className="w-8 h-8 rounded-full bg-emerald-600 text-white font-bold text-sm flex items-center justify-center">
+          <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 p-5 space-y-3">
+            <div className="w-8 h-8 rounded-xl bg-emerald-500 text-slate-950 font-black text-sm flex items-center justify-center">
               3
             </div>
-            <h3 className="font-semibold text-slate-900 dark:text-white text-base">Get 5% Automated Cash</h3>
+            <h3 className="font-extrabold text-slate-900 dark:text-white text-base">Earn & Withdraw</h3>
             <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-              Every time your referred user approves a deposit to buy traffic or social ads, 5% of their deposit is instantly credited to your wallet balance.
+              Whenever your referral adds funds to run ads, {currentRatePercent}% is credited to your Referral Wallet. Withdraw to JazzCash/USDT or transfer to your Deposit Wallet!
             </p>
           </div>
         </div>
       </div>
 
-      {/* Referrals & Commissions Data Table */}
-      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm overflow-hidden space-y-0">
+      {/* Referrals & Commissions Data Tables */}
+      <div className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm overflow-hidden space-y-0">
+        
         {/* Header Tabs & Search */}
         <div className="p-5 border-b border-slate-200 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 md:border-b-0 pb-2 md:pb-0">
+          <div className="flex flex-wrap items-center gap-2">
             <button
               onClick={() => setActiveTab('referred_users')}
-              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors flex items-center gap-2 ${
+              className={`px-4 py-2.5 rounded-xl text-xs font-extrabold transition-all flex items-center gap-2 cursor-pointer ${
                 activeTab === 'referred_users'
-                  ? 'bg-indigo-600 text-white shadow-md'
+                  ? 'bg-slate-900 text-[#DFFF2F] dark:bg-[#DFFF2F] dark:text-slate-950 shadow-md'
                   : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
               }`}
             >
@@ -316,14 +335,26 @@ export const ReferralView: React.FC = () => {
 
             <button
               onClick={() => setActiveTab('commissions')}
-              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors flex items-center gap-2 ${
+              className={`px-4 py-2.5 rounded-xl text-xs font-extrabold transition-all flex items-center gap-2 cursor-pointer ${
                 activeTab === 'commissions'
-                  ? 'bg-indigo-600 text-white shadow-md'
+                  ? 'bg-slate-900 text-[#DFFF2F] dark:bg-[#DFFF2F] dark:text-slate-950 shadow-md'
                   : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
               }`}
             >
               <DollarSign className="w-4 h-4" />
               <span>Commission Logs ({myCommissions.length})</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('withdrawals')}
+              className={`px-4 py-2.5 rounded-xl text-xs font-extrabold transition-all flex items-center gap-2 cursor-pointer ${
+                activeTab === 'withdrawals'
+                  ? 'bg-slate-900 text-[#DFFF2F] dark:bg-[#DFFF2F] dark:text-slate-950 shadow-md'
+                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+              }`}
+            >
+              <ArrowUpRight className="w-4 h-4" />
+              <span>Withdrawal History ({myWithdrawals.length})</span>
             </button>
           </div>
 
@@ -331,10 +362,10 @@ export const ReferralView: React.FC = () => {
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
-              placeholder="Search by name or email..."
+              placeholder="Search referrals..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full pl-9 pr-4 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:border-[#DFFF2F]"
             />
           </div>
         </div>
@@ -344,7 +375,7 @@ export const ReferralView: React.FC = () => {
           <div className="overflow-x-auto">
             {filteredReferredUsers.length > 0 ? (
               <table className="w-full text-left text-xs text-slate-600 dark:text-slate-300">
-                <thead className="bg-slate-50 dark:bg-slate-950 text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold border-b border-slate-200 dark:border-slate-800">
+                <thead className="bg-slate-50 dark:bg-slate-950 text-slate-400 uppercase tracking-wider font-mono text-[10px] border-b border-slate-200 dark:border-slate-800">
                   <tr>
                     <th className="px-6 py-3.5">User</th>
                     <th className="px-6 py-3.5">Email</th>
@@ -353,7 +384,7 @@ export const ReferralView: React.FC = () => {
                     <th className="px-6 py-3.5 text-right">Commissions Generated</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                   {filteredReferredUsers.map((u) => {
                     const userCommissions = myCommissions
                       .filter(c => c.referredUserId === u.id)
@@ -361,7 +392,7 @@ export const ReferralView: React.FC = () => {
 
                     return (
                       <tr key={u.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
-                        <td className="px-6 py-4 font-medium text-slate-900 dark:text-white flex items-center gap-2.5">
+                        <td className="px-6 py-4 font-bold text-slate-900 dark:text-white flex items-center gap-2.5">
                           <img
                             src={u.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=250'}
                             alt={u.fullName}
@@ -378,12 +409,11 @@ export const ReferralView: React.FC = () => {
                           })}
                         </td>
                         <td className="px-6 py-4">
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-300/40">
-                            <CheckCircle className="w-3 h-3" />
-                            <span>Active Referral</span>
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                            <CheckCircle className="w-3 h-3" /> Active
                           </span>
                         </td>
-                        <td className="px-6 py-4 text-right font-semibold text-emerald-600 dark:text-emerald-400 text-sm">
+                        <td className="px-6 py-4 text-right font-black text-emerald-500 text-sm">
                           {formatMoney(userCommissions)}
                         </td>
                       </tr>
@@ -396,15 +426,15 @@ export const ReferralView: React.FC = () => {
                 <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 mx-auto flex items-center justify-center">
                   <Users className="w-6 h-6" />
                 </div>
-                <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white">
                   No Referrals Registered Yet
                 </h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
-                  Copy your unique referral link above and share it with friends or on social media to start earning 5% passive income!
+                  Copy your unique referral link above and share it with friends or on social media to start earning passive income!
                 </p>
                 <button
                   onClick={handleCopyLink}
-                  className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs transition-colors inline-flex items-center gap-2"
+                  className="px-4 py-2 rounded-xl bg-[#DFFF2F] text-slate-950 font-black text-xs inline-flex items-center gap-2 cursor-pointer"
                 >
                   <Copy className="w-3.5 h-3.5" />
                   <span>Copy Your Referral Link</span>
@@ -419,30 +449,28 @@ export const ReferralView: React.FC = () => {
           <div className="overflow-x-auto">
             {filteredCommissions.length > 0 ? (
               <table className="w-full text-left text-xs text-slate-600 dark:text-slate-300">
-                <thead className="bg-slate-50 dark:bg-slate-950 text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold border-b border-slate-200 dark:border-slate-800">
+                <thead className="bg-slate-50 dark:bg-slate-950 text-slate-400 uppercase tracking-wider font-mono text-[10px] border-b border-slate-200 dark:border-slate-800">
                   <tr>
                     <th className="px-6 py-3.5">Date</th>
                     <th className="px-6 py-3.5">Referred User</th>
                     <th className="px-6 py-3.5">User Deposit Amount</th>
-                    <th className="px-6 py-3.5 text-right">5% Commission Earned</th>
+                    <th className="px-6 py-3.5 text-right">Commission Earned</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                   {filteredCommissions.map((c) => (
                     <tr key={c.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
-                      <td className="px-6 py-4 text-slate-500 dark:text-slate-400">
-                        {new Date(c.createdAt).toLocaleString(undefined, {
-                          year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
-                        })}
+                      <td className="px-6 py-4 text-slate-500 dark:text-slate-400 font-mono">
+                        {new Date(c.createdAt).toLocaleString()}
                       </td>
-                      <td className="px-6 py-4 font-medium text-slate-900 dark:text-white">
+                      <td className="px-6 py-4 font-bold text-slate-900 dark:text-white">
                         <div>{c.referredUserName}</div>
                         <div className="text-[10px] text-slate-400 font-mono">{c.referredUserEmail}</div>
                       </td>
-                      <td className="px-6 py-4 text-slate-700 dark:text-slate-300 font-medium">
+                      <td className="px-6 py-4 text-slate-700 dark:text-slate-300 font-bold">
                         {formatMoney(c.depositAmount)}
                       </td>
-                      <td className="px-6 py-4 text-right font-bold text-emerald-600 dark:text-emerald-400 text-sm">
+                      <td className="px-6 py-4 text-right font-black text-emerald-500 text-sm">
                         +{formatMoney(c.commissionAmount)}
                       </td>
                     </tr>
@@ -454,17 +482,98 @@ export const ReferralView: React.FC = () => {
                 <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 mx-auto flex items-center justify-center">
                   <DollarSign className="w-6 h-6" />
                 </div>
-                <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white">
                   No Commission Logs Yet
                 </h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
-                  When users who registered via your referral link make wallet deposits, 5% commission logs will be listed here automatically!
+                  When users who registered via your referral link make wallet deposits, commission logs will be listed here automatically!
                 </p>
               </div>
             )}
           </div>
         )}
+
+        {/* Tab 3: Withdrawal Requests History */}
+        {activeTab === 'withdrawals' && (
+          <div className="overflow-x-auto">
+            {myWithdrawals.length > 0 ? (
+              <table className="w-full text-left text-xs text-slate-600 dark:text-slate-300">
+                <thead className="bg-slate-50 dark:bg-slate-950 text-slate-400 uppercase tracking-wider font-mono text-[10px] border-b border-slate-200 dark:border-slate-800">
+                  <tr>
+                    <th className="px-6 py-3.5">Withdrawal ID</th>
+                    <th className="px-6 py-3.5">Method</th>
+                    <th className="px-6 py-3.5">Account / Address</th>
+                    <th className="px-6 py-3.5">Amount</th>
+                    <th className="px-6 py-3.5">Status</th>
+                    <th className="px-6 py-3.5">Date</th>
+                    <th className="px-6 py-3.5">Admin Note</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                  {myWithdrawals.map((w) => (
+                    <tr key={w.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+                      <td className="px-6 py-4 font-mono font-bold text-[#DFFF2F]">{w.id}</td>
+                      <td className="px-6 py-4 font-extrabold text-slate-900 dark:text-white">{w.method}</td>
+                      <td className="px-6 py-4 font-mono text-slate-400">
+                        {w.accountNumber || w.cryptoAddress || w.accountTitle || '-'}
+                      </td>
+                      <td className="px-6 py-4 font-black text-emerald-400 text-sm">{formatMoney(w.amount)}</td>
+                      <td className="px-6 py-4">
+                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                          w.status === 'approved' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
+                          w.status === 'in review' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' :
+                          'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                        }`}>
+                          {w.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-slate-400 font-mono text-[11px]">
+                        {new Date(w.createdAt).toLocaleString()}
+                      </td>
+                      <td className="px-6 py-4 text-slate-400 italic text-[11px]">
+                        {w.adminNote || '-'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <div className="p-12 text-center space-y-3">
+                <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 mx-auto flex items-center justify-center">
+                  <ArrowUpRight className="w-6 h-6" />
+                </div>
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                  No Withdrawal Requests Yet
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
+                  Click the "Withdraw Referral Earnings" button above to request payout to JazzCash, EasyPaisa, USDT, or PayPal!
+                </p>
+                <button
+                  onClick={() => setIsWithdrawOpen(true)}
+                  className="px-4 py-2.5 rounded-xl bg-emerald-500 text-white font-black text-xs inline-flex items-center gap-2 cursor-pointer shadow-md"
+                >
+                  <ArrowUpRight className="w-4 h-4" />
+                  <span>Withdraw Now ($1 Minimum)</span>
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
+
+      {/* Modals */}
+      <WithdrawalModal
+        isOpen={isWithdrawOpen}
+        onClose={() => setIsWithdrawOpen(false)}
+      />
+      <TransferModal
+        isOpen={isTransferOpen}
+        onClose={() => setIsTransferOpen(false)}
+      />
+      <CommissionRequestModal
+        isOpen={isCommissionReqOpen}
+        onClose={() => setIsCommissionReqOpen(false)}
+      />
     </div>
   );
 };

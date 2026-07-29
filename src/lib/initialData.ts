@@ -1,4 +1,4 @@
-import { UserProfile, Campaign, PaymentDeposit, WalletTransaction, SupportTicket, AppNotification, PlatformSettings, Testimonial } from '../types';
+import { UserProfile, Campaign, PaymentDeposit, WalletTransaction, SupportTicket, AppNotification, PlatformSettings, Testimonial, WithdrawalRequest, CommissionIncreaseRequest, SocialCampaign } from '../types';
 
 export const DEFAULT_SETTINGS: PlatformSettings = {
   siteName: "TrafficSell",
@@ -259,6 +259,9 @@ export const INITIAL_USERS: UserProfile[] = [
     telegram: '@developershanawar',
     whatsApp: '+92 300-1234567',
     walletBalance: 2500.00,
+    referralBalance: 185.50,
+    totalReferralEarnings: 235.50,
+    referralCode: 'REF_ADMIN1',
     role: 'admin',
     createdAt: '2026-01-01T00:00:00Z',
     avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=250',
@@ -274,6 +277,9 @@ export const INITIAL_USERS: UserProfile[] = [
     telegram: '@alexvance_ad',
     whatsApp: '+1 415-555-0199',
     walletBalance: 145.50,
+    referralBalance: 32.50,
+    totalReferralEarnings: 32.50,
+    referralCode: 'REF_ALEX01',
     role: 'advertiser',
     createdAt: '2026-06-15T10:00:00Z',
     avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=250',
@@ -289,6 +295,9 @@ export const INITIAL_USERS: UserProfile[] = [
     telegram: '@marcus_pub',
     whatsApp: '+44 20-7946-0912',
     walletBalance: 320.00,
+    referralBalance: 12.00,
+    totalReferralEarnings: 12.00,
+    referralCode: 'REF_MARCUS',
     role: 'publisher',
     createdAt: '2026-06-20T14:20:00Z',
     avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=250',
@@ -743,36 +752,61 @@ export const INITIAL_SOCIAL_SERVICES = [
   }
 ];
 
-export const INITIAL_SOCIAL_CAMPAIGNS = [
+export const INITIAL_WITHDRAWALS: WithdrawalRequest[] = [
+  {
+    id: 'wth_101',
+    userId: 'usr_2',
+    userName: 'Alex Vance',
+    userEmail: 'demoadvertiser@trafficsell.com',
+    amount: 15.00,
+    method: 'JazzCash',
+    accountTitle: 'Alex Vance',
+    accountNumber: '03001234567',
+    status: 'in review',
+    createdAt: '2026-07-27T18:30:00Z'
+  },
+  {
+    id: 'wth_102',
+    userId: 'usr_3',
+    userName: 'Marcus Sterling',
+    userEmail: 'demopublisher@trafficsell.com',
+    amount: 50.00,
+    method: 'USDT TRC20',
+    cryptoAddress: 'TQ9z8MvK4pL2x3n1Y8B5cV7w0qR1s2T3u4',
+    status: 'in review',
+    createdAt: '2026-07-28T02:15:00Z'
+  }
+];
+
+export const INITIAL_COMMISSION_REQUESTS: CommissionIncreaseRequest[] = [
+  {
+    id: 'cmreq_101',
+    userId: 'usr_2',
+    userName: 'Alex Vance',
+    userEmail: 'demoadvertiser@trafficsell.com',
+    referralsCount: 18,
+    requestedRate: 8,
+    message: 'I manage an ad network community of 500+ webmasters and send active traffic buyers daily. Requesting an 8% commission rate.',
+    status: 'in review',
+    createdAt: '2026-07-26T11:20:00Z'
+  }
+];
+
+export const INITIAL_SOCIAL_CAMPAIGNS: SocialCampaign[] = [
   {
     id: 'soc_cmp_101',
     userId: 'usr_2',
-    userName: 'Alex Vance',
+    userName: 'Demo Advertiser',
     serviceId: 'soc_srv_1',
     platform: 'Instagram',
-    serviceName: 'Instagram Real Followers [HQ Fast]',
-    targetLink: 'https://instagram.com/alexvance_official',
-    quantity: 5000,
+    serviceName: 'Instagram Real Followers [High Quality]',
+    targetLink: 'https://instagram.com/demoadvertiser',
+    quantity: 2000,
     pricePer1000: 1.20,
-    totalCost: 6.00,
-    estimatedMinutes: 30,
-    status: 'in_progress',
-    createdAt: '2026-07-24T14:00:00Z'
-  },
-  {
-    id: 'soc_cmp_102',
-    userId: 'usr_2',
-    userName: 'Alex Vance',
-    serviceId: 'soc_srv_4',
-    platform: 'YouTube',
-    serviceName: 'YouTube High Retention Video Views',
-    targetLink: 'https://youtube.com/watch?v=demo12345',
-    quantity: 10000,
-    pricePer1000: 1.50,
-    totalCost: 15.00,
+    totalCost: 2.40,
     estimatedMinutes: 60,
-    status: 'pending',
-    createdAt: '2026-07-25T08:30:00Z'
+    status: 'in_progress',
+    createdAt: '2026-07-27T14:20:00Z'
   }
 ];
 

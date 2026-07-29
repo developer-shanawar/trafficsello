@@ -3,12 +3,13 @@ import { supabase } from './supabase';
 import {
   UserProfile, Campaign, PaymentDeposit, WalletTransaction,
   SupportTicket, AppNotification, PlatformSettings, CampaignStatus, UserRole, Testimonial,
-  SocialService, SocialCampaign, CurrencyCode, CurrencyConfig, ReferralRecord
+  SocialService, SocialCampaign, CurrencyCode, CurrencyConfig, ReferralRecord,
+  WithdrawalMethod, WithdrawalRequest, CommissionIncreaseRequest
 } from '../types';
 import {
   DEFAULT_SETTINGS, INITIAL_USERS, INITIAL_CAMPAIGNS,
   INITIAL_PAYMENTS, INITIAL_TRANSACTIONS, INITIAL_TICKETS, INITIAL_NOTIFICATIONS, INITIAL_TESTIMONIALS,
-  INITIAL_SOCIAL_SERVICES, INITIAL_SOCIAL_CAMPAIGNS
+  INITIAL_SOCIAL_SERVICES, INITIAL_SOCIAL_CAMPAIGNS, INITIAL_WITHDRAWALS, INITIAL_COMMISSION_REQUESTS
 } from './initialData';
 import { sendNativeNotification, triggerToast } from './notifications';
 
@@ -90,9 +91,18 @@ interface StoreContextType {
     currentBalance: number;
   };
 
-  // Referral System
+  // Referral System & Withdrawals
   referrals: ReferralRecord[];
+  withdrawalRequests: WithdrawalRequest[];
+  commissionRequests: CommissionIncreaseRequest[];
   getReferralLink: (user?: UserProfile | null) => string;
+  transferReferralToDeposit: (amount: number) => Promise<{ success: boolean; message: string }>;
+  requestWithdrawal: (data: { amount: number; method: WithdrawalMethod; accountTitle?: string; accountNumber?: string; cryptoAddress?: string }) => Promise<{ success: boolean; message: string }>;
+  approveWithdrawal: (id: string, adminNote?: string) => Promise<void>;
+  rejectWithdrawal: (id: string, adminNote?: string) => Promise<void>;
+  requestCommissionIncrease: (data: { requestedRate: number; referralsCount: number; message: string }) => Promise<{ success: boolean; message: string }>;
+  approveCommissionIncrease: (id: string, customRate: number, adminNote?: string) => Promise<void>;
+  rejectCommissionIncrease: (id: string, adminNote?: string) => Promise<void>;
 
   resetToInitialData: () => void;
 }
@@ -255,9 +265,41 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return saved ? JSON.parse(saved) : [];
   });
 
+  const [withdrawalRequests, setWithdrawalRequests] = useState<WithdrawalRequest[]>(() => {
+    const saved = localStorage.getItem('trafficsell_withdrawals');
+    let list: WithdrawalRequest[] = saved ? JSON.parse(saved) : [];
+    const merged = [...list];
+    for (const seed of INITIAL_WITHDRAWALS) {
+      if (!merged.some(w => w.id === seed.id)) {
+        merged.push(seed);
+      }
+    }
+    return merged.length > 0 ? merged : INITIAL_WITHDRAWALS;
+  });
+
+  const [commissionRequests, setCommissionRequests] = useState<CommissionIncreaseRequest[]>(() => {
+    const saved = localStorage.getItem('trafficsell_commission_requests');
+    let list: CommissionIncreaseRequest[] = saved ? JSON.parse(saved) : [];
+    const merged = [...list];
+    for (const seed of INITIAL_COMMISSION_REQUESTS) {
+      if (!merged.some(c => c.id === seed.id)) {
+        merged.push(seed);
+      }
+    }
+    return merged.length > 0 ? merged : INITIAL_COMMISSION_REQUESTS;
+  });
+
   useEffect(() => {
     localStorage.setItem('trafficsell_referrals', JSON.stringify(referrals));
   }, [referrals]);
+
+  useEffect(() => {
+    localStorage.setItem('trafficsell_withdrawals', JSON.stringify(withdrawalRequests));
+  }, [withdrawalRequests]);
+
+  useEffect(() => {
+    localStorage.setItem('trafficsell_commission_requests', JSON.stringify(commissionRequests));
+  }, [commissionRequests]);
 
   // Capture referral parameter from URL on load
   useEffect(() => {
@@ -1328,34 +1370,35 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     sendNativeNotification('TrafficSell Deposit Approved! 🎉', `$${deposit.amount.toFixed(2)} deposit + ${bonusAmount.toFixed(2)} bonus credited to your TrafficSell wallet!`);
 
-    // --- 5% REFERRAL COMMISSION PROCESSING ---
+    // --- REFERRAL COMMISSION PROCESSING ---
     if (targetUser && (targetUser.referredBy || (targetUser as any).referred_by)) {
       const referrerId = targetUser.referredBy || (targetUser as any).referred_by;
       const referrer = allUsers.find(u => u.id === referrerId || u.referralCode === referrerId);
 
       if (referrer && referrer.id !== targetUser.id) {
-        const refCommission = deposit.amount * 0.05; // 5% commission
-        const referrerNewBal = referrer.walletBalance + refCommission;
+        const refRate = referrer.customReferralRate || 0.05;
+        const refCommission = deposit.amount * refRate;
+        const referrerNewRefBal = (referrer.referralBalance || 0) + refCommission;
         const referrerNewEarnings = (referrer.totalReferralEarnings || 0) + refCommission;
 
         // Update referrer in state
         setAllUsers(prev => prev.map(u => u.id === referrer.id ? {
           ...u,
-          walletBalance: referrerNewBal,
+          referralBalance: referrerNewRefBal,
           totalReferralEarnings: referrerNewEarnings
         } : u));
 
         if (user && user.id === referrer.id) {
           setUser(prev => prev ? {
             ...prev,
-            walletBalance: referrerNewBal,
+            referralBalance: referrerNewRefBal,
             totalReferralEarnings: referrerNewEarnings
           } : null);
         }
 
         // Persist to Supabase users table
         supabase.from('users').update({
-          wallet_balance: referrerNewBal,
+          referral_balance: referrerNewRefBal,
           total_referral_earnings: referrerNewEarnings
         }).eq('id', referrer.id).then();
 
@@ -1363,9 +1406,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         const refTx: WalletTransaction = {
           id: `tx_ref_${Date.now()}`,
           userId: referrer.id,
-          type: 'deposit',
+          type: 'referral_commission',
           amount: refCommission,
-          description: `🎁 5% Referral Commission from $${deposit.amount.toFixed(2)} deposit by ${deposit.userName}`,
+          description: `🎁 ${(refRate * 100).toFixed(0)}% Referral Commission from $${deposit.amount.toFixed(2)} deposit by ${deposit.userName}`,
           status: 'completed',
           createdAt: new Date().toISOString()
         };
@@ -1954,6 +1997,282 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     supabase.from('users').update({ is_suspended: isSuspended }).eq('id', userId).then();
   };
 
+  const transferReferralToDeposit = async (amount: number): Promise<{ success: boolean; message: string }> => {
+    if (!user) return { success: false, message: 'Please log in first.' };
+    const currentRefBal = user.referralBalance || 0;
+    if (amount <= 0 || amount > currentRefBal) {
+      return { success: false, message: `Insufficient referral balance. Available: $${currentRefBal.toFixed(2)}` };
+    }
+
+    const newRefBal = currentRefBal - amount;
+    const newWalletBal = (user.walletBalance || 0) + amount;
+
+    const updatedUser = {
+      ...user,
+      referralBalance: newRefBal,
+      walletBalance: newWalletBal
+    };
+
+    setUser(updatedUser);
+    setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
+
+    // Transaction log
+    const tx: WalletTransaction = {
+      id: `tx_trf_${Date.now()}`,
+      userId: user.id,
+      type: 'referral_transfer',
+      amount,
+      description: `🔄 Instant Transfer from Referral Balance to Wallet Deposit Balance`,
+      status: 'completed',
+      createdAt: new Date().toISOString()
+    };
+    setTransactions(prev => [tx, ...prev]);
+
+    // Supabase update
+    supabase.from('users').update({
+      wallet_balance: newWalletBal,
+      referral_balance: newRefBal
+    }).eq('id', user.id).then();
+
+    triggerToast('Balance Transferred! 🚀', `$${amount.toFixed(2)} has been added to your Deposit Wallet. You can now use it for advertising!`, 'success');
+    return { success: true, message: 'Successfully transferred referral earnings to deposit balance!' };
+  };
+
+  const requestWithdrawal = async (data: {
+    amount: number;
+    method: WithdrawalMethod;
+    accountTitle?: string;
+    accountNumber?: string;
+    cryptoAddress?: string;
+  }): Promise<{ success: boolean; message: string }> => {
+    if (!user) return { success: false, message: 'Please log in to request a withdrawal.' };
+    if (data.amount < 1.00) {
+      return { success: false, message: 'Minimum withdrawal amount is $1.00 USD.' };
+    }
+
+    const currentRefBal = user.referralBalance || 0;
+    if (data.amount > currentRefBal) {
+      return { success: false, message: `Insufficient referral balance. Available: $${currentRefBal.toFixed(2)}` };
+    }
+
+    // Deduct from referral balance during pending request
+    const newRefBal = currentRefBal - data.amount;
+    const updatedUser = { ...user, referralBalance: newRefBal };
+    setUser(updatedUser);
+    setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
+
+    const reqId = `wth_${Date.now()}`;
+    const newRequest: WithdrawalRequest = {
+      id: reqId,
+      userId: user.id,
+      userName: user.fullName || 'User',
+      userEmail: user.email,
+      amount: data.amount,
+      method: data.method,
+      accountTitle: data.accountTitle,
+      accountNumber: data.accountNumber,
+      cryptoAddress: data.cryptoAddress,
+      status: 'in review',
+      createdAt: new Date().toISOString()
+    };
+
+    setWithdrawalRequests(prev => [newRequest, ...prev]);
+
+    // Add transaction record
+    const tx: WalletTransaction = {
+      id: `tx_wth_${Date.now()}`,
+      userId: user.id,
+      type: 'withdrawal',
+      amount: data.amount,
+      description: `💸 Referral Withdrawal via ${data.method} (${data.accountNumber || data.cryptoAddress || data.accountTitle || ''})`,
+      status: 'in review',
+      createdAt: new Date().toISOString()
+    };
+    setTransactions(prev => [tx, ...prev]);
+
+    // Notification
+    const notif: AppNotification = {
+      id: `ntf_${Date.now()}`,
+      userId: user.id,
+      title: 'Withdrawal Request Submitted ⏳',
+      message: `Your $${data.amount.toFixed(2)} withdrawal via ${data.method} is now in review. Our admin team will process it shortly.`,
+      type: 'payment',
+      read: false,
+      createdAt: new Date().toISOString()
+    };
+    setNotifications(prev => [notif, ...prev]);
+
+    // Sync to Supabase
+    supabase.from('users').update({ referral_balance: newRefBal }).eq('id', user.id).then();
+    supabase.from('withdrawal_requests').insert([{
+      id: newRequest.id,
+      user_id: newRequest.userId,
+      user_name: newRequest.userName,
+      user_email: newRequest.userEmail,
+      amount: newRequest.amount,
+      method: newRequest.method,
+      account_title: newRequest.accountTitle,
+      account_number: newRequest.accountNumber,
+      crypto_address: newRequest.cryptoAddress,
+      status: newRequest.status,
+      created_at: newRequest.createdAt
+    }]).then();
+
+    triggerToast('Withdrawal Requested! 💸', `$${data.amount.toFixed(2)} via ${data.method} is now in review by Admin.`, 'success');
+    return { success: true, message: 'Withdrawal request submitted successfully.' };
+  };
+
+  const approveWithdrawal = async (id: string, adminNote?: string) => {
+    const req = withdrawalRequests.find(w => w.id === id);
+    if (!req) return;
+
+    setWithdrawalRequests(prev => prev.map(w => w.id === id ? { ...w, status: 'approved', adminNote } : w));
+
+    // Update transaction status
+    setTransactions(prev => prev.map(t => {
+      if (t.userId === req.userId && t.type === 'withdrawal' && Math.abs(t.amount - req.amount) < 0.01 && t.status === 'in review') {
+        return { ...t, status: 'completed' };
+      }
+      return t;
+    }));
+
+    // Notification
+    const notif: AppNotification = {
+      id: `ntf_${Date.now()}`,
+      userId: req.userId,
+      title: 'Withdrawal Approved & Paid! 🎉',
+      message: `Your withdrawal of $${req.amount.toFixed(2)} via ${req.method} has been sent! ${adminNote ? 'Note: ' + adminNote : ''}`,
+      type: 'payment',
+      read: false,
+      createdAt: new Date().toISOString()
+    };
+    setNotifications(prev => [notif, ...prev]);
+
+    triggerToast('Withdrawal Approved! ✅', `$${req.amount.toFixed(2)} payout sent to ${req.userName}`, 'success');
+    supabase.from('withdrawal_requests').update({ status: 'approved', admin_note: adminNote }).eq('id', id).then();
+  };
+
+  const rejectWithdrawal = async (id: string, adminNote?: string) => {
+    const req = withdrawalRequests.find(w => w.id === id);
+    if (!req) return;
+
+    setWithdrawalRequests(prev => prev.map(w => w.id === id ? { ...w, status: 'rejected', adminNote } : w));
+
+    // Refund back to user's referral balance
+    setAllUsers(prev => prev.map(u => {
+      if (u.id === req.userId) {
+        const newRefBal = (u.referralBalance || 0) + req.amount;
+        return { ...u, referralBalance: newRefBal };
+      }
+      return u;
+    }));
+
+    if (user && user.id === req.userId) {
+      setUser(prev => prev ? { ...prev, referralBalance: (prev.referralBalance || 0) + req.amount } : null);
+    }
+
+    // Update transaction
+    setTransactions(prev => prev.map(t => {
+      if (t.userId === req.userId && t.type === 'withdrawal' && Math.abs(t.amount - req.amount) < 0.01 && t.status === 'in review') {
+        return { ...t, status: 'rejected' };
+      }
+      return t;
+    }));
+
+    // Notification
+    const notif: AppNotification = {
+      id: `ntf_${Date.now()}`,
+      userId: req.userId,
+      title: 'Withdrawal Request Rejected',
+      message: `Your $${req.amount.toFixed(2)} withdrawal request was rejected and refunded back to your Referral Balance. Reason: ${adminNote || 'Invalid account details.'}`,
+      type: 'payment',
+      read: false,
+      createdAt: new Date().toISOString()
+    };
+    setNotifications(prev => [notif, ...prev]);
+
+    const targetU = allUsers.find(u => u.id === req.userId);
+    if (targetU) {
+      const newBal = (targetU.referralBalance || 0) + req.amount;
+      supabase.from('users').update({ referral_balance: newBal }).eq('id', req.userId).then();
+    }
+    supabase.from('withdrawal_requests').update({ status: 'rejected', admin_note: adminNote }).eq('id', id).then();
+    triggerToast('Withdrawal Rejected', `Refunded $${req.amount.toFixed(2)} back to user's referral balance.`, 'info');
+  };
+
+  const requestCommissionIncrease = async (data: {
+    requestedRate: number;
+    referralsCount: number;
+    message: string;
+  }): Promise<{ success: boolean; message: string }> => {
+    if (!user) return { success: false, message: 'Please log in first.' };
+
+    const req: CommissionIncreaseRequest = {
+      id: `cmreq_${Date.now()}`,
+      userId: user.id,
+      userName: user.fullName || 'User',
+      userEmail: user.email,
+      referralsCount: data.referralsCount,
+      requestedRate: data.requestedRate,
+      message: data.message,
+      status: 'in review',
+      createdAt: new Date().toISOString()
+    };
+
+    setCommissionRequests(prev => [req, ...prev]);
+
+    triggerToast('Request Submitted! 🚀', `Your application for ${data.requestedRate}% commission rate is now in review by Admin.`, 'success');
+    return { success: true, message: 'Request submitted successfully.' };
+  };
+
+  const approveCommissionIncrease = async (id: string, customRate: number, adminNote?: string) => {
+    const req = commissionRequests.find(c => c.id === id);
+    if (!req) return;
+
+    setCommissionRequests(prev => prev.map(c => c.id === id ? { ...c, status: 'approved', adminNote } : c));
+
+    // Set user's custom referral rate (e.g. customRate = 8 => 0.08)
+    const rateMultiplier = customRate / 100;
+    setAllUsers(prev => prev.map(u => u.id === req.userId ? { ...u, customReferralRate: rateMultiplier } : u));
+    if (user && user.id === req.userId) {
+      setUser(prev => prev ? { ...prev, customReferralRate: rateMultiplier } : null);
+    }
+
+    const notif: AppNotification = {
+      id: `ntf_${Date.now()}`,
+      userId: req.userId,
+      title: 'Commission Rate Increased! 🎉',
+      message: `Congratulations! Your referral commission rate has been upgraded to ${customRate}% on all invited deposits!`,
+      type: 'system',
+      read: false,
+      createdAt: new Date().toISOString()
+    };
+    setNotifications(prev => [notif, ...prev]);
+
+    supabase.from('users').update({ custom_referral_rate: rateMultiplier }).eq('id', req.userId).then();
+    triggerToast('Commission Approved! 🎉', `Updated ${req.userName}'s commission rate to ${customRate}%.`, 'success');
+  };
+
+  const rejectCommissionIncrease = async (id: string, adminNote?: string) => {
+    const req = commissionRequests.find(c => c.id === id);
+    if (!req) return;
+
+    setCommissionRequests(prev => prev.map(c => c.id === id ? { ...c, status: 'rejected', adminNote } : c));
+
+    const notif: AppNotification = {
+      id: `ntf_${Date.now()}`,
+      userId: req.userId,
+      title: 'Commission Rate Increase Update',
+      message: `Your request for ${req.requestedRate}% commission rate was not approved at this time. ${adminNote ? 'Note: ' + adminNote : ''}`,
+      type: 'system',
+      read: false,
+      createdAt: new Date().toISOString()
+    };
+    setNotifications(prev => [notif, ...prev]);
+
+    triggerToast('Request Rejected', `Commission increase request for ${req.userName} rejected.`, 'info');
+  };
+
   const getReferralLink = (targetUser?: UserProfile | null) => {
     const u = targetUser || user;
     if (!u) return `${window.location.origin}/?ref=join`;
@@ -1971,6 +2290,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setTestimonials(INITIAL_TESTIMONIALS);
     setPlatformSettings(DEFAULT_SETTINGS);
     setReferrals([]);
+    setWithdrawalRequests(INITIAL_WITHDRAWALS);
+    setCommissionRequests(INITIAL_COMMISSION_REQUESTS);
     localStorage.setItem('trafficsell_users', JSON.stringify(INITIAL_USERS));
     localStorage.setItem('trafficsell_campaigns', JSON.stringify(INITIAL_CAMPAIGNS));
     localStorage.setItem('trafficsell_payments', JSON.stringify(INITIAL_PAYMENTS));
@@ -1979,6 +2300,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     localStorage.setItem('trafficsell_notifications', JSON.stringify(INITIAL_NOTIFICATIONS));
     localStorage.setItem('trafficsell_testimonials', JSON.stringify(INITIAL_TESTIMONIALS));
     localStorage.setItem('trafficsell_settings', JSON.stringify(DEFAULT_SETTINGS));
+    localStorage.setItem('trafficsell_withdrawals', JSON.stringify(INITIAL_WITHDRAWALS));
+    localStorage.setItem('trafficsell_commission_requests', JSON.stringify(INITIAL_COMMISSION_REQUESTS));
     localStorage.removeItem('trafficsell_referrals');
   };
 
@@ -1994,7 +2317,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       platformSettings, updatePlatformSettings,
       testimonials, addTestimonial, updateTestimonial, deleteTestimonial,
       updateProfile, allUsers, updateUserBalanceByAdmin, toggleUserSuspension, getUserStats,
-      referrals, getReferralLink,
+      referrals, withdrawalRequests, commissionRequests, getReferralLink,
+      transferReferralToDeposit, requestWithdrawal, approveWithdrawal, rejectWithdrawal,
+      requestCommissionIncrease, approveCommissionIncrease, rejectCommissionIncrease,
       resetToInitialData
     }}>
       {children}
