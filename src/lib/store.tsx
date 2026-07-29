@@ -96,6 +96,7 @@ interface StoreContextType {
   withdrawalRequests: WithdrawalRequest[];
   commissionRequests: CommissionIncreaseRequest[];
   getReferralLink: (user?: UserProfile | null) => string;
+  updateCustomReferralCode: (newCode: string) => Promise<{ success: boolean; message: string }>;
   transferReferralToDeposit: (amount: number) => Promise<{ success: boolean; message: string }>;
   requestWithdrawal: (data: { amount: number; method: WithdrawalMethod; accountTitle?: string; accountNumber?: string; cryptoAddress?: string }) => Promise<{ success: boolean; message: string }>;
   approveWithdrawal: (id: string, adminNote?: string) => Promise<void>;
@@ -1379,11 +1380,13 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         const refRate = referrer.customReferralRate || 0.05;
         const refCommission = deposit.amount * refRate;
         const referrerNewRefBal = (referrer.referralBalance || 0) + refCommission;
+        const referrerNewWalletBal = (referrer.walletBalance || 0) + refCommission;
         const referrerNewEarnings = (referrer.totalReferralEarnings || 0) + refCommission;
 
         // Update referrer in state
         setAllUsers(prev => prev.map(u => u.id === referrer.id ? {
           ...u,
+          walletBalance: referrerNewWalletBal,
           referralBalance: referrerNewRefBal,
           totalReferralEarnings: referrerNewEarnings
         } : u));
@@ -1391,6 +1394,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         if (user && user.id === referrer.id) {
           setUser(prev => prev ? {
             ...prev,
+            walletBalance: referrerNewWalletBal,
             referralBalance: referrerNewRefBal,
             totalReferralEarnings: referrerNewEarnings
           } : null);
@@ -1398,6 +1402,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
         // Persist to Supabase users table
         supabase.from('users').update({
+          wallet_balance: referrerNewWalletBal,
           referral_balance: referrerNewRefBal,
           total_referral_earnings: referrerNewEarnings
         }).eq('id', referrer.id).then();
@@ -1997,6 +2002,27 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     supabase.from('users').update({ is_suspended: isSuspended }).eq('id', userId).then();
   };
 
+  const updateCustomReferralCode = async (newCode: string): Promise<{ success: boolean; message: string }> => {
+    if (!user) return { success: false, message: 'Please log in first.' };
+    const cleanCode = newCode.trim().toUpperCase().replace(/[^A-Z0-9_-]/g, '');
+    if (cleanCode.length < 4 || cleanCode.length > 12) {
+      return { success: false, message: 'Referral code must be between 4 and 12 alphanumeric characters.' };
+    }
+
+    const existing = allUsers.find(u => u.id !== user.id && u.referralCode && u.referralCode.toUpperCase() === cleanCode);
+    if (existing) {
+      return { success: false, message: 'This referral code is already taken. Please choose another code.' };
+    }
+
+    const updatedUser = { ...user, referralCode: cleanCode };
+    setUser(updatedUser);
+    setAllUsers(prev => prev.map(u => u.id === user.id ? updatedUser : u));
+
+    supabase.from('users').update({ referral_code: cleanCode }).eq('id', user.id).then();
+    triggerToast('Referral Code Updated! 🎉', `Your custom referral code is now: ${cleanCode}`, 'success');
+    return { success: true, message: 'Referral code updated successfully!' };
+  };
+
   const transferReferralToDeposit = async (amount: number): Promise<{ success: boolean; message: string }> => {
     if (!user) return { success: false, message: 'Please log in first.' };
     const currentRefBal = user.referralBalance || 0;
@@ -2338,7 +2364,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       platformSettings, updatePlatformSettings,
       testimonials, addTestimonial, updateTestimonial, deleteTestimonial,
       updateProfile, allUsers, updateUserBalanceByAdmin, toggleUserSuspension, getUserStats,
-      referrals, withdrawalRequests, commissionRequests, getReferralLink,
+      referrals, withdrawalRequests, commissionRequests, getReferralLink, updateCustomReferralCode,
       transferReferralToDeposit, requestWithdrawal, approveWithdrawal, rejectWithdrawal,
       requestCommissionIncrease, approveCommissionIncrease, rejectCommissionIncrease,
       resetToInitialData

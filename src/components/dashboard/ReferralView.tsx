@@ -11,10 +11,15 @@ import { TransferModal } from '../modals/TransferModal';
 import { CommissionRequestModal } from '../modals/CommissionRequestModal';
 
 export const ReferralView: React.FC = () => {
-  const { user, allUsers, referrals, withdrawalRequests, getReferralLink, formatMoney } = useStore();
+  const { user, allUsers, referrals, withdrawalRequests, commissionRequests, getReferralLink, updateCustomReferralCode, formatMoney } = useStore();
   const [copied, setCopied] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [activeTab, setActiveTab] = useState<'referred_users' | 'commissions' | 'withdrawals'>('referred_users');
+  const [activeTab, setActiveTab] = useState<'referred_users' | 'commissions' | 'withdrawals' | 'requests'>('referred_users');
+
+  // Custom referral code state
+  const [editingCode, setEditingCode] = useState(false);
+  const [customCodeInput, setCustomCodeInput] = useState(user?.referralCode || '');
+  const [updatingCode, setUpdatingCode] = useState(false);
 
   // Modals state
   const [isWithdrawOpen, setIsWithdrawOpen] = useState(false);
@@ -31,6 +36,9 @@ export const ReferralView: React.FC = () => {
 
   // Filter withdrawal requests for current user
   const myWithdrawals = withdrawalRequests.filter(w => w.userId === user?.id);
+
+  // Filter commission rate increase requests for current user
+  const myCommissionRequests = commissionRequests.filter(c => c.userId === user?.id);
 
   // Calculate total earnings
   const totalEarningsFromRecords = myCommissions.reduce((acc, r) => acc + r.commissionAmount, 0);
@@ -87,45 +95,86 @@ export const ReferralView: React.FC = () => {
               Whenever they make a deposit into their wallet, <strong className="text-[#DFFF2F]">{currentRatePercent}% of the deposited amount</strong> is automatically credited to your referral balance!
             </p>
 
-            {/* Referral Link Box */}
-            <div className="pt-2">
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">
-                Your Unique Referral Link
-              </label>
-              <div className="flex flex-col sm:flex-row gap-2 max-w-xl">
-                <div className="relative flex-1">
-                  <input
-                    type="text"
-                    readOnly
-                    value={referralLink}
-                    className="w-full bg-slate-900 border border-slate-800 rounded-2xl px-4 py-3 text-xs text-[#DFFF2F] font-mono focus:outline-none focus:border-[#DFFF2F] pr-10"
-                  />
-                  <div className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">
-                    <Share2 className="w-4 h-4" />
-                  </div>
-                </div>
-
+            {/* Referral Link & Custom Code Box */}
+            <div className="pt-2 space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-400">
+                  Your Unique Referral Link & Custom Partner Code
+                </label>
                 <button
-                  onClick={handleCopyLink}
-                  className={`px-5 py-3 rounded-2xl font-black text-xs transition-all flex items-center justify-center gap-2 shrink-0 shadow-lg cursor-pointer ${
-                    copied
-                      ? 'bg-emerald-500 text-slate-950 shadow-emerald-950/30'
-                      : 'bg-[#DFFF2F] hover:bg-[#cbe620] text-slate-950 shadow-slate-950/40 active:scale-95'
-                  }`}
+                  type="button"
+                  onClick={() => setEditingCode(!editingCode)}
+                  className="text-xs font-extrabold text-[#DFFF2F] hover:underline flex items-center gap-1 cursor-pointer"
                 >
-                  {copied ? (
-                    <>
-                      <CheckCircle className="w-4 h-4" />
-                      <span>Copied!</span>
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="w-4 h-4" />
-                      <span>Copy Referral Link</span>
-                    </>
-                  )}
+                  <span>{editingCode ? 'Cancel Custom Code' : '✏️ Edit Referral Code'}</span>
                 </button>
               </div>
+
+              {editingCode ? (
+                <div className="p-3 bg-slate-900 border border-[#DFFF2F]/40 rounded-2xl space-y-2 max-w-xl animate-fadeIn">
+                  <p className="text-[11px] text-slate-300">
+                    Set a custom 4-12 character referral code (alphanumeric, e.g. <span className="text-[#DFFF2F] font-mono font-bold">PRO2026</span> or <span className="text-[#DFFF2F] font-mono font-bold">789012</span>):
+                  </p>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={customCodeInput}
+                      onChange={(e) => setCustomCodeInput(e.target.value.toUpperCase())}
+                      placeholder="e.g. TRAFFIC100"
+                      maxLength={12}
+                      className="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs font-mono text-[#DFFF2F] focus:outline-none focus:border-[#DFFF2F]"
+                    />
+                    <button
+                      type="button"
+                      disabled={updatingCode || !customCodeInput.trim()}
+                      onClick={async () => {
+                        setUpdatingCode(true);
+                        const res = await updateCustomReferralCode(customCodeInput);
+                        setUpdatingCode(false);
+                        if (res.success) setEditingCode(false);
+                      }}
+                      className="px-4 py-2 bg-[#DFFF2F] hover:bg-[#cbe620] text-slate-950 font-black text-xs rounded-xl transition-all cursor-pointer disabled:opacity-50"
+                    >
+                      {updatingCode ? 'Saving...' : 'Save Code'}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-col sm:flex-row gap-2 max-w-xl">
+                  <div className="relative flex-1">
+                    <input
+                      type="text"
+                      readOnly
+                      value={referralLink}
+                      className="w-full bg-slate-900 border border-slate-800 rounded-2xl px-4 py-3 text-xs text-[#DFFF2F] font-mono focus:outline-none focus:border-[#DFFF2F] pr-10"
+                    />
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">
+                      <Share2 className="w-4 h-4" />
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={handleCopyLink}
+                    className={`px-5 py-3 rounded-2xl font-black text-xs transition-all flex items-center justify-center gap-2 shrink-0 shadow-lg cursor-pointer ${
+                      copied
+                        ? 'bg-emerald-500 text-slate-950 shadow-emerald-950/30'
+                        : 'bg-[#DFFF2F] hover:bg-[#cbe620] text-slate-950 shadow-slate-950/40 active:scale-95'
+                    }`}
+                  >
+                    {copied ? (
+                      <>
+                        <CheckCircle className="w-4 h-4" />
+                        <span>Copied!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-4 h-4" />
+                        <span>Copy Referral Link</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Quick Social Sharing */}
@@ -356,6 +405,18 @@ export const ReferralView: React.FC = () => {
               <ArrowUpRight className="w-4 h-4" />
               <span>Withdrawal History ({myWithdrawals.length})</span>
             </button>
+
+            <button
+              onClick={() => setActiveTab('requests')}
+              className={`px-4 py-2.5 rounded-xl text-xs font-extrabold transition-all flex items-center gap-2 cursor-pointer ${
+                activeTab === 'requests'
+                  ? 'bg-slate-900 text-[#DFFF2F] dark:bg-[#DFFF2F] dark:text-slate-950 shadow-md'
+                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+              }`}
+            >
+              <TrendingUp className="w-4 h-4" />
+              <span>Rate Increase Requests ({myCommissionRequests.length})</span>
+            </button>
           </div>
 
           <div className="relative max-w-xs w-full">
@@ -554,6 +615,79 @@ export const ReferralView: React.FC = () => {
                 >
                   <ArrowUpRight className="w-4 h-4" />
                   <span>Withdraw Now ($1 Minimum)</span>
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Tab 4: Rate Increase Requests History */}
+        {activeTab === 'requests' && (
+          <div className="overflow-x-auto">
+            {myCommissionRequests.length > 0 ? (
+              <table className="w-full text-left text-xs text-slate-600 dark:text-slate-300">
+                <thead className="bg-slate-50 dark:bg-slate-950 text-slate-400 uppercase tracking-wider font-mono text-[10px] border-b border-slate-200 dark:border-slate-800">
+                  <tr>
+                    <th className="px-6 py-3.5">Request ID</th>
+                    <th className="px-6 py-3.5">Requested Rate</th>
+                    <th className="px-6 py-3.5">Target Volume</th>
+                    <th className="px-6 py-3.5">Channel / Proof</th>
+                    <th className="px-6 py-3.5">Status</th>
+                    <th className="px-6 py-3.5">Date</th>
+                    <th className="px-6 py-3.5">Admin Note</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                  {myCommissionRequests.map((c) => (
+                    <tr key={c.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+                      <td className="px-6 py-4 font-mono font-bold text-[#DFFF2F]">{c.id}</td>
+                      <td className="px-6 py-4 font-black text-amber-400 text-sm">{c.requestedRate}%</td>
+                      <td className="px-6 py-4 font-bold text-slate-300">{c.referralsCount} users/mo</td>
+                      <td className="px-6 py-4 text-slate-300">
+                        <div className="font-bold">{c.socialPlatform || 'Social Promotion'}</div>
+                        {c.proofUrl && (
+                          <a href={c.proofUrl} target="_blank" rel="noopener noreferrer" className="text-sky-400 hover:underline text-[11px] flex items-center gap-1 font-mono mt-0.5">
+                            <span>Proof Link</span>
+                            <ExternalLink className="w-3 h-3" />
+                          </a>
+                        )}
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                          c.status === 'approved' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
+                          c.status === 'in review' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20 animate-pulse' :
+                          'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                        }`}>
+                          {c.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-slate-400 font-mono text-[11px]">
+                        {new Date(c.createdAt).toLocaleDateString()}
+                      </td>
+                      <td className="px-6 py-4 text-slate-400 italic text-[11px]">
+                        {c.adminNote || '-'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <div className="p-12 text-center space-y-3">
+                <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 mx-auto flex items-center justify-center">
+                  <TrendingUp className="w-6 h-6" />
+                </div>
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                  No Rate Increase Requests Submitted
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
+                  If you drive high traffic or run blogs/Telegram channels, submit a rate increase request to earn up to 15% cash commissions!
+                </p>
+                <button
+                  onClick={() => setIsCommissionReqOpen(true)}
+                  className="px-4 py-2.5 rounded-xl bg-[#DFFF2F] text-slate-950 font-black text-xs inline-flex items-center gap-2 cursor-pointer shadow-md"
+                >
+                  <TrendingUp className="w-4 h-4" />
+                  <span>Request Commission Increase</span>
                 </button>
               </div>
             )}
