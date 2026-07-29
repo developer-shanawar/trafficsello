@@ -15,7 +15,9 @@ export const CommissionRequestModal: React.FC<CommissionRequestModalProps> = ({ 
   const currentRatePercent = Math.round(((user?.customReferralRate || 0.05) * 100));
 
   const [requestedRate, setRequestedRate] = useState<number>(8);
-  const [referralsCount, setReferralsCount] = useState<number>(myReferrals.length || 5);
+  const [referralsCount, setReferralsCount] = useState<number>(myReferrals.length || 100);
+  const [socialPlatform, setSocialPlatform] = useState('Telegram Channel / Group');
+  const [proofUrl, setProofUrl] = useState('');
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -31,6 +33,11 @@ export const CommissionRequestModal: React.FC<CommissionRequestModalProps> = ({ 
       return;
     }
 
+    if (!proofUrl.trim()) {
+      setError('Please provide a link or screenshot URL proving your channel/audience size.');
+      return;
+    }
+
     if (!message.trim() || message.trim().length < 10) {
       setError('Please provide a short description of your traffic source or community.');
       return;
@@ -40,6 +47,8 @@ export const CommissionRequestModal: React.FC<CommissionRequestModalProps> = ({ 
     const res = await requestCommissionIncrease({
       requestedRate,
       referralsCount,
+      socialPlatform,
+      proofUrl: proofUrl.trim(),
       message: message.trim()
     });
     setLoading(false);
@@ -101,30 +110,30 @@ export const CommissionRequestModal: React.FC<CommissionRequestModalProps> = ({ 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                  Target Rate (%)
+                  Target Commission Rate
                 </label>
                 <select
                   value={requestedRate}
                   onChange={(e) => setRequestedRate(parseInt(e.target.value))}
-                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl text-slate-900 dark:text-white font-black text-base focus:outline-none focus:border-[#DFFF2F]"
+                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl text-slate-900 dark:text-white font-black text-sm focus:outline-none focus:border-[#DFFF2F]"
                 >
-                  <option value={8}>8% Commission</option>
-                  <option value={10}>10% Commission</option>
-                  <option value={12}>12% Commission</option>
-                  <option value={15}>15% VIP Commission</option>
+                  <option value={8}>8% Commission (~100 referrals/mo)</option>
+                  <option value={10}>10% Commission (~150 referrals/mo)</option>
+                  <option value={12}>12% Commission (~150-200 referrals/mo)</option>
+                  <option value={15}>15% VIP Commission (~300+ referrals/mo)</option>
                 </select>
               </div>
 
               <div className="space-y-2">
                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                  Estimated Monthly Active Referrals
+                  Est. Monthly Active Referrals
                 </label>
                 <input
                   type="number"
                   min="1"
                   value={referralsCount}
                   onChange={(e) => setReferralsCount(parseInt(e.target.value) || 0)}
-                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl text-slate-900 dark:text-white font-black text-base focus:outline-none focus:border-[#DFFF2F]"
+                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl text-slate-900 dark:text-white font-black text-sm focus:outline-none focus:border-[#DFFF2F]"
                   required
                 />
               </div>
@@ -132,13 +141,47 @@ export const CommissionRequestModal: React.FC<CommissionRequestModalProps> = ({ 
 
             <div className="space-y-2">
               <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                Your Promotional Channels / Message
+                Promotional Platform / Community
+              </label>
+              <select
+                value={socialPlatform}
+                onChange={(e) => setSocialPlatform(e.target.value)}
+                className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl text-slate-900 dark:text-white font-bold text-xs focus:outline-none focus:border-[#DFFF2F]"
+              >
+                <option value="Telegram Channel / Group">Telegram Channel / Group</option>
+                <option value="YouTube Channel">YouTube Channel</option>
+                <option value="Website / Tech Blog">Website / Tech Blog</option>
+                <option value="Facebook Group / Page">Facebook Group / Page</option>
+                <option value="Instagram / TikTok Page">Instagram / TikTok Page</option>
+                <option value="Media Buying Agency">Media Buying Agency</option>
+                <option value="Other High Traffic Channel">Other High Traffic Channel</option>
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center justify-between">
+                <span>Proof URL / Channel Link <span className="text-rose-500">*</span></span>
+                <span className="text-[10px] text-amber-500 font-bold">Screenshot or Public Link</span>
+              </label>
+              <input
+                type="text"
+                value={proofUrl}
+                onChange={(e) => setProofUrl(e.target.value)}
+                placeholder="e.g. https://t.me/my_channel or IMGBB screenshot link"
+                className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:border-[#DFFF2F]"
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                Promotional Strategy & Additional Notes
               </label>
               <textarea
                 rows={3}
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
-                placeholder="Tell us about your website, Telegram channel, YouTube audience, or media buying agency..."
+                placeholder="Tell us about your audience demographics, past affiliate experience, or traffic volume..."
                 className="w-full p-4 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl text-xs font-medium text-slate-900 dark:text-white focus:outline-none focus:border-[#DFFF2F]"
                 required
               />

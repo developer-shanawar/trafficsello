@@ -29,10 +29,10 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ currentTab, on
 
   const navItems = [
     { id: 'overview', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'campaigns', label: 'Campaigns & Traffic', icon: Layers, highlight: true },
-    { id: 'social_ads', label: 'Social Ads SMM', icon: Share2, highlight: false },
+    { id: 'campaigns', label: 'Campaigns & Traffic', icon: Layers },
+    { id: 'social_ads', label: 'Social Ads SMM', icon: Share2 },
     { id: 'wallet', label: 'Wallet & Deposit', icon: Wallet },
-    { id: 'referrals', label: 'Referral Program (5%)', icon: Users, highlight: true },
+    { id: 'referrals', label: 'Referral Program', icon: Users },
     { id: 'analytics', label: 'Analytics', icon: BarChart3 },
     { id: 'support', label: 'Support Tickets', icon: Ticket },
     { id: 'profile', label: 'My Profile', icon: User },
@@ -40,7 +40,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ currentTab, on
   ];
 
   if (isAdmin) {
-    navItems.splice(1, 0, { id: 'admin', label: 'Admin Panel', icon: ShieldAlert, highlight: false });
+    navItems.splice(1, 0, { id: 'admin', label: 'Admin Panel', icon: ShieldAlert });
   }
 
   return (
@@ -113,9 +113,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ currentTab, on
                   title={item.label}
                   className={`w-full flex items-center ${isSidebarCollapsed ? 'justify-center p-3' : 'justify-between px-3.5 py-2.5'} rounded-2xl text-xs font-bold transition-all cursor-pointer ${
                     isActive
-                      ? 'bg-slate-900 text-white dark:bg-[#DFFF2F] dark:text-slate-950 shadow-md'
-                      : item.highlight
-                      ? 'bg-[#DFFF2F]/20 text-slate-900 dark:text-[#DFFF2F] hover:bg-[#DFFF2F]/30'
+                      ? 'bg-[#DFFF2F] text-slate-950 font-black shadow-md'
                       : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-white'
                   }`}
                 >

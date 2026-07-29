@@ -75,6 +75,8 @@ export interface CommissionIncreaseRequest {
   userEmail: string;
   referralsCount: number;
   requestedRate: number; // e.g. 8 for 8%, 10 for 10%
+  socialPlatform?: string;
+  proofUrl?: string;
   message: string;
   status: 'in review' | 'approved' | 'rejected';
   adminNote?: string;

@@ -116,71 +116,26 @@ export const WalletView: React.FC = () => {
   return (
     <div className="max-w-5xl mx-auto space-y-8">
       
-      {/* Dual Wallet Balances & Actions Banner */}
-      <div className="bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white rounded-3xl p-6 md:p-8 border border-slate-800 shadow-2xl relative overflow-hidden space-y-6">
+      {/* Single Deposit Wallet Balance Banner */}
+      <div className="bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white rounded-3xl p-6 md:p-8 border border-slate-800 shadow-2xl relative overflow-hidden flex flex-col sm:flex-row items-center justify-between gap-6">
         <div className="absolute top-0 right-0 w-80 h-80 bg-[#DFFF2F]/10 rounded-full blur-3xl pointer-events-none" />
 
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800/80 pb-6">
-          <div className="space-y-1">
-            <span className="text-xs font-bold text-[#DFFF2F] uppercase tracking-wider flex items-center gap-1.5">
-              <Wallet className="w-4 h-4" /> TrafficSell Dual Balance Engine
-            </span>
-            <h2 className="text-xl md:text-2xl font-black text-white">Deposit Wallet & Referral Wallet</h2>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2.5">
-            <button
-              onClick={() => setActiveTab('deposit')}
-              className="px-4 py-2.5 bg-[#DFFF2F] text-slate-950 font-black text-xs rounded-xl hover:bg-[#cbe620] transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
-            >
-              <Plus className="w-4 h-4" /> Top-Up Deposit
-            </button>
-            <button
-              onClick={() => setIsTransferOpen(true)}
-              className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-white font-extrabold text-xs rounded-xl border border-slate-700 transition-all flex items-center gap-1.5 cursor-pointer"
-            >
-              <RefreshCw className="w-4 h-4 text-[#DFFF2F]" /> Transfer to Deposit
-            </button>
-            <button
-              onClick={() => setIsWithdrawOpen(true)}
-              className="px-4 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white font-black text-xs rounded-xl shadow-md transition-all flex items-center gap-1.5 cursor-pointer"
-            >
-              <ArrowUpRight className="w-4 h-4" /> Withdraw Referral
-            </button>
-          </div>
+        <div className="space-y-2 relative z-10">
+          <span className="text-xs font-bold text-[#DFFF2F] uppercase tracking-wider flex items-center gap-1.5">
+            <Wallet className="w-4 h-4" /> Deposit Balance
+          </span>
+          <h2 className="text-2xl md:text-3xl font-black text-white">Wallet & Payment Gateways</h2>
+          <p className="text-xs text-slate-400 max-w-md">
+            Add funds to your deposit wallet to launch website traffic campaigns, targeted visitor orders, and social media advertising.
+          </p>
         </div>
 
-        {/* Dual Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {/* Card 1: Deposit Balance */}
-          <div className="p-5 bg-slate-900/90 rounded-2xl border border-slate-800/90 space-y-2 relative">
-            <div className="flex items-center justify-between text-xs text-slate-400">
-              <span className="font-bold uppercase tracking-wider text-slate-300">Deposit Wallet Balance</span>
-              <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded text-[10px] font-extrabold">Active</span>
-            </div>
-            <p className="text-3xl sm:text-4xl font-black text-[#DFFF2F]">{formatMoney(user?.walletBalance || 0)}</p>
-            <p className="text-[11px] text-slate-400">Used for running traffic & social media campaigns</p>
-          </div>
-
-          {/* Card 2: Referral Earnings Balance */}
-          <div className="p-5 bg-slate-900/90 rounded-2xl border border-slate-800/90 space-y-2 relative">
-            <div className="flex items-center justify-between text-xs text-slate-400">
-              <span className="font-bold uppercase tracking-wider text-amber-400">Referral Wallet Balance</span>
-              <span className="px-2 py-0.5 bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded text-[10px] font-extrabold">
-                {((user?.customReferralRate || 0.05) * 100).toFixed(0)}% Commission Rate
-              </span>
-            </div>
-            <p className="text-3xl sm:text-4xl font-black text-white">{formatMoney(user?.referralBalance || 0)}</p>
-            <div className="flex items-center justify-between pt-1">
-              <span className="text-[11px] text-slate-400">Lifetime Earned: <strong className="text-amber-300">{formatMoney(user?.totalReferralEarnings || 0)}</strong></span>
-              <button
-                onClick={() => setIsWithdrawOpen(true)}
-                className="text-[11px] text-[#DFFF2F] hover:underline font-extrabold flex items-center gap-1 cursor-pointer"
-              >
-                Withdraw ($1 Min) →
-              </button>
-            </div>
-          </div>
+        <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shrink-0 text-right min-w-[220px] relative z-10">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Available Balance</span>
+          <p className="text-3xl font-black text-[#DFFF2F] font-mono">{formatMoney(user?.walletBalance || 0)}</p>
+          <span className="inline-block mt-1 px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-[10px] font-bold border border-emerald-500/20">
+            Ready for Campaigns
+          </span>
         </div>
       </div>
 

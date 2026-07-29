@@ -100,7 +100,7 @@ interface StoreContextType {
   requestWithdrawal: (data: { amount: number; method: WithdrawalMethod; accountTitle?: string; accountNumber?: string; cryptoAddress?: string }) => Promise<{ success: boolean; message: string }>;
   approveWithdrawal: (id: string, adminNote?: string) => Promise<void>;
   rejectWithdrawal: (id: string, adminNote?: string) => Promise<void>;
-  requestCommissionIncrease: (data: { requestedRate: number; referralsCount: number; message: string }) => Promise<{ success: boolean; message: string }>;
+  requestCommissionIncrease: (data: { requestedRate: number; referralsCount: number; socialPlatform?: string; proofUrl?: string; message: string }) => Promise<{ success: boolean; message: string }>;
   approveCommissionIncrease: (id: string, customRate: number, adminNote?: string) => Promise<void>;
   rejectCommissionIncrease: (id: string, adminNote?: string) => Promise<void>;
 
@@ -2203,6 +2203,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const requestCommissionIncrease = async (data: {
     requestedRate: number;
     referralsCount: number;
+    socialPlatform?: string;
+    proofUrl?: string;
     message: string;
   }): Promise<{ success: boolean; message: string }> => {
     if (!user) return { success: false, message: 'Please log in first.' };
@@ -2214,12 +2216,31 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       userEmail: user.email,
       referralsCount: data.referralsCount,
       requestedRate: data.requestedRate,
+      socialPlatform: data.socialPlatform,
+      proofUrl: data.proofUrl,
       message: data.message,
       status: 'in review',
       createdAt: new Date().toISOString()
     };
 
     setCommissionRequests(prev => [req, ...prev]);
+
+    // Attempt Supabase insert
+    supabase.from('commission_requests').insert([{
+      id: req.id,
+      user_id: req.userId,
+      user_name: req.userName,
+      user_email: req.userEmail,
+      referrals_count: req.referralsCount,
+      requested_rate: req.requestedRate,
+      social_platform: req.socialPlatform,
+      proof_url: req.proofUrl,
+      message: req.message,
+      status: req.status,
+      created_at: req.createdAt
+    }]).then();
+
+    sendNativeNotification('📊 New Affiliate Rate Request!', `${user.fullName} requested ${data.requestedRate}% commission rate (${data.socialPlatform || 'Promo Channel'})`);
 
     triggerToast('Request Submitted! 🚀', `Your application for ${data.requestedRate}% commission rate is now in review by Admin.`, 'success');
     return { success: true, message: 'Request submitted successfully.' };
