@@ -36,7 +36,9 @@ export const subscribeToast = (callback: ToastCallback) => {
 
 export const triggerToast = (title: string, message: string, type: 'success' | 'info' | 'warning' = 'info') => {
   playNotificationSound();
-  toastListeners.forEach(cb => cb(title, message, type));
+  setTimeout(() => {
+    toastListeners.forEach(cb => cb(title, message, type));
+  }, 0);
 };
 
 export const requestNativeNotificationPermission = async (): Promise<boolean> => {
