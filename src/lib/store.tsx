@@ -28,7 +28,7 @@ interface StoreContextType {
   theme: 'dark' | 'light';
   toggleTheme: () => void;
   login: (email: string, password?: string) => Promise<boolean>;
-  register: (data: { fullName: string; email: string; password?: string; telegram?: string; whatsApp?: string }) => Promise<{ success: boolean; requiresEmailConfirmation: boolean; email: string }>;
+  register: (data: { fullName: string; email: string; username?: string; password?: string; telegram?: string; whatsApp?: string; referralCode?: string; provider?: 'email' | 'google' }) => Promise<{ success: boolean; requiresEmailConfirmation: boolean; email: string }>;
   resendConfirmationEmail: (email: string) => Promise<{ success: boolean; message: string }>;
   logout: () => void;
   switchUserRole: (role: UserRole) => void;
@@ -1040,52 +1040,20 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return true;
   };
 
-  const register = async (data: { fullName: string; email: string; password?: string; telegram?: string; whatsApp?: string; referralCode?: string }): Promise<{ success: boolean; requiresEmailConfirmation: boolean; email: string }> => {
-    const isMasterAdmin = data.email.toLowerCase() === 'developershanawar@gmail.com';
+  const register = async (data: { fullName: string; email: string; username?: string; password?: string; telegram?: string; whatsApp?: string; referralCode?: string; provider?: 'email' | 'google' }): Promise<{ success: boolean; requiresEmailConfirmation: boolean; email: string }> => {
     const cleanEmail = data.email.trim().toLowerCase();
+
+    // Gmail-only restriction (Temporary and non-Gmail emails strictly forbidden)
+    if (!cleanEmail.endsWith('@gmail.com')) {
+      throw new Error('Only official Gmail addresses (@gmail.com) are permitted. Temporary or non-Gmail email addresses are not allowed.');
+    }
+
+    const isMasterAdmin = cleanEmail === 'developershanawar@gmail.com';
 
     // Check existing user in Supabase
     const { data: dbUsers } = await supabase.from('users').select('*').eq('email', cleanEmail);
-    if (dbUsers && dbUsers.length > 0 && dbUsers[0].is_verified !== false) {
+    if (dbUsers && dbUsers.length > 0) {
       throw new Error(`An account with email "${data.email}" already exists. Please sign in instead.`);
-    }
-
-    let requiresConfirmation = true;
-
-    // Try Supabase Auth Sign Up
-    if (data.password) {
-      try {
-        const redirectUrl = window.location.origin;
-        const { data: authData, error: authErr } = await supabase.auth.signUp({
-          email: cleanEmail,
-          password: data.password,
-          options: {
-            emailRedirectTo: redirectUrl,
-            data: {
-              full_name: data.fullName,
-              telegram: data.telegram || '',
-              whats_app: data.whatsApp || '',
-              role: isMasterAdmin ? 'admin' : 'user'
-            }
-          }
-        });
-
-        if (authErr) {
-          if (authErr.message?.toLowerCase().includes('already registered')) {
-            throw new Error(`An account with email "${data.email}" is already registered. Please sign in.`);
-          }
-          console.warn('Supabase Auth signup notice:', authErr);
-        }
-
-        if (authData?.session || authData?.user?.email_confirmed_at) {
-          requiresConfirmation = false;
-        }
-      } catch (authErr: any) {
-        if (authErr.message?.toLowerCase().includes('already registered')) {
-          throw authErr;
-        }
-        console.warn('Supabase Auth signup notice:', authErr);
-      }
     }
 
     // Generate unique referral code & check provided or stored referrer
@@ -1124,6 +1092,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const newUser: UserProfile = {
       id: `usr_${Date.now()}`,
       email: cleanEmail,
+      username: data.username || cleanEmail.split('@')[0],
       password: data.password || '',
       fullName: data.fullName,
       telegram: data.telegram || '',
@@ -1135,7 +1104,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       ipAddress: clientIp,
       registrationIp: clientIp,
       lastLoginIp: clientIp,
-      isVerified: !requiresConfirmation,
+      isVerified: true,
       isSuspended: false,
       referralCode: newRefCode,
       referredBy: referrerId,
@@ -1145,6 +1114,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const { error: dbErr } = await supabase.from('users').upsert([{
       id: newUser.id,
       email: newUser.email,
+      username: newUser.username,
       password: newUser.password,
       full_name: newUser.fullName,
       telegram: newUser.telegram,
@@ -1152,7 +1122,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       wallet_balance: newUser.walletBalance,
       role: newUser.role,
       avatar: newUser.avatar,
-      is_verified: !requiresConfirmation,
+      is_verified: true,
       is_suspended: false,
       created_at: newUser.createdAt,
       referral_code: newUser.referralCode,
@@ -1191,19 +1161,18 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     setAllUsers(prev => [...prev.filter(u => u.email.toLowerCase() !== newUser.email.toLowerCase()), newUser]);
 
-    if (!requiresConfirmation) {
-      setUser(newUser);
-    } else {
-      triggerToast(
-        'Confirmation Email Sent ✉️',
-        `Verification email sent to ${cleanEmail}. Please click the confirmation link to complete registration.`,
-        'info'
-      );
-    }
+    setUser(newUser);
+    localStorage.setItem('trafficsell_current_user', JSON.stringify(newUser));
+
+    triggerToast(
+      'Welcome to TrafficSell 🎉',
+      `Your account has been created successfully! Welcome, ${newUser.fullName}.`,
+      'success'
+    );
 
     return {
       success: true,
-      requiresEmailConfirmation: requiresConfirmation,
+      requiresEmailConfirmation: false,
       email: cleanEmail
     };
   };
