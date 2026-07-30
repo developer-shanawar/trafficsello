@@ -17,6 +17,14 @@ async function startServer() {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
   });
 
+  // Server-side backend config endpoint (keeps API keys on the server)
+  app.get('/api/config', (req, res) => {
+    res.json({
+      supabaseUrl: process.env.SUPABASE_URL || 'https://wpqttbdtsolbydffawzg.supabase.co',
+      hasImageKey: !!(process.env.IMGBB_API_KEY || '95bfa2c260a52e93433daf349259e043'),
+    });
+  });
+
   // Vite middleware for development vs static fallback for production
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({

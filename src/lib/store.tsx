@@ -1313,8 +1313,27 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const updateCampaignStatus = (id: string, status: CampaignStatus) => {
-    setCampaigns(prev => prev.map(c => c.id === id ? { ...c, status } : c));
-    supabase.from('campaigns').update({ status }).eq('id', id).then();
+    setCampaigns(prev => prev.map(c => {
+      if (c.id === id) {
+        const updated = { ...c, status, estimatedDeliveryHours: 1 };
+        if (status === 'running') {
+          const appNotif: AppNotification = {
+            id: `ntf_${Date.now()}`,
+            userId: c.userId,
+            title: 'Campaign Approved & Started 🚀',
+            message: `Your campaign "${c.name}" has been approved! Traffic delivery has started with 1-Hour Express speed (~1h estimate).`,
+            type: 'campaign',
+            read: false,
+            createdAt: new Date().toISOString()
+          };
+          setNotifications(nPrev => [appNotif, ...nPrev]);
+          sendNativeNotification('Campaign Approved 🚀', `Your campaign "${c.name}" has been approved! 1-Hour Express delivery started.`);
+        }
+        return updated;
+      }
+      return c;
+    }));
+    supabase.from('campaigns').update({ status, estimated_delivery_hours: 1 }).eq('id', id).then();
   };
 
   const deleteCampaign = (id: string) => {

@@ -312,10 +312,13 @@ export const CampaignsView: React.FC<CampaignsViewProps> = ({ onNavigate, onOpen
                             cmp.status === 'completed' ? 'bg-blue-500/20 text-blue-800 dark:text-blue-300' :
                             'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
                           }`}>
-                            {cmp.status === 'pending' ? '⏳ Pending Review (12h Max)' : cmp.status}
+                            {cmp.status === 'running' ? '🚀 Approved & Running (1h Delivery)' : cmp.status === 'pending' ? '⏳ Pending Review (12h Max)' : cmp.status}
                           </span>
                           <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-[10px] font-extrabold uppercase text-slate-600 dark:text-slate-300">
                             Format: {cmp.format || 'SmartLink'}
+                          </span>
+                          <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-700 dark:text-[#DFFF2F] border border-emerald-500/20 text-[10px] font-bold">
+                            ⚡ Est. 1 Hour Delivery
                           </span>
                           <span className="text-[10px] text-slate-400 font-mono">ID: {cmp.id}</span>
                         </div>

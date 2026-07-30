@@ -1,419 +1,199 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Wallet, Plus, ArrowUpRight, ArrowDownLeft, Upload, CheckCircle2, Clock, AlertCircle, Copy, ShieldCheck, DollarSign, Mail, Send, Phone, Loader2, RefreshCw, LogOut } from 'lucide-react';
+import { Wallet, ShieldCheck, DollarSign, Layers, Clock, Zap, UserCheck, ArrowUpRight, ArrowDownLeft, CheckCircle2 } from 'lucide-react';
 import { useStore } from '../../lib/store';
-import { PaymentMethod } from '../../types';
 import { WithdrawalModal } from '../modals/WithdrawalModal';
 import { TransferModal } from '../modals/TransferModal';
-import confetti from 'canvas-confetti';
 
 export const WalletView: React.FC = () => {
-  const { user, walletDeposits, requestDeposit, transactions, platformSettings, formatMoney } = useStore();
+  const { user, transactions, campaigns, formatMoney } = useStore();
 
-  const [activeTab, setActiveTab] = useState<'deposit' | 'history'>('deposit');
-  const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>('JazzCash');
-  const [amount, setAmount] = useState<number | ''>('');
-  const [trxRef, setTrxRef] = useState('');
-  const [screenshotUrl, setScreenshotUrl] = useState('');
-  const [isUploadingImgbb, setIsUploadingImgbb] = useState(false);
-  const [imgbbError, setImgbbError] = useState('');
-  const [copiedText, setCopiedText] = useState('');
-  const [submitting, setSubmitting] = useState(false);
-  const [successMsg, setSuccessMsg] = useState('');
-
-  // Modals state
   const [isWithdrawOpen, setIsWithdrawOpen] = useState(false);
   const [isTransferOpen, setIsTransferOpen] = useState(false);
 
-  const userDeposits = walletDeposits.filter(p => p.userId === user?.id || user?.role === 'admin');
+  // User campaigns & budget calculations
+  const userCampaigns = campaigns.filter(c => c.userId === user?.id || user?.role === 'admin');
+  const activeCampaigns = userCampaigns.filter(c => c.status === 'running' || c.status === 'pending');
+  const totalCampaignBudget = userCampaigns.reduce((sum, c) => sum + (c.budget || 0), 0);
+  const totalHitsDelivered = userCampaigns.reduce((sum, c) => sum + (c.visitorsDelivered || 0), 0);
+  
   const userTx = transactions.filter(t => t.userId === user?.id || user?.role === 'admin');
 
-  const methodsList: { id: PaymentMethod; name: string; detailKey: keyof typeof platformSettings.paymentAccounts }[] = [
-    { id: 'JazzCash', name: 'JazzCash Instant', detailKey: 'jazzCashAccount' },
-    { id: 'EasyPaisa', name: 'EasyPaisa Direct', detailKey: 'easyPaisaAccount' },
-    { id: 'PayPal', name: 'PayPal Global', detailKey: 'payPalEmail' },
-    { id: 'USDT TRC20', name: 'USDT (TRC20)', detailKey: 'usdtTrc20Address' },
-    { id: 'USDT BEP20', name: 'USDT (BEP20)', detailKey: 'usdtBep20Address' },
-    { id: 'USDT ERC20', name: 'USDT (ERC20)', detailKey: 'usdtErc20Address' },
-  ];
-
-  const getRecipientInfo = (m: PaymentMethod) => {
-    const accs = platformSettings.paymentAccounts;
-    switch (m) {
-      case 'JazzCash':
-        return { label: 'JazzCash Account No', val: accs.jazzCashAccount, title: accs.jazzCashTitle };
-      case 'EasyPaisa':
-        return { label: 'EasyPaisa Account No', val: accs.easyPaisaAccount, title: accs.easyPaisaTitle };
-      case 'PayPal':
-        return { label: 'PayPal Email', val: accs.payPalEmail, title: 'TrafficSell Global' };
-      case 'USDT TRC20':
-        return { label: 'USDT TRC20 Address', val: accs.usdtTrc20Address, title: 'TRON Network' };
-      case 'USDT BEP20':
-        return { label: 'USDT BEP20 Address', val: accs.usdtBep20Address, title: 'BNB Smart Chain' };
-      case 'USDT ERC20':
-        return { label: 'USDT ERC20 Address', val: accs.usdtErc20Address, title: 'Ethereum Network' };
-    }
-  };
-
-  const recipient = getRecipientInfo(selectedMethod);
-
-  const handleCopy = (text: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedText(text);
-    setTimeout(() => setCopiedText(''), 2000);
-  };
-
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setIsUploadingImgbb(true);
-    setImgbbError('');
-
-    try {
-      const formData = new FormData();
-      formData.append('image', file);
-
-      const apiKey = '95bfa2c260a52e93433daf349259e043';
-      const response = await fetch(`https://api.imgbb.com/1/upload?key=${apiKey}`, {
-        method: 'POST',
-        body: formData,
-      });
-
-      const result = await response.json();
-
-      if (result && result.success && result.data && result.data.url) {
-        setScreenshotUrl(result.data.url);
-      } else {
-        setImgbbError(result?.error?.message || 'Failed to upload screenshot to IMGBB. Please try again.');
-      }
-    } catch (err: any) {
-      setImgbbError('IMGBB upload failed. Please check network connection.');
-    } finally {
-      setIsUploadingImgbb(false);
-    }
-  };
-
-  const handleSubmitDeposit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!trxRef) return;
-
-    setSubmitting(true);
-    await requestDeposit({
-      method: selectedMethod,
-      amount,
-      trxRef,
-      screenshotUrl: screenshotUrl || 'https://images.unsplash.com/photo-1559526324-4b87b5e36e44?auto=format&fit=crop&q=80&w=600',
-    });
-
-    setSubmitting(false);
-    confetti({ particleCount: 80, spread: 60 });
-    setSuccessMsg(`Your ${selectedMethod} deposit request of $${amount.toFixed(2)} was submitted! Our admin team will verify and credit your wallet shortly.`);
-    setTrxRef('');
-    setScreenshotUrl('');
-  };
-
   return (
-    <div className="max-w-5xl mx-auto space-y-8">
+    <div className="max-w-5xl mx-auto space-y-8 text-[#111827] dark:text-white">
       
-      {/* Single Deposit Wallet Balance Banner */}
-      <div className="bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white rounded-3xl p-6 md:p-8 border border-slate-800 shadow-2xl relative overflow-hidden flex flex-col sm:flex-row items-center justify-between gap-6">
-        <div className="absolute top-0 right-0 w-80 h-80 bg-[#DFFF2F]/10 rounded-full blur-3xl pointer-events-none" />
+      {/* Primary Campaign Balance & Traffic Budget Hero Box */}
+      <motion.div 
+        initial={{ opacity: 0, y: 15 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white rounded-3xl p-6 md:p-8 border border-slate-800 shadow-2xl relative overflow-hidden"
+      >
+        <div className="absolute top-0 right-0 w-96 h-96 bg-[#DFFF2F]/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
 
-        <div className="space-y-2 relative z-10">
-          <span className="text-xs font-bold text-[#DFFF2F] uppercase tracking-wider flex items-center gap-1.5">
-            <Wallet className="w-4 h-4" /> Deposit Balance
-          </span>
-          <h2 className="text-2xl md:text-3xl font-black text-white">Wallet & Payment Gateways</h2>
-          <p className="text-xs text-slate-400 max-w-md">
-            Add funds to your deposit wallet to launch website traffic campaigns, targeted visitor orders, and social media advertising.
-          </p>
-        </div>
-
-        <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shrink-0 text-right min-w-[220px] relative z-10">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Available Balance</span>
-          <p className="text-3xl font-black text-[#DFFF2F] font-mono">{formatMoney(user?.walletBalance || 0)}</p>
-          <span className="inline-block mt-1 px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-[10px] font-bold border border-emerald-500/20">
-            Ready for Campaigns
-          </span>
-        </div>
-      </div>
-
-      {/* Tabs */}
-      <div className="flex border-b border-slate-200 dark:border-slate-800 gap-6">
-        <button
-          onClick={() => setActiveTab('deposit')}
-          className={`pb-3 text-sm font-bold transition-all border-b-2 cursor-pointer ${
-            activeTab === 'deposit'
-              ? 'border-[#DFFF2F] text-slate-900 dark:text-[#DFFF2F]'
-              : 'border-transparent text-slate-500 hover:text-slate-900 dark:hover:text-white'
-          }`}
-        >
-          + Deposit Funds
-        </button>
-        <button
-          onClick={() => setActiveTab('history')}
-          className={`pb-3 text-sm font-bold transition-all border-b-2 cursor-pointer ${
-            activeTab === 'history'
-              ? 'border-[#DFFF2F] text-slate-900 dark:text-[#DFFF2F]'
-              : 'border-transparent text-slate-500 hover:text-slate-900 dark:hover:text-white'
-          }`}
-        >
-          Transaction & Deposit History ({userDeposits.length})
-        </button>
-      </div>
-
-      {activeTab === 'deposit' && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 relative z-10">
           
-          {/* Method Selector */}
-          <div className="lg:col-span-5 space-y-3">
-            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-              Select Payment Gateway
-            </label>
-            <div className="space-y-2">
-              {methodsList.map((m) => (
-                <button
-                  key={m.id}
-                  type="button"
-                  onClick={() => setSelectedMethod(m.id)}
-                  className={`w-full p-4 rounded-2xl border transition-all flex items-center justify-between text-left cursor-pointer ${
-                    selectedMethod === m.id
-                      ? 'bg-slate-900 text-white dark:bg-[#DFFF2F] dark:text-slate-950 border-slate-900 dark:border-[#DFFF2F] shadow-lg scale-[1.02]'
-                      : 'bg-white dark:bg-slate-900/80 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:border-[#DFFF2F]/50'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="px-2 py-0.5 bg-[#111827] text-[#DFFF2F] dark:bg-slate-800 dark:text-[#DFFF2F] rounded text-[10px] font-black uppercase">
-                      {m.id.split(' ')[0]}
-                    </span>
-                    <span className="font-extrabold text-xs">{m.name}</span>
-                  </div>
-                  {selectedMethod === m.id && <CheckCircle2 className="w-4 h-4" />}
-                </button>
-              ))}
+          <div className="space-y-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs font-bold text-[#DFFF2F] uppercase tracking-wider flex items-center gap-1.5 px-3 py-1 bg-[#DFFF2F]/10 border border-[#DFFF2F]/20 rounded-full">
+                <Wallet className="w-3.5 h-3.5" /> Campaign Balance & Budget
+              </span>
+              <span className="text-xs font-extrabold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-full flex items-center gap-1.5">
+                <UserCheck className="w-3.5 h-3.5" /> Role: {user?.role ? user.role.toUpperCase() : 'ADVERTISER'}
+              </span>
             </div>
+
+            <h2 className="text-2xl md:text-3xl font-black text-white">Campaign Balance & Traffic Summary</h2>
+            <p className="text-xs text-slate-300 max-w-lg leading-relaxed">
+              Real-time campaign wallet balance, allocated traffic budget, and delivery stats. All approved campaigns feature <strong>1-Hour Express Traffic Delivery</strong>.
+            </p>
           </div>
 
-          {/* Deposit Form & Account Details */}
-          <div className="lg:col-span-7 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 md:p-8 shadow-sm space-y-6">
-            
-            {successMsg && (
-              <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs rounded-2xl flex items-center gap-2">
-                <CheckCircle2 className="w-5 h-5 shrink-0 text-emerald-500" />
-                <span>{successMsg}</span>
-              </div>
-            )}
-
-            {/* Recipient Credentials Box */}
-            <div className="p-4 bg-slate-900 text-white rounded-2xl border border-slate-800 space-y-2">
-              <div className="flex justify-between items-center text-xs text-slate-400">
-                <span>Official Recipient Details ({selectedMethod})</span>
-                <span className="text-[10px] text-emerald-400 font-bold">Verified Account</span>
-              </div>
-              <div className="flex items-center justify-between bg-slate-950 p-3 rounded-xl font-mono text-xs">
-                <span className="text-[#DFFF2F] font-bold truncate pr-2">{recipient.val}</span>
-                <button
-                  type="button"
-                  onClick={() => handleCopy(recipient.val)}
-                  className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg shrink-0 flex items-center gap-1 text-[10px] font-sans cursor-pointer"
-                >
-                  <Copy className="w-3 h-3" />
-                  {copiedText === recipient.val ? 'Copied!' : 'Copy'}
-                </button>
-              </div>
-              {recipient.title && (
-                <p className="text-[11px] text-slate-400">Account Title / Network: <strong className="text-white">{recipient.title}</strong></p>
-              )}
-            </div>
-
-            {/* Email and Telegram Quick Verification Buttons */}
-            <div className="p-4 bg-slate-900 text-white rounded-2xl border border-slate-800 space-y-3">
-              <div className="flex justify-between items-center text-xs">
-                <span className="font-extrabold text-[#DFFF2F]">Direct Verification & Support</span>
-                <span className="text-[10px] text-slate-400">Instant Admin Response</span>
-              </div>
-              <p className="text-xs text-slate-300">
-                Need deposit assistance or prefer sending your payment receipt directly to our support staff?
+          {/* Balance Cards Display */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full lg:w-auto">
+            <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shrink-0 min-w-[200px] shadow-lg">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+                Available Campaign Balance
+              </span>
+              <p className="text-3xl font-black text-[#DFFF2F] font-mono">
+                {formatMoney(user?.walletBalance || 0)}
               </p>
-              <div className="flex flex-wrap gap-2.5 pt-1">
-                <a
-                  href={`mailto:support@trafficsell.com?subject=TrafficSell Deposit Verification - ${selectedMethod}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-3.5 py-2 bg-rose-500 hover:bg-rose-600 text-white rounded-xl text-xs font-extrabold flex items-center gap-1.5 shadow-md transition-all cursor-pointer"
-                >
-                  <Mail className="w-3.5 h-3.5" /> Email Verification
-                </a>
-                <a
-                  href="https://t.me/developershanawar"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-3.5 py-2 bg-sky-500 hover:bg-sky-600 text-white rounded-xl text-xs font-extrabold flex items-center gap-1.5 shadow-md transition-all cursor-pointer"
-                >
-                  <Send className="w-3.5 h-3.5" /> Telegram Support
-                </a>
-                <a
-                  href="https://wa.me/923001234567"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-extrabold flex items-center gap-1.5 shadow-md transition-all cursor-pointer"
-                >
-                  <Phone className="w-3.5 h-3.5" /> WhatsApp Support
-                </a>
+              <div className="mt-2 flex items-center gap-1.5 text-[11px] font-bold text-emerald-400">
+                <CheckCircle2 className="w-3.5 h-3.5" /> Ready for Traffic Orders
               </div>
             </div>
 
-            <form onSubmit={handleSubmitDeposit} className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
-                  Deposit ($ USD)
-                </label>
-                <div className="relative">
-                  <DollarSign className="w-4 h-4 text-slate-500 absolute left-3 top-3.5" />
-                  <input
-                    type="number"
-                    min={platformSettings.minDeposit}
-                    step="0.01"
-                    required
-                    placeholder="Enter deposit amount in USD ($)"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value === '' ? '' : Number(e.target.value))}
-                    className="w-full pl-9 pr-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:border-[#DFFF2F]"
-                  />
-                </div>
+            <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shrink-0 min-w-[200px] shadow-lg">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+                Total Campaign Budget Spent
+              </span>
+              <p className="text-3xl font-black text-white font-mono">
+                {formatMoney(totalCampaignBudget)}
+              </p>
+              <div className="mt-2 flex items-center gap-1.5 text-[11px] font-bold text-slate-400">
+                <Layers className="w-3.5 h-3.5 text-[#DFFF2F]" /> {userCampaigns.length} Total Campaigns
               </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
-                  Transaction Reference / TRX Hash ID
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. TRX_998124810239 or JazzCash TID"
-                  value={trxRef}
-                  onChange={(e) => setTrxRef(e.target.value)}
-                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:border-[#DFFF2F]"
-                />
-              </div>
-
-              {/* Upload Screenshot to IMGBB */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1 flex items-center justify-between">
-                  <span>Payment Receipt Screenshot <span className="text-rose-500">* (Mandatory)</span></span>
-                  <span className="text-[10px] text-amber-500 font-extrabold">IMGBB Cloud Storage</span>
-                </label>
-
-                {imgbbError && (
-                  <div className="p-3 bg-rose-500/10 border border-rose-500/30 text-rose-500 text-xs rounded-xl mb-2 flex items-center gap-2">
-                    <AlertCircle className="w-4 h-4 shrink-0" />
-                    <span>{imgbbError}</span>
-                  </div>
-                )}
-
-                <div className="border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl p-4 text-center bg-slate-50 dark:bg-slate-950/50">
-                  {isUploadingImgbb ? (
-                    <div className="py-4 space-y-2">
-                      <Loader2 className="w-6 h-6 text-[#111827] dark:text-[#DFFF2F] animate-spin mx-auto" />
-                      <p className="text-xs font-bold text-slate-700 dark:text-slate-300">Uploading screenshot image to IMGBB cloud...</p>
-                    </div>
-                  ) : screenshotUrl ? (
-                    <div className="space-y-2">
-                      <img src={screenshotUrl} alt="Receipt preview" className="max-h-36 mx-auto rounded-xl shadow-md border border-emerald-500" />
-                      <div className="flex items-center justify-center gap-2">
-                        <span className="text-[10px] font-bold text-emerald-500 flex items-center gap-1">
-                          <CheckCircle2 className="w-3.5 h-3.5" /> Uploaded to IMGBB
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => setScreenshotUrl('')}
-                          className="text-xs text-rose-500 hover:underline font-bold"
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <label className="cursor-pointer block space-y-1">
-                      <Upload className="w-6 h-6 text-slate-400 mx-auto" />
-                      <span className="text-xs font-bold text-slate-600 dark:text-slate-300 block">Click to upload receipt image</span>
-                      <span className="text-[10px] text-slate-400 block">PNG, JPG, WEBP (Form submission requires image)</span>
-                      <input type="file" accept="image/*" onChange={handleFileUpload} className="hidden" />
-                    </label>
-                  )}
-                </div>
-              </div>
-
-              {!screenshotUrl && !isUploadingImgbb && (
-                <p className="text-[11px] font-bold text-amber-600 dark:text-amber-400 text-center">
-                  ⚠️ Please upload your payment receipt screenshot image to enable form submission.
-                </p>
-              )}
-
-              <button
-                type="submit"
-                disabled={submitting || isUploadingImgbb || !screenshotUrl}
-                className="w-full py-3.5 bg-[#DFFF2F] hover:bg-[#cbe820] text-slate-950 font-black rounded-2xl text-sm transition-all shadow-lg flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {submitting ? 'Submitting...' : `Submit ${amount ? '$' + Number(amount).toFixed(2) : ''} Deposit Request for Verification`}
-              </button>
-            </form>
+            </div>
           </div>
         </div>
-      )}
+      </motion.div>
 
-      {activeTab === 'history' && (
-        <div className="space-y-6">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm overflow-x-auto">
-            <h3 className="text-base font-bold text-slate-900 dark:text-white mb-4">Deposit Requests & Verification Status</h3>
-            <table className="w-full text-left text-xs">
-              <thead className="border-b border-slate-200 dark:border-slate-800 text-slate-400 uppercase font-mono text-[10px]">
+      {/* 4 Stat Metrics Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between">
+          <div>
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 block">Active Campaigns</span>
+            <span className="text-2xl font-black text-slate-900 dark:text-white mt-1 block">{activeCampaigns.length}</span>
+          </div>
+          <div className="p-3 bg-emerald-500/10 text-emerald-500 rounded-xl">
+            <Layers className="w-6 h-6" />
+          </div>
+        </div>
+
+        <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between">
+          <div>
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 block">Delivered Traffic</span>
+            <span className="text-2xl font-black text-slate-900 dark:text-white mt-1 block">{totalHitsDelivered.toLocaleString()}</span>
+          </div>
+          <div className="p-3 bg-sky-500/10 text-sky-500 rounded-xl">
+            <Zap className="w-6 h-6" />
+          </div>
+        </div>
+
+        <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between">
+          <div>
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 block">Delivery Speed</span>
+            <span className="text-2xl font-black text-[#111827] dark:text-[#DFFF2F] mt-1 block">1 Hour Est.</span>
+          </div>
+          <div className="p-3 bg-[#DFFF2F]/20 text-[#111827] dark:text-[#DFFF2F] rounded-xl">
+            <Clock className="w-6 h-6" />
+          </div>
+        </div>
+
+        <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between">
+          <div>
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 block">Assigned User Role</span>
+            <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-1 block capitalize">
+              {user?.role || 'Advertiser'}
+            </span>
+          </div>
+          <div className="p-3 bg-indigo-500/10 text-indigo-500 rounded-xl">
+            <ShieldCheck className="w-6 h-6" />
+          </div>
+        </div>
+      </div>
+
+      {/* 1-Hour Express Traffic Guarantee Card */}
+      <div className="p-6 rounded-3xl bg-emerald-500/10 border border-emerald-500/20 text-[#111827] dark:text-white flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="p-3 rounded-2xl bg-emerald-500 text-slate-950 font-black shrink-0">
+            <Zap className="w-6 h-6" />
+          </div>
+          <div>
+            <h4 className="font-extrabold text-sm sm:text-base">Express 1-Hour Traffic Delivery System</h4>
+            <p className="text-xs text-slate-600 dark:text-slate-300 mt-0.5">
+              Once approved by the backend team, traffic delivery starts immediately and completes within <strong>1 hour</strong>.
+            </p>
+          </div>
+        </div>
+        <div className="px-4 py-2 bg-emerald-500/20 border border-emerald-500/30 text-emerald-800 dark:text-emerald-300 rounded-xl text-xs font-black uppercase tracking-wider shrink-0">
+          ⚡ ~1h Express Completion
+        </div>
+      </div>
+
+      {/* Campaign Budget Transactions History */}
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm space-y-4">
+        <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4">
+          <div>
+            <h3 className="text-base font-extrabold text-slate-900 dark:text-white">Campaign & Wallet Activity History</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400">All campaign budget allocations, referral commissions, and wallet transactions</p>
+          </div>
+          <span className="text-xs font-bold text-slate-400 font-mono">
+            {userTx.length} Entries
+          </span>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs">
+            <thead className="border-b border-slate-200 dark:border-slate-800 text-slate-400 uppercase font-mono text-[10px]">
+              <tr>
+                <th className="pb-3">Transaction ID</th>
+                <th className="pb-3">Type</th>
+                <th className="pb-3">Description</th>
+                <th className="pb-3">Amount</th>
+                <th className="pb-3">Status</th>
+                <th className="pb-3">Date</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              {userTx.length === 0 ? (
                 <tr>
-                  <th className="pb-3">Deposit ID</th>
-                  <th className="pb-3">Method</th>
-                  <th className="pb-3">TRX Ref</th>
-                  <th className="pb-3">Amount</th>
-                  <th className="pb-3">Status</th>
-                  <th className="pb-3">Submitted</th>
-                  <th className="pb-3">Admin Note</th>
+                  <td colSpan={6} className="py-8 text-center text-slate-400">No activity history recorded yet. Launch a campaign to see transactions here.</td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                {userDeposits.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} className="py-8 text-center text-slate-400">No deposit history found.</td>
+              ) : (
+                userTx.map((tx) => (
+                  <tr key={tx.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
+                    <td className="py-3.5 font-mono text-[11px] font-bold text-[#DFFF2F]">{tx.id}</td>
+                    <td className="py-3.5 font-bold uppercase text-slate-900 dark:text-white">{tx.type}</td>
+                    <td className="py-3.5 text-slate-600 dark:text-slate-300 font-medium">{tx.description}</td>
+                    <td className={`py-3.5 font-bold ${tx.amount > 0 ? 'text-emerald-500' : 'text-slate-900 dark:text-white'}`}>
+                      {formatMoney(tx.amount)}
+                    </td>
+                    <td className="py-3.5">
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+                        {tx.status || 'completed'}
+                      </span>
+                    </td>
+                    <td className="py-3.5 text-slate-400 font-mono text-[11px]">
+                      {new Date(tx.createdAt).toLocaleString()}
+                    </td>
                   </tr>
-                ) : (
-                  userDeposits.map((dep) => (
-                    <tr key={dep.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
-                      <td className="py-3.5 font-mono text-[11px] font-bold text-[#DFFF2F]">{dep.id}</td>
-                      <td className="py-3.5 font-bold text-slate-900 dark:text-white">{dep.method}</td>
-                      <td className="py-3.5 font-mono text-slate-500">{dep.trxRef}</td>
-                      <td className="py-3.5 font-bold text-[#DFFF2F]">{formatMoney(dep.amount)}</td>
-                      <td className="py-3.5">
-                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase ${
-                          dep.status === 'approved' ? 'bg-emerald-500/10 text-emerald-500' :
-                          dep.status === 'pending' ? 'bg-amber-500/10 text-amber-500' :
-                          'bg-rose-500/10 text-rose-500'
-                        }`}>
-                          {dep.status}
-                        </span>
-                      </td>
-                      <td className="py-3.5 text-slate-400 font-mono text-[11px]">
-                        {new Date(dep.createdAt).toLocaleString()}
-                      </td>
-                      <td className="py-3.5 text-slate-400 italic text-[11px]">
-                        {dep.adminNote || '-'}
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
-      )}
+      </div>
 
       {/* Modals */}
       <WithdrawalModal

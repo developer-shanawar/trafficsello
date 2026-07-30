@@ -836,11 +836,15 @@ export const AdminDashboard: React.FC = () => {
                         <td className="py-3.5">
                           <p className="font-bold text-white">{userOwner?.fullName || 'Advertiser'}</p>
                           <p className="text-[10px] text-slate-400 font-mono">{userOwner?.email || c.userId}</p>
+                          <span className="inline-block mt-1 px-2 py-0.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded text-[9px] font-bold uppercase">
+                            Role: {userOwner?.role || 'advertiser'}
+                          </span>
                         </td>
 
                         <td className="py-3.5">
                           <span className="font-bold uppercase text-slate-300 block">{c.format || 'SmartLink'}</span>
                           <span className="text-[10px] text-amber-400 font-mono">${(c.cpm || 0.05).toFixed(2)} CPM</span>
+                          <span className="text-[9px] text-[#DFFF2F] font-bold block mt-0.5">⚡ Est. Speed: 1 Hour</span>
                         </td>
 
                         <td className="py-3.5 font-mono">
@@ -848,6 +852,7 @@ export const AdminDashboard: React.FC = () => {
                             <span className="text-emerald-400 font-bold">{(c.visitorsDelivered || 0).toLocaleString()}</span>
                             <span className="text-slate-500">/ {(c.visitorsTarget || 0).toLocaleString()}</span>
                           </div>
+                          <span className="text-[9px] text-slate-400 block mt-0.5">Delivery Time: ~1h</span>
                         </td>
 
                         <td className="py-3.5 font-extrabold text-[#DFFF2F] font-mono">
@@ -858,31 +863,40 @@ export const AdminDashboard: React.FC = () => {
                           <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase ${
                             c.status === 'running' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' :
                             c.status === 'pending' ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' :
+                            c.status === 'completed' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' :
                             c.status === 'paused' ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30' :
                             'bg-slate-500/20 text-slate-400 border border-slate-500/30'
                           }`}>
-                            {c.status}
+                            {c.status === 'running' ? 'Approved & Running (1h)' : c.status}
                           </span>
                         </td>
 
                         <td className="py-3.5">
-                          <div className="flex items-center gap-1.5">
+                          <div className="flex flex-wrap items-center gap-1.5">
                             {c.status === 'pending' && (
                               <button
                                 onClick={() => updateCampaignStatus(c.id, 'running')}
-                                className="py-1 px-2.5 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold rounded-lg text-[11px] flex items-center gap-1 cursor-pointer"
+                                className="py-1 px-2.5 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-black rounded-lg text-[11px] flex items-center gap-1 cursor-pointer shadow"
                               >
-                                <CheckCircle2 className="w-3 h-3" /> Approve
+                                <CheckCircle2 className="w-3 h-3" /> Approve & Start (1h)
                               </button>
                             )}
 
                             {c.status === 'running' && (
-                              <button
-                                onClick={() => updateCampaignStatus(c.id, 'paused')}
-                                className="py-1 px-2.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 font-bold rounded-lg text-[11px] cursor-pointer border border-amber-500/30"
-                              >
-                                Pause
-                              </button>
+                              <>
+                                <button
+                                  onClick={() => updateCampaignStatus(c.id, 'completed')}
+                                  className="py-1 px-2.5 bg-blue-500 hover:bg-blue-600 text-slate-950 font-bold rounded-lg text-[11px] cursor-pointer"
+                                >
+                                  Complete (1h)
+                                </button>
+                                <button
+                                  onClick={() => updateCampaignStatus(c.id, 'paused')}
+                                  className="py-1 px-2.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 font-bold rounded-lg text-[11px] cursor-pointer border border-amber-500/30"
+                                >
+                                  Pause
+                                </button>
+                              </>
                             )}
 
                             {c.status === 'paused' && (
@@ -890,7 +904,7 @@ export const AdminDashboard: React.FC = () => {
                                 onClick={() => updateCampaignStatus(c.id, 'running')}
                                 className="py-1 px-2.5 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 font-bold rounded-lg text-[11px] cursor-pointer border border-emerald-500/30"
                               >
-                                Resume
+                                Resume (1h)
                               </button>
                             )}
                           </div>
