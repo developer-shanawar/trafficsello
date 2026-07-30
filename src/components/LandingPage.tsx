@@ -195,62 +195,57 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               </div>
             </div>
 
-            {/* Right Interactive Mockup Container */}
+            {/* Right Platform Performance Matrix Container */}
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.2 }}
               className="lg:col-span-5 relative"
             >
-              <div className="bg-gradient-to-br from-white/40 to-white/10 dark:from-slate-900/80 dark:to-slate-900/40 backdrop-blur-xl rounded-[40px] border border-white/50 dark:border-slate-800 shadow-2xl p-6 text-[#111827] dark:text-white">
+              <div className="bg-gradient-to-br from-white/40 to-white/10 dark:from-slate-900/80 dark:to-slate-900/40 backdrop-blur-xl rounded-[40px] border border-white/50 dark:border-slate-800 shadow-2xl p-6 text-[#111827] dark:text-white space-y-4">
                 
-                {/* Header Mockup */}
-                <div className="flex justify-between items-center pb-4 border-b border-[#111827]/10 dark:border-slate-800 mb-4">
+                {/* Header Badge */}
+                <div className="flex justify-between items-center pb-3 border-b border-[#111827]/10 dark:border-slate-800">
                   <div className="flex items-center gap-2">
-                    <span className="w-3 h-3 rounded-full bg-rose-500" />
-                    <span className="w-3 h-3 rounded-full bg-amber-500" />
-                    <span className="w-3 h-3 rounded-full bg-emerald-500" />
-                    <span className="text-xs font-mono font-bold text-[#111827]/60 dark:text-slate-400 ml-2">trafficsell.com/live</span>
+                    <ShieldCheck className="w-5 h-5 text-[#DFFF2F]" />
+                    <span className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200">Network Telemetry</span>
                   </div>
-                  <span className="text-[10px] font-extrabold px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 flex items-center gap-1">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" /> LIVE ROUTING
+                  <span className="text-[10px] font-extrabold px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 flex items-center gap-1 border border-emerald-500/30">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" /> SYSTEM OPERATIONAL
                   </span>
                 </div>
 
-                {/* Live Stat Banner */}
-                <div className="p-4 rounded-3xl bg-[#111827] text-white mb-4 flex justify-between items-center shadow-lg">
-                  <div>
-                    <span className="text-[10px] text-slate-400 font-bold uppercase">Active Campaign</span>
-                    <p className="text-sm font-bold text-white">US E-Commerce Surge</p>
-                    <p className="text-[10px] text-[#DFFF2F] font-mono mt-0.5">CPM: $0.08 • Target: 100,000</p>
+                {/* Performance Cards Grid */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="p-4 rounded-2xl bg-slate-900 text-white border border-slate-800 shadow-md">
+                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Real Visitors</span>
+                    <p className="text-xl font-black text-[#DFFF2F] mt-1">100%</p>
+                    <p className="text-[10px] text-slate-400 mt-0.5">FraudShield Verified</p>
                   </div>
-                  <div className="text-right">
-                    <span className="text-2xl font-black text-[#DFFF2F]">84,210</span>
-                    <span className="text-[9px] text-slate-400 block">Visitors Delivered</span>
+                  
+                  <div className="p-4 rounded-2xl bg-slate-900 text-white border border-slate-800 shadow-md">
+                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Min CPM Rate</span>
+                    <p className="text-xl font-black text-emerald-400 mt-1">$0.05</p>
+                    <p className="text-[10px] text-slate-400 mt-0.5">Per 1,000 Impressions</p>
+                  </div>
+
+                  <div className="p-4 rounded-2xl bg-slate-900 text-white border border-slate-800 shadow-md">
+                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Geo Coverage</span>
+                    <p className="text-xl font-black text-sky-400 mt-1">120+ Countries</p>
+                    <p className="text-[10px] text-slate-400 mt-0.5">Tier 1 & Global Feeds</p>
+                  </div>
+
+                  <div className="p-4 rounded-2xl bg-slate-900 text-white border border-slate-800 shadow-md">
+                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Auto Start</span>
+                    <p className="text-xl font-black text-amber-400 mt-1">2-10 Mins</p>
+                    <p className="text-[10px] text-slate-400 mt-0.5">Instant Queue Routing</p>
                   </div>
                 </div>
 
-                {/* Progress bar */}
-                <div className="space-y-1 mb-4">
-                  <div className="flex justify-between text-xs font-bold">
-                    <span className="text-[#111827]/70 dark:text-slate-400">Delivery Completion</span>
-                    <span className="text-[#111827] dark:text-[#DFFF2F]">84%</span>
-                  </div>
-                  <div className="w-full h-2.5 bg-white/60 dark:bg-slate-800 rounded-full overflow-hidden p-0.5 border border-white/50 dark:border-slate-700">
-                    <div className="h-full bg-gradient-to-r from-emerald-500 to-[#DFFF2F] w-[84%] rounded-full" />
-                  </div>
-                </div>
-
-                {/* Country Hits Grid */}
-                <div className="grid grid-cols-2 gap-2 text-xs font-semibold">
-                  <div className="p-2.5 rounded-2xl bg-white/60 dark:bg-slate-800/60 border border-white/60 dark:border-slate-700/60 flex justify-between">
-                    <span>🇺🇸 United States</span>
-                    <strong className="text-[#111827] dark:text-[#DFFF2F]">52,100</strong>
-                  </div>
-                  <div className="p-2.5 rounded-2xl bg-white/60 dark:bg-slate-800/60 border border-white/60 dark:border-slate-700/60 flex justify-between">
-                    <span>🇩🇪 Germany</span>
-                    <strong className="text-[#111827] dark:text-[#DFFF2F]">18,400</strong>
-                  </div>
+                {/* Trust Footer */}
+                <div className="pt-2 border-t border-[#111827]/10 dark:border-slate-800/80 flex items-center justify-between text-[11px] font-bold text-slate-600 dark:text-slate-400">
+                  <span className="flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> JazzCash & EasyPaisa</span>
+                  <span className="flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> PayPal & USDT</span>
                 </div>
               </div>
             </motion.div>

@@ -430,7 +430,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           estimatedDeliveryHours: c.estimated_delivery_hours || 24,
           createdAt: c.created_at || new Date().toISOString()
         }));
-        setCampaigns(sortByDateDesc(mappedCamps));
+        setCampaigns(prev => {
+          const dbIds = new Set(mappedCamps.map(c => c.id));
+          const localOnly = prev.filter(c => !dbIds.has(c.id));
+          return sortByDateDesc([...mappedCamps, ...localOnly]);
+        });
       }
 
       // 3. Payment Deposits
@@ -516,8 +520,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           siteName: s.site_name || 'TrafficSell',
           siteIconUrl: s.site_icon_url || '/logo.svg',
           brandDisplayMode: s.brand_display_mode || 'both',
-          minCPM: Number(s.default_cpm || 0.05),
-          minDeposit: Number(s.min_deposit_amount || 10.00),
+          minCPM: Number(s.default_cpm || s.cpm || 0.05),
+          minDeposit: Number(s.min_deposit_amount || s.min_deposit || 1.00),
           announcement: DEFAULT_SETTINGS.announcement,
           paymentAccounts: {
             easyPaisaAccount: s.easypaisa_number || DEFAULT_SETTINGS.paymentAccounts.easyPaisaAccount,
@@ -607,7 +611,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       }
 
       // 12. Withdrawal Requests
-      const { data: dbWithdrawals } = await supabase.from('withdrawal_requests').select('*');
+      let { data: dbWithdrawals } = await supabase.from('withdrawal_requests').select('*');
+      if (!dbWithdrawals || dbWithdrawals.length === 0) {
+        const res = await supabase.from('withdrawals').select('*');
+        if (res.data) dbWithdrawals = res.data;
+      }
       if (dbWithdrawals && dbWithdrawals.length > 0) {
         const mappedWth: WithdrawalRequest[] = dbWithdrawals.map(w => ({
           id: w.id,
@@ -623,7 +631,20 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           createdAt: w.created_at || new Date().toISOString(),
           adminNote: w.admin_note
         }));
-        setWithdrawalRequests(sortByDateDesc(mappedWth));
+        setWithdrawalRequests(prev => {
+          const dbMap = new Map(mappedWth.map(w => [w.id, w]));
+          // Merge with prev to preserve locally approved status
+          const merged = prev.map(p => {
+            const fromDb = dbMap.get(p.id);
+            if (!fromDb) return p;
+            // If local status is already approved/rejected, prefer local unless DB also has it
+            return (p.status === 'approved' || p.status === 'rejected') ? p : fromDb;
+          });
+          // Add any DB items not in prev
+          const prevIds = new Set(prev.map(p => p.id));
+          const newFromDb = mappedWth.filter(w => !prevIds.has(w.id));
+          return sortByDateDesc([...merged, ...newFromDb]);
+        });
       }
 
       // 13. Commission Rate Increase Requests
@@ -2238,7 +2259,13 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const req = withdrawalRequests.find(w => w.id === id);
     if (!req) return;
 
-    setWithdrawalRequests(prev => prev.map(w => w.id === id ? { ...w, status: 'approved', adminNote } : w));
+    setWithdrawalRequests(prev => {
+      const updated = prev.map(w => w.id === id ? { ...w, status: 'approved' as const, adminNote } : w);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('trafficsell_withdrawals', JSON.stringify(updated));
+      }
+      return updated;
+    });
 
     // Update transaction status
     setTransactions(prev => prev.map(t => {
@@ -2262,13 +2289,20 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     triggerToast('Withdrawal Approved! ✅', `$${req.amount.toFixed(2)} payout sent to ${req.userName}`, 'success');
     supabase.from('withdrawal_requests').update({ status: 'approved', admin_note: adminNote }).eq('id', id).then();
+    supabase.from('withdrawals').update({ status: 'approved', admin_note: adminNote }).eq('id', id).then();
   };
 
   const rejectWithdrawal = async (id: string, adminNote?: string) => {
     const req = withdrawalRequests.find(w => w.id === id);
     if (!req) return;
 
-    setWithdrawalRequests(prev => prev.map(w => w.id === id ? { ...w, status: 'rejected', adminNote } : w));
+    setWithdrawalRequests(prev => {
+      const updated = prev.map(w => w.id === id ? { ...w, status: 'rejected' as const, adminNote } : w);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('trafficsell_withdrawals', JSON.stringify(updated));
+      }
+      return updated;
+    });
 
     // Refund back to user's referral balance
     setAllUsers(prev => prev.map(u => {
@@ -2309,6 +2343,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       supabase.from('users').update({ referral_balance: newBal }).eq('id', req.userId).then();
     }
     supabase.from('withdrawal_requests').update({ status: 'rejected', admin_note: adminNote }).eq('id', id).then();
+    supabase.from('withdrawals').update({ status: 'rejected', admin_note: adminNote }).eq('id', id).then();
     triggerToast('Withdrawal Rejected', `Refunded $${req.amount.toFixed(2)} back to user's referral balance.`, 'info');
   };
 

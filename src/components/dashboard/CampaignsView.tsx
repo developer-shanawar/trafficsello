@@ -199,6 +199,50 @@ export const CampaignsView: React.FC<CampaignsViewProps> = ({ onNavigate, onOpen
       ) : (
         /* CAMPAIGN LIST VIEW */
         <div className="space-y-6">
+          {/* Draft Notification Banner if Draft exists */}
+          {(() => {
+            const rawDraft = typeof window !== 'undefined' ? localStorage.getItem('trafficsell_campaign_draft') : null;
+            if (!rawDraft) return null;
+            try {
+              const d = JSON.parse(rawDraft);
+              if (!d.name && (!d.url || d.url === 'https://')) return null;
+              return (
+                <div className="p-4 bg-gradient-to-r from-amber-500/10 via-amber-500/20 to-amber-500/10 border border-amber-500/30 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm text-amber-900 dark:text-amber-200">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2.5 rounded-xl bg-amber-500/20 text-amber-500">
+                      <Zap className="w-5 h-5 animate-pulse" />
+                    </div>
+                    <div>
+                      <h4 className="font-extrabold text-xs sm:text-sm">Unfinished Campaign Draft Saved</h4>
+                      <p className="text-[11px] text-slate-600 dark:text-slate-300">
+                        {d.name || d.url} ({d.visitorsTarget?.toLocaleString() || '10,000'} visitors • {d.trafficType || 'Popunder'})
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setActiveSubTab('create')}
+                      className="py-2 px-4 bg-[#DFFF2F] hover:bg-[#cbe820] text-slate-950 font-black rounded-xl text-xs transition-all shadow cursor-pointer flex items-center gap-1.5"
+                    >
+                      <Play className="w-3.5 h-3.5 fill-slate-950" /> Resume & Edit Draft
+                    </button>
+                    <button
+                      onClick={() => {
+                        localStorage.removeItem('trafficsell_campaign_draft');
+                        window.location.reload();
+                      }}
+                      className="py-2 px-3 bg-rose-500/20 hover:bg-rose-500/30 text-rose-400 font-bold rounded-xl text-xs cursor-pointer border border-rose-500/30"
+                    >
+                      Discard
+                    </button>
+                  </div>
+                </div>
+              );
+            } catch (e) {
+              return null;
+            }
+          })()}
+
           {/* Filter Tabs & Search Bar */}
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-3">
             {/* Status Filters */}

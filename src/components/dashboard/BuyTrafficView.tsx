@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ShoppingCart, Globe, Smartphone, Zap, Calculator, Wallet, ArrowRight,
-  CheckCircle2, AlertTriangle, ShieldCheck, X, Plus, Layers, Clock, Sparkles
+  CheckCircle2, AlertTriangle, ShieldCheck, X, Plus, Layers, Clock, Sparkles,
+  Save, RotateCcw, FileText, Trash2
 } from 'lucide-react';
 import { useStore } from '../../lib/store';
 import { TrafficCountry, DeviceType } from '../../types';
@@ -46,28 +47,69 @@ const TRAFFIC_TYPES = [
 export const BuyTrafficView: React.FC<BuyTrafficViewProps> = ({ onSuccess, onGoDeposit }) => {
   const { user, addCampaign, platformSettings, formatMoney } = useStore();
 
-  const [name, setName] = useState('');
-  const [url, setUrl] = useState('https://');
-  const [trafficType, setTrafficType] = useState('Popunder Direct Traffic');
+  // Load saved draft from localStorage if present
+  const savedDraftRaw = typeof window !== 'undefined' ? localStorage.getItem('trafficsell_campaign_draft') : null;
+  const savedDraft = savedDraftRaw ? JSON.parse(savedDraftRaw) : null;
+
+  const [name, setName] = useState(savedDraft?.name || '');
+  const [url, setUrl] = useState(savedDraft?.url || 'https://');
+  const [trafficType, setTrafficType] = useState(savedDraft?.trafficType || 'Popunder Direct Traffic');
   
   // Geo targeting state: 'all' vs 'selected'
-  const [geoMode, setGeoMode] = useState<'all' | 'selected'>('all');
-  const [selectedCountries, setSelectedCountries] = useState<string[]>(['Pakistan', 'United States']);
+  const [geoMode, setGeoMode] = useState<'all' | 'selected'>(savedDraft?.geoMode || 'all');
+  const [selectedCountries, setSelectedCountries] = useState<string[]>(savedDraft?.selectedCountries || ['Pakistan', 'United States']);
   
-  const [deviceType, setDeviceType] = useState<DeviceType>('both');
+  const [deviceType, setDeviceType] = useState<DeviceType>(savedDraft?.deviceType || 'both');
   
   // Volume: Manual input, range 1,000 to 100,000
-  const [visitorsTarget, setVisitorsTarget] = useState<number>(10000);
+  const [visitorsTarget, setVisitorsTarget] = useState<number>(savedDraft?.visitorsTarget || 10000);
   
   // Duration: Days
-  const [campaignDays, setCampaignDays] = useState<number>(7);
+  const [campaignDays, setCampaignDays] = useState<number>(savedDraft?.campaignDays || 7);
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [isDraftRestored, setIsDraftRestored] = useState(!!savedDraft);
 
   // User Custom CPM & Max CPM state
-  const [customCpmInput, setCustomCpmInput] = useState<string>('');
-  const [maxCpmInput, setMaxCpmInput] = useState<string>('');
+  const [customCpmInput, setCustomCpmInput] = useState<string>(savedDraft?.customCpmInput || '');
+  const [maxCpmInput, setMaxCpmInput] = useState<string>(savedDraft?.maxCpmInput || '');
+
+  // Auto-save draft whenever user changes input fields
+  useEffect(() => {
+    // Only save if user has typed something meaningful (e.g. name or URL or non-default values)
+    if (name.trim() || (url && url !== 'https://') || customCpmInput) {
+      const draftData = {
+        name,
+        url,
+        trafficType,
+        geoMode,
+        selectedCountries,
+        deviceType,
+        visitorsTarget,
+        campaignDays,
+        customCpmInput,
+        maxCpmInput,
+        savedAt: new Date().toISOString()
+      };
+      localStorage.setItem('trafficsell_campaign_draft', JSON.stringify(draftData));
+    }
+  }, [name, url, trafficType, geoMode, selectedCountries, deviceType, visitorsTarget, campaignDays, customCpmInput, maxCpmInput]);
+
+  const clearDraft = () => {
+    localStorage.removeItem('trafficsell_campaign_draft');
+    setName('');
+    setUrl('https://');
+    setTrafficType('Popunder Direct Traffic');
+    setGeoMode('all');
+    setSelectedCountries(['Pakistan', 'United States']);
+    setDeviceType('both');
+    setVisitorsTarget(10000);
+    setCampaignDays(7);
+    setCustomCpmInput('');
+    setMaxCpmInput('');
+    setIsDraftRestored(false);
+  };
 
   // Calculate dynamic minimum CPM based on traffic type and geo selection
   const selectedTypeObj = TRAFFIC_TYPES.find(t => t.id === trafficType) || TRAFFIC_TYPES[0];
@@ -153,6 +195,7 @@ export const BuyTrafficView: React.FC<BuyTrafficViewProps> = ({ onSuccess, onGoD
     setLoading(false);
 
     if (result.success) {
+      localStorage.removeItem('trafficsell_campaign_draft');
       confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
       onSuccess();
     } else {
@@ -183,6 +226,25 @@ export const BuyTrafficView: React.FC<BuyTrafficViewProps> = ({ onSuccess, onGoD
           </div>
         </div>
       </div>
+
+      {/* Auto-Saved Draft Notification Banner */}
+      {(isDraftRestored || name.trim() || (url && url !== 'https://')) && (
+        <div className="p-3.5 bg-amber-500/10 dark:bg-amber-500/15 border border-amber-500/30 text-amber-900 dark:text-amber-300 text-xs font-bold rounded-2xl flex items-center justify-between gap-3 shadow-sm">
+          <div className="flex items-center gap-2.5">
+            <Save className="w-4 h-4 text-amber-500 animate-pulse shrink-0" />
+            <span>
+              <strong>Draft Auto-Saved:</strong> Your campaign form progress is saved automatically. If you close your browser or turn off your laptop, you can resume anytime.
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={clearDraft}
+            className="px-3 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-900 dark:text-amber-200 font-extrabold rounded-xl text-[11px] transition-all shrink-0 cursor-pointer flex items-center gap-1 border border-amber-500/30"
+          >
+            <RotateCcw className="w-3 h-3" /> Start Fresh / Clear
+          </button>
+        </div>
+      )}
 
       {error && (
         <div className="p-4 bg-rose-500/10 border border-rose-500/20 text-rose-500 text-xs font-bold rounded-2xl flex items-center justify-between">
