@@ -331,24 +331,6 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     localStorage.setItem('trafficsell_social_campaigns', JSON.stringify(socialCampaigns));
   }, [socialCampaigns]);
 
-  // Sync site title and favicon icon tab from platformSettings
-  useEffect(() => {
-    if (platformSettings?.siteName) {
-      document.title = `${platformSettings.siteName} - Website Traffic Marketplace & Ad Network`;
-    }
-    const iconUrl = platformSettings?.siteIconUrl || '/logo.png';
-    const relTypes = ['icon', 'shortcut icon', 'apple-touch-icon'];
-    relTypes.forEach((rel) => {
-      let link: HTMLLinkElement | null = document.querySelector(`link[rel="${rel}"]`);
-      if (!link) {
-        link = document.createElement('link');
-        link.rel = rel;
-        document.head.appendChild(link);
-      }
-      link.href = iconUrl;
-    });
-  }, [platformSettings?.siteName, platformSettings?.siteIconUrl]);
-
   // Sync theme to localStorage and DOM
   useEffect(() => {
     localStorage.setItem('trafficsell_theme', theme);

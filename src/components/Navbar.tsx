@@ -55,7 +55,13 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAuth, onNavigateView, curr
               <img
                 src={siteIconUrl}
                 alt={siteName}
-                onError={(e) => { (e.target as HTMLImageElement).src = '/logo.png'; }}
+                onError={(e) => {
+                  const el = e.target as HTMLImageElement;
+                  if (!el.dataset.failed) {
+                    el.dataset.failed = 'true';
+                    el.src = '/logo.png';
+                  }
+                }}
                 className="h-10 w-10 rounded-xl object-cover shadow-md border-2 border-[#DFFF2F] group-hover:scale-105 transition-transform"
               />
             ) : (
@@ -248,7 +254,13 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAuth, onNavigateView, curr
                       <img
                         src={siteIconUrl}
                         alt={siteName}
-                        onError={(e) => { (e.target as HTMLImageElement).src = '/logo.png'; }}
+                        onError={(e) => {
+                          const el = e.target as HTMLImageElement;
+                          if (!el.dataset.failed) {
+                            el.dataset.failed = 'true';
+                            el.src = '/logo.png';
+                          }
+                        }}
                         className="h-8 w-8 rounded-xl object-cover border border-[#DFFF2F]"
                       />
                     ) : (

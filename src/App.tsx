@@ -51,7 +51,9 @@ function AppContent() {
         favicon.rel = rel;
         document.head.appendChild(favicon);
       }
-      favicon.href = iconUrl;
+      if (favicon.getAttribute('href') !== iconUrl) {
+        favicon.href = iconUrl;
+      }
     });
   }, [platformSettings?.siteName, platformSettings?.siteIconUrl]);
 
