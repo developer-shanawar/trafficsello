@@ -16,7 +16,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
   onNavigateLogin,
   onRegisterSuccess,
 }) => {
-  const { register } = useStore();
+  const { register, signInWithGoogle } = useStore();
 
   // Mode: 'choose' | 'google' | 'email'
   const [method, setMethod] = useState<'choose' | 'google' | 'email'>('choose');
@@ -36,6 +36,20 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
   // Google OAuth specific state
   const [googleStep, setGoogleStep] = useState<'select' | 'details'>('select');
   const [googleEmail, setGoogleEmail] = useState('');
+
+  const handleGoogleClick = async () => {
+    setError('');
+    setLoading(true);
+    try {
+      await signInWithGoogle();
+    } catch (err: any) {
+      console.warn('Supabase Google OAuth direct call notice:', err.message);
+      setMethod('google');
+      setGoogleStep('select');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Auto detect referral code from URL or localStorage
   useEffect(() => {
@@ -211,11 +225,8 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
                 {/* Option 1: Continue with Google */}
                 <button
                   type="button"
-                  onClick={() => {
-                    setMethod('google');
-                    setGoogleStep('select');
-                    setError('');
-                  }}
+                  onClick={handleGoogleClick}
+                  disabled={loading}
                   className="w-full p-4 rounded-2xl border-2 border-slate-200 dark:border-slate-800 hover:border-emerald-500 dark:hover:border-[#DFFF2F] bg-white dark:bg-slate-950 hover:bg-slate-50 dark:hover:bg-slate-900/60 transition-all text-left flex items-center justify-between group shadow-sm cursor-pointer"
                 >
                   <div className="flex items-center gap-4">

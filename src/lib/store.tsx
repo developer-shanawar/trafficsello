@@ -28,6 +28,7 @@ interface StoreContextType {
   theme: 'dark' | 'light';
   toggleTheme: () => void;
   login: (email: string, password?: string) => Promise<boolean>;
+  signInWithGoogle: () => Promise<void>;
   register: (data: { fullName: string; email: string; username?: string; password?: string; telegram?: string; whatsApp?: string; referralCode?: string; provider?: 'email' | 'google' }) => Promise<{ success: boolean; requiresEmailConfirmation: boolean; email: string }>;
   resendConfirmationEmail: (email: string) => Promise<{ success: boolean; message: string }>;
   logout: () => void;
@@ -1038,6 +1039,25 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setAllUsers(prev => [...prev.filter(u => u.id !== updatedFound.id), updatedFound]);
     setUser(updatedFound);
     return true;
+  };
+
+  const signInWithGoogle = async () => {
+    const redirectUrl = window.location.origin;
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: redirectUrl,
+        queryParams: {
+          access_type: 'offline',
+          prompt: 'consent',
+        },
+      },
+    });
+
+    if (error) {
+      console.warn('Supabase Google OAuth direct attempt:', error.message);
+      throw new Error(error.message);
+    }
   };
 
   const register = async (data: { fullName: string; email: string; username?: string; password?: string; telegram?: string; whatsApp?: string; referralCode?: string; provider?: 'email' | 'google' }): Promise<{ success: boolean; requiresEmailConfirmation: boolean; email: string }> => {
@@ -2448,7 +2468,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   return (
     <StoreContext.Provider value={{
-      user, currency, setCurrency, formatMoney, theme, toggleTheme, login, register, resendConfirmationEmail, logout, switchUserRole,
+      user, currency, setCurrency, formatMoney, theme, toggleTheme, login, signInWithGoogle, register, resendConfirmationEmail, logout, switchUserRole,
       campaigns, addCampaign, updateCampaignStatus, deleteCampaign,
       socialServices, socialCampaigns, addSocialService, updateSocialService, deleteSocialService,
       addSocialCampaign, updateSocialCampaignStatus, deleteSocialCampaign,

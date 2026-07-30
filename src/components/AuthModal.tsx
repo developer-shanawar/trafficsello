@@ -12,7 +12,7 @@ interface AuthModalProps {
 
 export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, initialMode, onClose, onSuccess }) => {
   const [mode, setMode] = useState<'login' | 'register'>(initialMode);
-  const { login, register } = useStore();
+  const { login, register, signInWithGoogle } = useStore();
 
   const [registerMethod, setRegisterMethod] = useState<'choose' | 'google' | 'email'>('choose');
 
@@ -30,6 +30,20 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, initialMode, onClo
   // Google flow states inside modal
   const [googleStep, setGoogleStep] = useState<'select' | 'details'>('select');
   const [googleEmail, setGoogleEmail] = useState('');
+
+  const handleGoogleModalClick = async () => {
+    setError('');
+    setLoading(true);
+    try {
+      await signInWithGoogle();
+    } catch (err: any) {
+      console.warn('Supabase Google OAuth direct call notice:', err.message);
+      setRegisterMethod('google');
+      setGoogleStep('select');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -199,8 +213,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, initialMode, onClo
                 <div className="space-y-3">
                   <button
                     type="button"
-                    onClick={() => { setRegisterMethod('google'); setGoogleStep('select'); setError(''); }}
-                    className="w-full p-3.5 rounded-2xl border border-slate-800 hover:border-[#DFFF2F] bg-slate-950 hover:bg-slate-900 transition-all text-left flex items-center justify-between group cursor-pointer"
+                    onClick={handleGoogleModalClick}
+                    disabled={loading}
+                    className="w-full p-3.5 rounded-2xl border border-slate-800 hover:border-[#DFFF2F] bg-slate-950 hover:bg-slate-900 transition-all text-left flex items-center justify-between group cursor-pointer disabled:opacity-50"
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-9 h-9 rounded-xl bg-slate-900 flex items-center justify-center border border-slate-800">
