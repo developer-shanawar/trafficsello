@@ -65,9 +65,13 @@ export const BuyTrafficView: React.FC<BuyTrafficViewProps> = ({ onSuccess, onGoD
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Calculate dynamic CPM based on traffic type and geo selection
+  // User Custom CPM & Max CPM state
+  const [customCpmInput, setCustomCpmInput] = useState<string>('');
+  const [maxCpmInput, setMaxCpmInput] = useState<string>('');
+
+  // Calculate dynamic minimum CPM based on traffic type and geo selection
   const selectedTypeObj = TRAFFIC_TYPES.find(t => t.id === trafficType) || TRAFFIC_TYPES[0];
-  let calculatedCpm = selectedTypeObj.minCpm;
+  let minCpm = selectedTypeObj.minCpm;
   
   if (geoMode === 'selected' && selectedCountries.length > 0) {
     const hasTier1 = selectedCountries.some(c => {
@@ -75,13 +79,18 @@ export const BuyTrafficView: React.FC<BuyTrafficViewProps> = ({ onSuccess, onGoD
       return match && match.tier === 1;
     });
     if (hasTier1) {
-      calculatedCpm = Math.max(calculatedCpm, 0.25);
+      minCpm = Math.max(minCpm, 0.25);
     } else {
-      calculatedCpm = Math.max(calculatedCpm, 0.20);
+      minCpm = Math.max(minCpm, 0.20);
     }
+  } else if (geoMode === 'all') {
+    minCpm = Math.max(minCpm, 0.05);
   }
 
-  const budget = (visitorsTarget / 1000) * calculatedCpm;
+  const parsedCustomCpm = parseFloat(customCpmInput);
+  const effectiveCpm = !isNaN(parsedCustomCpm) && parsedCustomCpm > 0 ? Math.max(minCpm, parsedCustomCpm) : minCpm;
+
+  const budget = (visitorsTarget / 1000) * effectiveCpm;
   const estimatedDeliveryHours = campaignDays * 24;
   const dailyPace = Math.round(visitorsTarget / Math.max(1, campaignDays));
   const dailyBudget = budget / Math.max(1, campaignDays);
@@ -134,7 +143,7 @@ export const BuyTrafficView: React.FC<BuyTrafficViewProps> = ({ onSuccess, onGoD
       country: countryDisplayString as any,
       deviceType,
       visitorsTarget,
-      cpm: calculatedCpm,
+      cpm: effectiveCpm,
       budget,
       estimatedDeliveryHours,
       trafficType,
@@ -473,6 +482,66 @@ export const BuyTrafficView: React.FC<BuyTrafficViewProps> = ({ onSuccess, onGoD
               ))}
             </div>
           </div>
+
+          {/* 8. Minimum & Custom CPM Control */}
+          <div className="p-4 bg-slate-50 dark:bg-slate-950/80 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-1.5">
+                <Calculator className="w-4 h-4 text-[#DFFF2F]" />
+                8. CPM Rate & Custom Bid Controls
+              </label>
+              <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                System Min: ${minCpm.toFixed(2)} CPM
+              </span>
+            </div>
+
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug">
+              Minimum CPM for your selected target geo is <strong>${minCpm.toFixed(2)}</strong>. You can enter a custom higher CPM bid to get priority ad delivery speed.
+            </p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+              <div>
+                <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300 uppercase block mb-1">
+                  Custom CPM Bid ($ USD)
+                </span>
+                <div className="relative">
+                  <span className="absolute left-3 top-3 text-xs text-slate-400 font-mono font-bold">$</span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min={minCpm}
+                    max={10.00}
+                    placeholder={`Min $${minCpm.toFixed(2)}`}
+                    value={customCpmInput}
+                    onChange={(e) => setCustomCpmInput(e.target.value)}
+                    className="w-full pl-7 pr-3 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-mono font-bold text-slate-900 dark:text-white focus:outline-none focus:border-[#DFFF2F]"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300 uppercase block mb-1">
+                  Max CPM Budget Cap ($ USD)
+                </span>
+                <div className="relative">
+                  <span className="absolute left-3 top-3 text-xs text-slate-400 font-mono font-bold">$</span>
+                  <input
+                    type="number"
+                    step="0.05"
+                    placeholder="e.g. $1.00 Max"
+                    value={maxCpmInput}
+                    onChange={(e) => setMaxCpmInput(e.target.value)}
+                    className="w-full pl-7 pr-3 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-mono font-bold text-slate-900 dark:text-white focus:outline-none focus:border-[#DFFF2F]"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="text-[10px] text-slate-400 font-mono flex items-center justify-between pt-1">
+              <span>Effective CPM Bid: <strong className="text-[#DFFF2F]">${effectiveCpm.toFixed(2)}</strong></span>
+              <span>Real-Time Total: <strong className="text-white">${budget.toFixed(2)}</strong></span>
+            </div>
+          </div>
         </div>
 
         {/* Right Summary Card & Automated Budget Alert */}
@@ -483,7 +552,7 @@ export const BuyTrafficView: React.FC<BuyTrafficViewProps> = ({ onSuccess, onGoD
             <div className="flex items-center justify-between pb-4 border-b border-slate-800">
               <span className="text-xs uppercase font-bold text-slate-400 tracking-wider">Campaign Cost Breakdown</span>
               <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#DFFF2F]/20 text-[#DFFF2F]">
-                CPM {formatMoney(calculatedCpm)} / 1K
+                CPM ${effectiveCpm.toFixed(2)} / 1K
               </span>
             </div>
 

@@ -67,21 +67,21 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   const pricingPlans = [
     {
       name: "Starter Test",
-      deposit: "$1 - $25",
+      deposit: "Custom Deposit",
       cpm: "$0.05 CPM",
       popular: false,
       features: ["Global Geo Targeting", "5,000 Minimum Visitors", "Standard Delivery Speed", "Real Human Filter", "Basic Analytics"],
     },
     {
       name: "Pro Network",
-      deposit: "$25 - $100",
+      deposit: "Growth Deposit",
       cpm: "$0.08 CPM",
       popular: true,
       features: ["US / Tier-1 Country Targeting", "Desktop & Mobile Filtering", "Accelerated Pacing", "Detailed Country Breakdown", "Priority 24/7 Support"],
     },
     {
       name: "Enterprise Bulk",
-      deposit: "$100+",
+      deposit: "Bulk Deposit",
       cpm: "$0.10 CPM",
       popular: false,
       features: ["Custom Geo & State Targeting", "Unlimited Visitor Volume", "Dedicated Account Manager", "API Access", "Custom CPM Discounts"],

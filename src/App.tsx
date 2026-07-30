@@ -84,15 +84,17 @@ function AppContent() {
         setCurrentView('landing');
       } else if (routeKey === 'login') {
         if (user) {
+          const savedTab = localStorage.getItem('trafficsell_last_tab') || 'overview';
           setCurrentView('dashboard');
-          setDashboardTab('overview');
+          setDashboardTab(savedTab);
         } else {
           setCurrentView('login');
         }
       } else if (routeKey === 'register') {
         if (user) {
+          const savedTab = localStorage.getItem('trafficsell_last_tab') || 'overview';
           setCurrentView('dashboard');
-          setDashboardTab('overview');
+          setDashboardTab(savedTab);
         } else {
           setCurrentView('register');
         }
@@ -108,13 +110,23 @@ function AppContent() {
         if (user) {
           setCurrentView('dashboard');
           setDashboardTab('overview');
+          localStorage.setItem('trafficsell_last_tab', 'overview');
         } else {
           setCurrentView('login');
         }
-      } else if (routeKey === 'campaigns' || routeKey === 'buy-traffic') {
+      } else if (routeKey === 'campaigns') {
         if (user) {
           setCurrentView('dashboard');
           setDashboardTab('campaigns');
+          localStorage.setItem('trafficsell_last_tab', 'campaigns');
+        } else {
+          setCurrentView('login');
+        }
+      } else if (routeKey === 'buy-traffic' || routeKey === 'buy_traffic' || routeKey === 'buy') {
+        if (user) {
+          setCurrentView('dashboard');
+          setDashboardTab('buy-traffic');
+          localStorage.setItem('trafficsell_last_tab', 'buy-traffic');
         } else {
           setCurrentView('login');
         }
@@ -122,13 +134,15 @@ function AppContent() {
         if (user) {
           setCurrentView('dashboard');
           setDashboardTab('social_ads');
+          localStorage.setItem('trafficsell_last_tab', 'social_ads');
         } else {
           setCurrentView('login');
         }
-      } else if (routeKey === 'wallet') {
+      } else if (routeKey === 'wallet' || routeKey === 'deposit') {
         if (user) {
           setCurrentView('dashboard');
           setDashboardTab('wallet');
+          localStorage.setItem('trafficsell_last_tab', 'wallet');
         } else {
           setCurrentView('login');
         }
@@ -136,6 +150,7 @@ function AppContent() {
         if (user) {
           setCurrentView('dashboard');
           setDashboardTab('referrals');
+          localStorage.setItem('trafficsell_last_tab', 'referrals');
         } else {
           setCurrentView('login');
         }
@@ -143,6 +158,7 @@ function AppContent() {
         if (user) {
           setCurrentView('dashboard');
           setDashboardTab('analytics');
+          localStorage.setItem('trafficsell_last_tab', 'analytics');
         } else {
           setCurrentView('login');
         }
@@ -150,6 +166,7 @@ function AppContent() {
         if (user) {
           setCurrentView('dashboard');
           setDashboardTab('support');
+          localStorage.setItem('trafficsell_last_tab', 'support');
         } else {
           setCurrentView('login');
         }
@@ -157,6 +174,7 @@ function AppContent() {
         if (user) {
           setCurrentView('dashboard');
           setDashboardTab('profile');
+          localStorage.setItem('trafficsell_last_tab', 'profile');
         } else {
           setCurrentView('login');
         }
@@ -164,6 +182,7 @@ function AppContent() {
         if (user) {
           setCurrentView('dashboard');
           setDashboardTab('settings');
+          localStorage.setItem('trafficsell_last_tab', 'settings');
         } else {
           setCurrentView('login');
         }
@@ -171,14 +190,16 @@ function AppContent() {
         if (user) {
           setCurrentView('dashboard');
           setDashboardTab('admin');
+          localStorage.setItem('trafficsell_last_tab', 'admin');
         } else {
           setCurrentView('login');
         }
       } else {
-        // UNKNOWN ROUTE FALLBACK: Default safely to user dashboard or landing page
+        // UNKNOWN ROUTE FALLBACK: Check saved tab or default safely
         if (user) {
+          const savedTab = localStorage.getItem('trafficsell_last_tab') || 'overview';
           setCurrentView('dashboard');
-          setDashboardTab('overview');
+          setDashboardTab(savedTab);
         } else {
           setCurrentView('landing');
         }
@@ -197,49 +218,35 @@ function AppContent() {
   // Clean navigation helper with history & hash sync
   const navigateToRoute = (view: string, tab?: string) => {
     setCurrentView(view);
-    let targetPath = '/';
     let targetHash = '';
 
     if (view === 'landing') {
-      targetPath = '/';
+      targetHash = '#/';
     } else if (view === 'login') {
-      targetPath = '/login';
       targetHash = '#/login';
     } else if (view === 'register') {
-      targetPath = '/register';
       targetHash = '#/register';
     } else if (view === 'standalone-about') {
-      targetPath = '/about-us';
       targetHash = '#/about';
     } else if (view === 'standalone-privacy') {
-      targetPath = '/privacy';
       targetHash = '#/privacy';
     } else if (view === 'standalone-terms') {
-      targetPath = '/terms';
       targetHash = '#/terms';
     } else if (view === 'standalone-refund') {
-      targetPath = '/refund';
       targetHash = '#/refund';
     } else if (view === 'dashboard' && tab) {
       setDashboardTab(tab);
-      if (tab === 'overview') {
-        const uname = user?.username || (user?.email ? user.email.split('@')[0] : 'user');
-        targetPath = `/advertiser/${uname}`;
-        targetHash = '#/dashboard';
-      } else if (tab === 'social_ads') {
-        targetPath = '/social-ads';
-        targetHash = '#/social-ads';
-      } else {
-        targetPath = `/${tab}`;
-        targetHash = `#/${tab}`;
-      }
+      localStorage.setItem('trafficsell_last_tab', tab);
+      targetHash = `#/${tab.replace('_', '-')}`;
     }
 
     try {
-      window.history.pushState(null, '', targetHash || targetPath);
+      window.location.hash = targetHash;
+      if (window.history && window.history.pushState) {
+        window.history.pushState(null, '', targetHash);
+      }
     } catch (e) {
-      // Fallback to hash navigation if pushState is restricted
-      window.location.hash = targetHash || targetPath;
+      window.location.hash = targetHash;
     }
   };
 
@@ -369,30 +376,30 @@ function AppContent() {
           currentTab={dashboardTab}
           onSelectTab={(tab) => {
             if (tab === 'landing') {
-              setCurrentView('landing');
+              navigateToRoute('landing');
             } else {
-              setDashboardTab(tab);
+              navigateToRoute('dashboard', tab);
             }
           }}
         >
           {dashboardTab === 'overview' && (
             <OverviewView
-              onNavigate={(tab) => setDashboardTab(tab)}
+              onNavigate={(tab) => navigateToRoute('dashboard', tab)}
               onOpenReport={(cmp) => setReportCampaign(cmp)}
             />
           )}
 
           {dashboardTab === 'campaigns' && (
             <CampaignsView
-              onNavigate={(tab) => setDashboardTab(tab)}
+              onNavigate={(tab) => navigateToRoute('dashboard', tab)}
               onOpenReport={(cmp) => setReportCampaign(cmp)}
             />
           )}
 
           {dashboardTab === 'buy-traffic' && (
             <BuyTrafficView
-              onSuccess={() => setDashboardTab('campaigns')}
-              onGoDeposit={() => setDashboardTab('wallet')}
+              onSuccess={() => navigateToRoute('dashboard', 'campaigns')}
+              onGoDeposit={() => navigateToRoute('dashboard', 'wallet')}
             />
           )}
 

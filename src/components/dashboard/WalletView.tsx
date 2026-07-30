@@ -12,7 +12,7 @@ export const WalletView: React.FC = () => {
 
   const [activeTab, setActiveTab] = useState<'deposit' | 'history'>('deposit');
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>('JazzCash');
-  const [amount, setAmount] = useState<number>(50);
+  const [amount, setAmount] = useState<number | ''>('');
   const [trxRef, setTrxRef] = useState('');
   const [screenshotUrl, setScreenshotUrl] = useState('');
   const [isUploadingImgbb, setIsUploadingImgbb] = useState(false);
@@ -274,10 +274,11 @@ export const WalletView: React.FC = () => {
                   <input
                     type="number"
                     min={platformSettings.minDeposit}
-                    step="1"
+                    step="0.01"
                     required
+                    placeholder="Enter deposit amount in USD ($)"
                     value={amount}
-                    onChange={(e) => setAmount(Number(e.target.value))}
+                    onChange={(e) => setAmount(e.target.value === '' ? '' : Number(e.target.value))}
                     className="w-full pl-9 pr-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:border-[#DFFF2F]"
                   />
                 </div>
@@ -355,7 +356,7 @@ export const WalletView: React.FC = () => {
                 disabled={submitting || isUploadingImgbb || !screenshotUrl}
                 className="w-full py-3.5 bg-[#DFFF2F] hover:bg-[#cbe820] text-slate-950 font-black rounded-2xl text-sm transition-all shadow-lg flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {submitting ? 'Submitting...' : `Submit $${amount.toFixed(2)} Deposit for Verification`}
+                {submitting ? 'Submitting...' : `Submit ${amount ? '$' + Number(amount).toFixed(2) : ''} Deposit Request for Verification`}
               </button>
             </form>
           </div>
