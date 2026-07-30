@@ -58,12 +58,28 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, initialMode, onClo
 
   if (!isOpen) return null;
 
-  const handleSelectGoogleAccount = (selectedEmail: string, extractedName: string) => {
+  const handleSelectGoogleAccount = async (selectedEmail: string, extractedName: string) => {
     setGoogleEmail(selectedEmail);
     setEmail(selectedEmail);
     setFullName(extractedName);
     setUsername(selectedEmail.split('@')[0]);
-    setGoogleStep('details');
+
+    setError('');
+    setLoading(true);
+    try {
+      const loggedIn = await login(selectedEmail);
+      if (loggedIn) {
+        setLoading(false);
+        onSuccess();
+        return;
+      }
+    } catch (err: any) {
+      setMode('register');
+      setRegisterMethod('google');
+      setGoogleStep('details');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

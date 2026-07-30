@@ -16,7 +16,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
   onNavigateLogin,
   onRegisterSuccess,
 }) => {
-  const { register, signInWithGoogle } = useStore();
+  const { register, login, signInWithGoogle } = useStore();
 
   // Mode: 'choose' | 'google' | 'email'
   const [method, setMethod] = useState<'choose' | 'google' | 'email'>('choose');
@@ -67,12 +67,29 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
   }, []);
 
   // Handle Google Account selection
-  const handleSelectGoogleAccount = (selectedEmail: string, extractedName: string) => {
+  const handleSelectGoogleAccount = async (selectedEmail: string, extractedName: string) => {
     setGoogleEmail(selectedEmail);
     setEmail(selectedEmail);
     setFullName(extractedName);
     setUsername(selectedEmail.split('@')[0]);
-    setGoogleStep('details');
+
+    setError('');
+    // Check if user already exists
+    try {
+      const loggedIn = await login(selectedEmail);
+      if (loggedIn) {
+        try {
+          window.history.pushState(null, '', '#/dashboard');
+        } catch (e) {
+          window.location.hash = '#/dashboard';
+        }
+        onRegisterSuccess();
+        return;
+      }
+    } catch (err) {
+      // Account does not exist yet; proceed to profile details step
+      setGoogleStep('details');
+    }
   };
 
   // Submit registration (Google or Email flow)
