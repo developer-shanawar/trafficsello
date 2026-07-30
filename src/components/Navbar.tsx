@@ -171,7 +171,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAuth, onNavigateView, curr
                       onClick={() => { handleNavClick('wallet'); setProfileDropdownOpen(false); }}
                       className="w-full text-left px-3 py-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2 font-bold cursor-pointer"
                     >
-                      <Wallet className="w-4 h-4 text-emerald-600 dark:text-[#DFFF2F]" /> Wallet ({formatMoney(user.walletBalance)})
+                      <Wallet className="w-4 h-4 text-emerald-600 dark:text-[#DFFF2F]" /> Wallet & Deposit
                     </button>
                   </div>
 

@@ -121,11 +121,6 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ currentTab, on
                     <Icon className="w-4.5 h-4.5" />
                     {!isSidebarCollapsed && <span>{item.label}</span>}
                   </div>
-                  {!isSidebarCollapsed && item.id === 'wallet' && user && (
-                    <span className="text-[10px] font-mono font-extrabold px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-800 dark:text-[#DFFF2F]">
-                      {formatMoney(user.walletBalance)}
-                    </span>
-                  )}
                   {!isSidebarCollapsed && item.id === 'admin' && (
                     <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-500 uppercase">
                       Admin
@@ -321,11 +316,6 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ currentTab, on
                             <Icon className="w-4 h-4" />
                             <span>{item.label}</span>
                           </div>
-                          {item.id === 'wallet' && user && (
-                            <span className="text-[10px] font-mono font-black px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-[#DFFF2F]">
-                              {formatMoney(user.walletBalance)}
-                            </span>
-                          )}
                         </button>
                       );
                     })}
