@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
-  ArrowLeft, Mail, Lock, User, Phone, Send, Sparkles, CheckCircle2, ArrowRight, Gift, AlertCircle
+  ArrowLeft, Mail, Lock, User, Phone, Send, Sparkles, CheckCircle2, ArrowRight, Gift, AlertCircle, MailCheck, RefreshCw
 } from 'lucide-react';
 import { useStore } from '../lib/store';
 
@@ -16,7 +16,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
   onNavigateLogin,
   onRegisterSuccess,
 }) => {
-  const { register } = useStore();
+  const { register, resendConfirmationEmail } = useStore();
 
   // Form State
   const [fullName, setFullName] = useState('');
@@ -29,6 +29,12 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
   const [referralCode, setReferralCode] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Email Confirmation State
+  const [emailConfirmationSent, setEmailConfirmationSent] = useState(false);
+  const [confirmationEmail, setConfirmationEmail] = useState('');
+  const [resending, setResending] = useState(false);
+  const [resendMessage, setResendMessage] = useState('');
 
   // Auto detect referral code from URL or localStorage
   useEffect(() => {
@@ -65,7 +71,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
 
     setLoading(true);
     try {
-      await register({
+      const res = await register({
         fullName,
         email: cleanEmail,
         username: username || cleanEmail.split('@')[0],
@@ -77,11 +83,25 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
       });
 
       setLoading(false);
-      onRegisterSuccess();
+      if (res.requiresEmailConfirmation) {
+        setConfirmationEmail(cleanEmail);
+        setEmailConfirmationSent(true);
+      } else {
+        onRegisterSuccess();
+      }
     } catch (err: any) {
       setError(err.message || 'Registration failed');
       setLoading(false);
     }
+  };
+
+  const handleResend = async () => {
+    if (!confirmationEmail) return;
+    setResending(true);
+    setResendMessage('');
+    const res = await resendConfirmationEmail(confirmationEmail);
+    setResending(false);
+    setResendMessage(res.message);
   };
 
   return (
@@ -147,14 +167,65 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
           </div>
         </motion.div>
 
-        {/* Right Side: Direct Gmail Registration Form */}
+        {/* Right Side: Direct Gmail Registration Form / Confirmation Card */}
         <motion.div
           initial={{ opacity: 0, scale: 0.95, y: 10 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.1 }}
           className="lg:col-span-7 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border border-white dark:border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl relative text-[#111827] dark:text-white"
         >
-          <div className="mb-6">
+          {emailConfirmationSent ? (
+            <div className="text-center py-4 space-y-5">
+              <div className="w-16 h-16 rounded-3xl bg-emerald-500/10 dark:bg-[#DFFF2F]/20 text-emerald-600 dark:text-[#DFFF2F] flex items-center justify-center mx-auto border border-emerald-500/20 shadow-inner">
+                <MailCheck className="w-8 h-8" />
+              </div>
+
+              <div>
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-emerald-500/10 text-emerald-700 dark:bg-[#DFFF2F]/20 dark:text-[#DFFF2F] uppercase tracking-wider mb-2">
+                  <Sparkles className="w-3.5 h-3.5" /> Action Required
+                </span>
+                <h2 className="text-2xl font-black text-[#111827] dark:text-white">Check Your Gmail Inbox</h2>
+                <p className="text-xs text-slate-600 dark:text-slate-400 mt-2 max-w-md mx-auto leading-relaxed">
+                  We sent a confirmation link to <strong className="text-[#111827] dark:text-white">{confirmationEmail}</strong>. Please open your Gmail inbox and click the confirmation link to activate your TrafficSell account.
+                </p>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-left text-xs text-amber-800 dark:text-amber-300 space-y-1">
+                <strong className="block font-bold">Didn't find the email?</strong>
+                <p className="text-[11px] opacity-90">1. Please check your Gmail <strong>Spam or Junk</strong> folder.</p>
+                <p className="text-[11px] opacity-90">2. Ensure you entered the exact email address correctly.</p>
+              </div>
+
+              {resendMessage && (
+                <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-300 text-xs font-semibold rounded-xl text-center">
+                  {resendMessage}
+                </div>
+              )}
+
+              <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+                <button
+                  type="button"
+                  onClick={handleResend}
+                  disabled={resending}
+                  className="w-full sm:w-auto px-5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-bold text-[#111827] dark:text-white hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${resending ? 'animate-spin' : ''}`} />
+                  {resending ? 'Resending Link...' : 'Resend Confirmation Email'}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={onNavigateLogin}
+                  className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-[#111827] dark:bg-[#DFFF2F] text-white dark:text-[#111827] text-xs font-bold hover:opacity-90 transition-opacity flex items-center justify-center gap-2 cursor-pointer shadow-md"
+                >
+                  Go to Sign In Page
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="mb-6">
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-[#111827] text-[#DFFF2F] dark:bg-[#DFFF2F]/20 dark:text-[#DFFF2F] uppercase tracking-wider mb-2">
               <Sparkles className="w-3.5 h-3.5" /> Gmail Account Registration
             </span>
@@ -363,6 +434,8 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({
               Sign in here
             </button>
           </div>
+            </>
+          )}
         </motion.div>
       </div>
     </div>

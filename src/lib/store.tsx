@@ -1052,7 +1052,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     const isMasterAdmin = cleanEmail === 'developershanawar@gmail.com';
 
-    // Check existing user in Supabase
+    // Check existing user in Supabase users table
     const { data: dbUsers } = await supabase.from('users').select('*').eq('email', cleanEmail);
     if (dbUsers && dbUsers.length > 0) {
       throw new Error(`An account with email "${data.email}" already exists. Please sign in instead.`);
@@ -1091,8 +1091,47 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       }
     }
 
+    // Trigger Supabase Auth sign-up to dispatch confirmation email link to user's inbox
+    const redirectUrl = window.location.origin;
+    let authUserId = `usr_${Date.now()}`;
+
+    try {
+      const { data: signUpData, error: signUpErr } = await supabase.auth.signUp({
+        email: cleanEmail,
+        password: data.password || 'TrafficSell2026!',
+        options: {
+          emailRedirectTo: redirectUrl,
+          data: {
+            full_name: data.fullName,
+            username: data.username || cleanEmail.split('@')[0],
+            telegram: data.telegram || '',
+            whats_app: data.whatsApp || '',
+            referral_code: newRefCode,
+            referred_by: referrerId
+          }
+        }
+      });
+
+      if (signUpErr) {
+        console.warn('Supabase Auth signUp notice:', signUpErr.message);
+        if (signUpErr.message.toLowerCase().includes('already registered')) {
+          throw new Error(`An account with email "${cleanEmail}" is already registered. Please sign in.`);
+        }
+      }
+
+      if (signUpData?.user?.id) {
+        authUserId = signUpData.user.id;
+      }
+    } catch (authErr: any) {
+      if (authErr.message?.toLowerCase().includes('already registered')) {
+        throw authErr;
+      }
+      console.warn('Proceeding with user record creation:', authErr);
+    }
+
+    const isVerified = isMasterAdmin; // Regular users require email confirmation via Supabase link
     const newUser: UserProfile = {
-      id: `usr_${Date.now()}`,
+      id: authUserId,
       email: cleanEmail,
       username: data.username || cleanEmail.split('@')[0],
       password: data.password || '',
@@ -1106,7 +1145,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       ipAddress: clientIp,
       registrationIp: clientIp,
       lastLoginIp: clientIp,
-      isVerified: true,
+      isVerified: isVerified,
       isSuspended: false,
       referralCode: newRefCode,
       referredBy: referrerId,
@@ -1124,7 +1163,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       wallet_balance: newUser.walletBalance,
       role: newUser.role,
       avatar: newUser.avatar,
-      is_verified: true,
+      is_verified: isVerified,
       is_suspended: false,
       created_at: newUser.createdAt,
       referral_code: newUser.referralCode,
@@ -1163,20 +1202,31 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     setAllUsers(prev => [...prev.filter(u => u.email.toLowerCase() !== newUser.email.toLowerCase()), newUser]);
 
-    setUser(newUser);
-    localStorage.setItem('trafficsell_current_user', JSON.stringify(newUser));
-
-    triggerToast(
-      'Welcome to TrafficSell 🎉',
-      `Your account has been created successfully! Welcome, ${newUser.fullName}.`,
-      'success'
-    );
-
-    return {
-      success: true,
-      requiresEmailConfirmation: false,
-      email: cleanEmail
-    };
+    if (isMasterAdmin) {
+      setUser(newUser);
+      localStorage.setItem('trafficsell_current_user', JSON.stringify(newUser));
+      triggerToast(
+        'Welcome Admin 🎉',
+        `Master admin account registered & verified! Welcome, ${newUser.fullName}.`,
+        'success'
+      );
+      return {
+        success: true,
+        requiresEmailConfirmation: false,
+        email: cleanEmail
+      };
+    } else {
+      triggerToast(
+        'Confirmation Link Sent 📩',
+        `A verification email has been sent to ${cleanEmail}. Please click the confirmation link in your Gmail inbox to activate your account.`,
+        'info'
+      );
+      return {
+        success: true,
+        requiresEmailConfirmation: true,
+        email: cleanEmail
+      };
+    }
   };
 
   const logout = () => {

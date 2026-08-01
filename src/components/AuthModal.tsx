@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Mail, Lock, User, Phone, Send, Sparkles, ArrowRight, Gift, AlertCircle } from 'lucide-react';
+import { X, Mail, Lock, User, Phone, Send, Sparkles, ArrowRight, Gift, AlertCircle, MailCheck, RefreshCw } from 'lucide-react';
 import { useStore } from '../lib/store';
 
 interface AuthModalProps {
@@ -12,7 +12,7 @@ interface AuthModalProps {
 
 export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, initialMode, onClose, onSuccess }) => {
   const [mode, setMode] = useState<'login' | 'register'>(initialMode);
-  const { login, register } = useStore();
+  const { login, register, resendConfirmationEmail } = useStore();
 
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
@@ -24,6 +24,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, initialMode, onClo
   const [referralCode, setReferralCode] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Email confirmation state
+  const [emailConfirmationSent, setEmailConfirmationSent] = useState(false);
+  const [confirmationEmail, setConfirmationEmail] = useState('');
+  const [resending, setResending] = useState(false);
+  const [resendMsg, setResendMsg] = useState('');
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -59,7 +65,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, initialMode, onClo
           return;
         }
 
-        await register({
+        const res = await register({
           fullName,
           email: cleanEmail,
           username: username || cleanEmail.split('@')[0],
@@ -71,7 +77,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, initialMode, onClo
         });
 
         setLoading(false);
-        onSuccess();
+        if (res.requiresEmailConfirmation) {
+          setConfirmationEmail(cleanEmail);
+          setEmailConfirmationSent(true);
+        } else {
+          onSuccess();
+        }
       } else {
         await login(cleanEmail, password);
         setLoading(false);
@@ -81,6 +92,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, initialMode, onClo
       setError(err.message || 'Authentication failed. Please verify credentials.');
       setLoading(false);
     }
+  };
+
+  const handleResend = async () => {
+    if (!confirmationEmail && !email) return;
+    const targetEmail = confirmationEmail || email;
+    setResending(true);
+    setResendMsg('');
+    const res = await resendConfirmationEmail(targetEmail);
+    setResending(false);
+    setResendMsg(res.message);
   };
 
   return (
@@ -110,7 +131,61 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, initialMode, onClo
             <X className="w-5 h-5" />
           </button>
 
-          {/* Modal Header */}
+          {emailConfirmationSent ? (
+            <div className="text-center py-4 space-y-4">
+              <div className="w-14 h-14 rounded-2xl bg-[#DFFF2F]/20 text-[#DFFF2F] flex items-center justify-center mx-auto border border-[#DFFF2F]/30">
+                <MailCheck className="w-7 h-7" />
+              </div>
+
+              <div>
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold bg-[#DFFF2F]/10 text-[#DFFF2F] uppercase tracking-wider mb-2">
+                  <Sparkles className="w-3.5 h-3.5" /> Action Required
+                </span>
+                <h2 className="text-xl font-extrabold text-white">Check Your Gmail Inbox</h2>
+                <p className="text-xs text-slate-300 mt-2 leading-relaxed">
+                  We sent a confirmation link to <strong className="text-white">{confirmationEmail}</strong>. Please click the link in your email to confirm your account.
+                </p>
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 text-left text-xs text-slate-300 space-y-1">
+                <strong className="block font-bold text-amber-400">Can't find the email?</strong>
+                <p className="text-[11px] text-slate-400">1. Check your Gmail <strong>Spam / Junk</strong> folder.</p>
+                <p className="text-[11px] text-slate-400">2. Verify email address is typed correctly.</p>
+              </div>
+
+              {resendMsg && (
+                <div className="p-2.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold rounded-xl text-center">
+                  {resendMsg}
+                </div>
+              )}
+
+              <div className="pt-2 space-y-2">
+                <button
+                  type="button"
+                  onClick={handleResend}
+                  disabled={resending}
+                  className="w-full py-2.5 rounded-xl border border-slate-700 bg-slate-800 text-xs font-bold text-white hover:bg-slate-700 transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${resending ? 'animate-spin' : ''}`} />
+                  {resending ? 'Resending Link...' : 'Resend Confirmation Email'}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEmailConfirmationSent(false);
+                    setMode('login');
+                  }}
+                  className="w-full py-2.5 rounded-xl bg-[#DFFF2F] text-slate-900 text-xs font-bold hover:bg-[#cbe820] transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md"
+                >
+                  Switch to Sign In
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+          ) : (
+            <>
+              {/* Modal Header */}
           <div className="mb-5">
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold bg-[#DFFF2F]/10 text-[#DFFF2F] border border-[#DFFF2F]/20 uppercase tracking-wider mb-2">
               <Sparkles className="w-3.5 h-3.5" /> TrafficSell Platform Portal
@@ -322,6 +397,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, initialMode, onClo
               </span>
             )}
           </div>
+            </>
+          )}
         </motion.div>
       </div>
     </AnimatePresence>
