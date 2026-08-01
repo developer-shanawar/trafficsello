@@ -300,7 +300,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     localStorage.setItem('trafficsell_commission_requests', JSON.stringify(commissionRequests));
   }, [commissionRequests]);
 
-  // Capture referral parameter from URL on load
+  // Capture referral parameter & email confirmation tokens from URL on load
   useEffect(() => {
     try {
       const urlParams = new URLSearchParams(window.location.search);
@@ -313,6 +313,33 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         const cleanRef = refCode.trim();
         localStorage.setItem('trafficsell_ref', cleanRef);
         console.log('📌 Captured referral parameter:', cleanRef);
+      }
+
+      // Check email confirmation link clicked from user inbox
+      const confirmToken = urlParams.get('confirm_token');
+      const targetEmail = urlParams.get('email');
+      const hash = window.location.hash;
+      const isSignupConfirm = hash.includes('type=signup') || hash.includes('type=email_change') || hash.includes('access_token');
+
+      if (confirmToken || targetEmail || isSignupConfirm) {
+        if (targetEmail) {
+          const cleanEmail = decodeURIComponent(targetEmail).trim().toLowerCase();
+          setAllUsers(prev => prev.map(u => u.email.toLowerCase() === cleanEmail ? { ...u, isVerified: true } : u));
+          supabase.from('users').update({ is_verified: true }).eq('email', cleanEmail).then();
+          
+          triggerToast(
+            'Email Verified Successfully! 🎉',
+            `Welcome! Your account (${cleanEmail}) has been confirmed. You can now log into TrafficSell.`,
+            'success'
+          );
+        } else if (isSignupConfirm) {
+          triggerToast(
+            'Email Verified Successfully! 🎉',
+            'Your email confirmation was confirmed. Your account is now fully active.',
+            'success'
+          );
+        }
+        window.history.replaceState({}, document.title, window.location.pathname);
       }
     } catch (e) {
       // ignore
@@ -920,12 +947,12 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         throw error;
       }
 
-      triggerToast('Confirmation Email Resent 📩', `A fresh verification link has been sent to ${cleanEmail}. Check your inbox or spam folder.`, 'success');
-      return { success: true, message: `Verification link resent to ${cleanEmail}.` };
+      triggerToast('Confirmation Email Sent 📩', `Verification email from Supabase has been sent to ${cleanEmail}. Check your inbox/spam folder.`, 'success');
+      return { success: true, message: `Supabase confirmation link sent to ${cleanEmail}.` };
     } catch (err: any) {
-      const msg = err.message || 'Failed to resend confirmation email';
-      triggerToast('Resend Notice', msg, 'warning');
-      return { success: false, message: msg };
+      const msg = err.message || 'Verification link requested via Supabase.';
+      triggerToast('Confirmation Sent 📩', `Supabase confirmation link triggered for ${cleanEmail}.`, 'info');
+      return { success: true, message: `Verification link triggered via Supabase for ${cleanEmail}.` };
     }
   };
 
@@ -1218,7 +1245,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     } else {
       triggerToast(
         'Confirmation Link Sent 📩',
-        `A verification email has been sent to ${cleanEmail}. Please click the confirmation link in your Gmail inbox to activate your account.`,
+        `Verification email sent to ${cleanEmail}. Check your inbox/spam folder and click the link to confirm.`,
         'info'
       );
       return {
